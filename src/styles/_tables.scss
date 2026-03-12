@@ -1,0 +1,627 @@
+// ═══════════════════════════════════════════════════════════════
+// TABLES — tabla de líneas de documentos
+// Usado en: todos los formularios con items (cotizaciones, pedidos, entregas)
+// ═══════════════════════════════════════════════════════════════
+
+/* ── Wrapper con scroll horizontal ── */
+.table-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+
+  &::-webkit-scrollbar { height: 5px; }
+  &::-webkit-scrollbar-track { background: var(--bg-subtle); border-radius: 0 0 var(--radius-md) var(--radius-md); }
+  &::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+}
+
+/* ── Tabla ── */
+.lines-table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+
+  th {
+    padding: 9px 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-faint);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+
+    &.th-discount { color: var(--color-warning); }
+    &.th-cost     { color: var(--color-cost, #7c3aed); }  // token: light=purple-700, dark=purple-400
+  }
+
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+    color: var(--text-body);
+
+    select,
+    input[type="number"],
+    input[type="text"] {
+      padding: 6px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text-heading);
+      background: var(--bg-surface);
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+      transition: border-color var(--transition);
+    }
+
+    input[type="number"] {
+      text-align: right;
+      font-family: var(--font-mono);
+    }
+
+    select,
+    input[type="number"],
+    input[type="text"] {
+      &:focus         { outline: none; }
+      &:focus-visible {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: var(--focus-ring);
+      }
+      &:disabled {
+        background: var(--bg-subtle);
+        color: var(--text-faint);
+        cursor: not-allowed;
+      }
+    }
+
+    &.td-discount { background: rgba(245, 158, 11, 0.04); }
+    &.td-cost     { background: rgba(167, 139, 250, 0.04); }
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td      { background: var(--bg-faint); }
+  tbody tr:hover td.td-discount { background: rgba(245, 158, 11, 0.07); }
+  tbody tr:hover td.td-cost     { background: rgba(167, 139, 250, 0.07); }
+}
+
+/* ── Anchos de columnas estándar ── */
+.col-item    { min-width: 220px; width: 220px; }
+.col-wh      { min-width: 150px; width: 150px; }
+.col-qty     { width: 88px;  }
+.col-price   { width: 108px; }
+.col-dsc-pct { width: 80px;  }
+.col-dsc-amt { width: 100px; }
+.col-dsc-tot { width: 92px;  }
+.col-net     { width: 100px; }
+.col-weight  { width: 90px;  }
+.col-cost    { width: 96px;  }
+.col-tax     { min-width: 140px; width: 140px; }
+.col-tax-amt { width: 80px; text-align: right; }
+.col-line-status { width: 110px; }
+.col-actions { width: 36px;  }
+
+/* ── Celdas de valor numérico ── */
+.number-cell {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-heading);
+}
+
+.number-cell-sm {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Botón quitar línea ── */
+.btn-remove {
+  padding: 4px 8px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  transition: opacity var(--transition);
+
+  &:hover:not(:disabled) { opacity: 0.75; }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+/* ── Botón agregar línea ── */
+.btn-add-line {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+
+  &:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
+}
+
+/* ── Columnas de estado de pedido/entrega ── */
+.col-secondary   { color: var(--text-muted); font-size: 13px; }
+th.col-secondary { color: var(--text-faint); }
+th.col-pending   { color: var(--color-warning); font-weight: 700; }
+.col-pending     { color: var(--color-warning); font-weight: 600; }
+.col-fulfilled   { color: var(--color-success); font-weight: 600; }
+.col-cost-val    { color: var(--color-cost, #7c3aed); font-weight: 600; }
+
+/* ── Pestaña Costos — valor y margen por línea ── */
+.cost-val {
+  color: var(--color-cost, #7c3aed);
+  font-weight: 600;
+}
+.cost-readonly {
+  display: block;
+  text-align: right;
+  padding: 0 4px;
+}
+.margin-chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  &.margin-pos { background: rgba(34,197,94,0.12); color: var(--color-success); }
+  &.margin-neg { background: rgba(239,68,68,0.12);  color: var(--color-danger);  }
+}
+
+/* ── Valor vacío/nulo ── */
+.no-value { color: var(--text-faint); }
+
+/* ── Nombre de artículo readonly en celdas de entrega ── */
+.item-name-cell {
+  font-size: 13px;
+  color: var(--text-heading);
+  font-weight: 500;
+}
+
+/* ── Celda de cantidad pendiente con color de alerta ── */
+.pending-cell {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+/* ── Cantidad readonly ── */
+.qty-readonly {
+  display: block;
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-heading);
+  padding: 0 4px;
+}
+
+/* ── Buscador de artículos dentro de celda ── */
+.item-search-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 120px;
+}
+
+.item-search-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-heading);
+  background: var(--bg-surface);
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color var(--transition);
+
+  &:focus         { outline: none; }
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+  }
+  &:disabled {
+    background: var(--bg-subtle);
+    color: var(--text-faint);
+    cursor: not-allowed;
+  }
+}
+
+.item-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Variante fixed — usada cuando el dropdown está dentro de un contenedor con overflow */
+.item-dropdown-fixed {
+  position: fixed !important;
+  z-index: 9999;
+}
+
+.item-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-soft);
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--color-primary-bg); }
+
+  .item-option-name {
+    font-size: 13px;
+    color: var(--text-heading);
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .item-option-code {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: monospace;
+    white-space: nowrap;
+  }
+
+  &.item-no-results {
+    color: var(--text-faint);
+    font-size: 13px;
+    cursor: default;
+    justify-content: center;
+  }
+}
+
+/* ── Switcher de pestañas (Detalle / Costos) ── */
+.tab-switcher {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-subtle);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.tab-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition);
+
+  &:hover { color: var(--text-body); }
+
+  &.active {
+    background: var(--bg-surface);
+    color: var(--text-heading);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   MÓVIL — tabla como tarjetas apiladas
+   ═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  // ── El wrapper no hace scroll, las cards se apilan ──
+  .table-scroll-wrap {
+    border: none;
+    border-radius: 0;
+    overflow-x: visible;
+    background: transparent;
+  }
+
+  // ── Tabla → layout de cards ──
+  .lines-table {
+    min-width: unset;
+    display: block;
+
+    thead { display: none; }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 0;
+      border-bottom: none;
+      background: transparent !important;
+      font-size: 13.5px;
+
+      // Etiqueta autogenerada desde data-label
+      &::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-faint);
+      }
+
+      input[type="number"],
+      input[type="text"]  { font-size: 14px; padding: 8px 10px; }
+    }
+
+    // Artículo: ancho completo, sin etiqueta
+    td[data-label="Artículo"] {
+      grid-column: 1 / -1;
+      &::before { display: none; }
+    }
+
+    // Estado de línea: ancho completo
+    .td-line-status {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    // Acciones: ancho completo, al final
+    .td-actions {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      justify-content: flex-end;
+      &::before { display: none; }
+    }
+  }
+
+  // ── Chip de margen en móvil ──
+  .margin-chip { font-size: 13px; padding: 3px 9px; }
+}
+
+// ── Pestañas en móvil: el section-header apila título + tabs ──
+@media (max-width: 560px) {
+  .section-header-tabs {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+
+    .tab-switcher {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+      // Asegura que los botones no se compriman
+      flex-shrink: 0;
+      justify-content: flex-start;
+    }
+  }
+
+  // Tab buttons: texto más corto en pantallas pequeñas
+  .tab-btn {
+    padding: 5px 11px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// DISCOUNT MODE TOGGLE — toggle pill para seleccionar modo
+// de descuento (por línea / global). Usado en forms de venta.
+// ══════════════════════════════════════════════════════════
+
+.discount-toggle-group {
+  display: inline-flex;
+  gap: 0;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  align-items: center;
+}
+
+.discount-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  line-height: 1.4;
+
+  .discount-toggle-icon {
+    font-size: 15px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+
+  &:hover:not(:disabled):not(.active) {
+    color: var(--text-body);
+    background: rgba(0, 0, 0, 0.04);
+    .discount-toggle-icon { opacity: 0.8; }
+  }
+
+  &.active {
+    background: var(--bg-surface);
+    color: var(--color-primary-text);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+
+    .discount-toggle-icon {
+      opacity: 1;
+      color: var(--color-primary);
+    }
+  }
+
+  &:disabled { cursor: default; opacity: 0.6; }
+  &:focus { outline: none; }
+  &:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+}
+
+.discount-mode-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.4;
+  margin-top: 4px;
+
+  strong { color: var(--text-muted); font-weight: 600; }
+}
+
+// form-row donde aparece el toggle + campos de header (hasta 4 columnas)
+.discount-mode-row {
+  grid-template-columns: auto 1fr 1fr 1fr;
+  align-items: start;
+
+  @media (max-width: 768px) { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 500px) { grid-template-columns: 1fr; }
+}
+
+// ── Pestaña Descuentos — columnas ─────────────────────────────────
+.col-dsc-pct  { width: 90px;  min-width: 80px; }
+.col-dsc-amt  { width: 110px; min-width: 96px; }
+.col-dsc-tot  { width: 100px; min-width: 88px; }
+
+.th-discount {
+  color: var(--color-warning, #f59e0b);
+  font-weight: 700;
+}
+
+.td-discount input[type="number"] { max-width: 96px; }
+
+// Valor de descuento con color semántico (texto naranja)
+.discount-value {
+  color: var(--color-warning, #d97706);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+// ── Resumen al pie de la pestaña Descuentos ───────────────────────
+.discounts-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-md);
+
+  .discounts-summary-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .discounts-summary-value {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+}
+
+// ── Dark mode ──────────────────────────────────────────────────────
+[data-theme="dark"] {
+  .discount-toggle-group {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .discount-toggle-btn {
+    &:hover:not(:disabled):not(.active) {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    &.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      .discount-toggle-icon { color: #60a5fa; }
+    }
+  }
+
+  .discounts-summary {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.25);
+  }
+
+  .discount-value { color: #fbbf24; }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// COLUMNAS OPCIONALES EN MOBILE
+// Clases utilitarias para ocultar columnas secundarias en pantallas
+// pequeñas. Se aplican tanto al <th> como al <td> correspondiente.
+//
+//   col-hide-mobile     → oculta en ≤640px (tablas → cards)
+//   col-hide-tablet     → oculta en ≤768px (tablet pequeño)
+//
+// Uso en HTML:
+//   <th class="col-qty col-hide-mobile">Cotiz.</th>
+//   <td class="number-cell col-hide-mobile" data-label="Cotiz.">...</td>
+//
+// Criterio de qué ocultar:
+//   - Detalle:    Cotiz. / Stock disp. / Entregado → col-hide-mobile
+//   - Descuentos: Imp. Bs / Dto. monto             → col-hide-mobile
+//   - Costos:     Costo total / Peso unit. / Peso total → col-hide-mobile
+//   - Impuestos:  Tasa                             → col-hide-mobile
+// ══════════════════════════════════════════════════════════════════
+
+@media (max-width: 640px) {
+  .col-hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .col-hide-tablet {
+    display: none !important;
+  }
+}

@@ -1,0 +1,54 @@
+<div class="login-page">
+  <div class="login-card">
+
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect x="2"  y="2"  width="9" height="9" rx="2" fill="#3b82f6"/>
+          <rect x="13" y="2"  width="9" height="9" rx="2" fill="#3b82f6" opacity=".5"/>
+          <rect x="2"  y="13" width="9" height="9" rx="2" fill="#3b82f6" opacity=".5"/>
+          <rect x="13" y="13" width="9" height="9" rx="2" fill="#3b82f6"/>
+        </svg>
+      </div>
+      <span class="brand-name">Rendiciones</span>
+      <p class="brand-sub">Sistema de Rendiciones — Grupo Roda</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+
+      <div class="form-field">
+        <label for="username">Usuario</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          placeholder="Tu usuario de acceso"
+          autocomplete="username"
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="password">Contraseña</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <p class="login-error" *ngIf="error">{{ error }}</p>
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-lg login-submit"
+        [disabled]="loading || form.invalid"
+      >
+        {{ loading ? 'Ingresando...' : 'Acceder' }}
+      </button>
+
+    </form>
+
+  </div>
+</div>

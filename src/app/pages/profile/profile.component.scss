@@ -1,0 +1,171 @@
+// Estilos globales reutilizados (.page-header h2, .form-field, .form-row, .btn,
+// .btn-primary, .required, .field-error, .role-admin, .role-user, .status-active,
+// .status-dot, .status-badge) cubiertos por el sistema global.
+// Aquí solo vive el layout exclusivo del perfil.
+
+// ── Contenedor de página ────────────────────────────────────
+.profile-page {
+  padding: 32px;
+  max-width: 1000px;
+
+  @media (max-width: 768px) { padding: 20px 16px; }
+}
+
+// ── Layout de dos columnas ───────────────────────────────────
+.profile-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 768px) { grid-template-columns: 1fr; }
+}
+
+// ── Tarjeta de identidad ─────────────────────────────────────
+.identity-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 28px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.avatar-wrap { position: relative; }
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.identity-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.identity-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.identity-email {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.identity-meta {
+  width: 100%;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-label {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
+.meta-value {
+  font-size: 13px;
+  color: var(--text-body);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+// ── Columna de formularios ───────────────────────────────────
+.forms-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Section card ─────────────────────────────────────────────
+.section-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-heading);
+  }
+}
+
+.form-body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.section-footer {
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+// ── Campo con ancho limitado ─────────────────────────────────
+.form-field.half { max-width: 50%; }
+
+// ── Feedback de guardado ─────────────────────────────────────
+.save-feedback {
+  font-size: 13px;
+  color: var(--color-success);
+  font-weight: 500;
+  animation: profile-fade-in 0.2s ease;
+}
+
+.save-error {
+  font-size: 13px;
+  color: var(--color-danger);
+  font-weight: 500;
+  animation: profile-fade-in 0.2s ease;
+}
+
+@keyframes profile-fade-in {
+  from { opacity: 0; transform: translateY(2px) }
+  to   { opacity: 1; transform: none }
+}

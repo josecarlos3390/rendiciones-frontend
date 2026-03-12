@@ -1,0 +1,128 @@
+// ═══════════════════════════════════════════════════════════════
+// users.component.scss
+// Clases globales usadas (no se redefinen aquí):
+//   Modal    → .modal-backdrop, .modal-header, .modal-body, .modal-footer  (_modals.scss)
+//   Form     → .form-field, .form-row, .form-section-label, .field-changed (_forms.scss)
+//   Layout   → .modal-2col-layout, .modal-col, .modal-2col-footer          (_forms.scss)
+//   Perms    → .perms-card, .perm-row, .perm-info, .perm-name, .perm-desc  (_forms.scss)
+//   Botones  → .btn, .btn-ghost, .btn-primary, .btn-save-changes            (_buttons.scss / _forms.scss)
+//   Tabla    → .data-table, .table-wrapper, .perm-badges, .bool-dot, etc.  (_lists.scss)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Modal container (más ancho que .modal-card estándar) ─────────
+.user-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-modal);
+  animation: _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes _modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+// ── Toggle switch — componente autocontenido (.u-toggle) ─────────
+// Patrón: <label class="u-toggle">
+//           <input type="checkbox" ... />
+//           <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+//         </label>
+//
+// El input va DENTRO del label → no necesita id/for
+// y no conflictúa con ninguna regla global de .toggle-switch.
+
+.u-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  // Ocultar el checkbox nativo
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+
+    // Estado: activo
+    &:checked ~ .u-toggle__track {
+      background: var(--color-primary);
+    }
+    &:checked ~ .u-toggle__track .u-toggle__thumb {
+      transform: translateX(18px);
+    }
+
+    // Focus visible con teclado
+    &:focus-visible ~ .u-toggle__track {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.u-toggle__track {
+  display: block;
+  width: 40px;
+  height: 22px;
+  background: var(--border-color);
+  border-radius: 11px;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.u-toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: var(--bg-surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+// ── Celda de usuario (login + supervisor) ───────────────────────
+.user-cell-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.user-login {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-heading);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.user-sup {
+  font-size: 11.5px;
+}
+
+// ── Fecha expirada ───────────────────────────────────────────────
+.text-expired {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+// ── Fila inactiva en tabla ───────────────────────────────────────
+.row-inactive td { opacity: 0.5; }
+.avatar-inactive { background: var(--text-faint) !important; filter: grayscale(1); }
+
+// ── Responsive ───────────────────────────────────────────────────
+@media (max-width: 700px) {
+  .user-modal {
+    max-height: 96vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}

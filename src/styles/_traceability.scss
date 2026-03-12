@@ -1,0 +1,46 @@
+// ═══════════════════════════════════════════════════════════════
+// _traceability.scss
+// Estilos para: panel de trazabilidad, badges de estado de línea,
+// y filas dimmed cuando una línea está CLOSED.
+// Agregar en src/styles/_index.scss: @forward 'traceability';
+// ═══════════════════════════════════════════════════════════════
+
+// ── Wrapper del panel (espaciado en el formulario) ────────────
+.traceability-wrap {
+  margin-bottom: 16px;
+}
+
+// ── Columna de estado de línea en la tabla ────────────────────
+.col-line-status {
+  white-space: nowrap;
+  width: 90px;
+  text-align: center;
+}
+
+.td-line-status {
+  text-align: center;
+  white-space: nowrap;
+}
+
+// ── Fila con línea cerrada: visualmente "apagada" ─────────────
+// La línea sigue visible para auditoría, pero el usuario ve que
+// ya fue completamente procesada y no necesita acción.
+.row-line-closed {
+  td {
+    opacity: 0.55;
+    background: var(--bg-faint, #f8fafc) !important;
+  }
+
+  // El badge sí se mantiene legible
+  .td-line-status td,
+  .td-line-status {
+    opacity: 1 !important;
+  }
+}
+
+// Dark mode override
+@media (prefers-color-scheme: dark) {
+  .row-line-closed td {
+    background: rgba(255, 255, 255, 0.03) !important;
+  }
+}

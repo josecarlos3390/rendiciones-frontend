@@ -1,0 +1,160 @@
+<div class="profile-page">
+
+  <!-- ── Encabezado ────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="form-title-group">
+      <button class="back-btn" type="button" (click)="closeProfile()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Volver
+      </button>
+      <h2>Mi Perfil</h2>
+    </div>
+  </div>
+
+  <div class="profile-layout">
+
+    <!-- ── Tarjeta de identidad ──────────────────────── -->
+    <div class="identity-card">
+      <div class="avatar-wrap">
+        <div class="avatar">{{ initial }}</div>
+      </div>
+      <div class="identity-info">
+        <span class="identity-name">{{ user?.U_NomUser || '—' }}</span>
+        <span class="identity-email">{{ user?.U_Login }}</span>
+        <span class="role-badge"
+          [class.role-admin]="user?.U_SuperUser === 1"
+          [class.role-user]="user?.U_SuperUser === 0">
+          {{ roleLabel }}
+        </span>
+      </div>
+      <div class="identity-meta">
+        <div class="meta-item">
+          <span class="meta-label">Expira</span>
+          <span class="meta-value">{{ user?.U_FECHAEXPIRACION | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Estado</span>
+          <span class="status-badge" [class.status-active]="user?.U_Estado === 'A'" [class.status-inactive]="user?.U_Estado === 'I'">
+            <span class="status-dot"></span>{{ user?.U_Estado === 'A' ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Columna derecha ────────────────────────────── -->
+    <div class="forms-col">
+
+      <!-- Datos personales -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <h3>Datos personales</h3>
+          </div>
+        </div>
+
+        <form [formGroup]="profileForm" class="form-body">
+          <div class="form-row">
+            <div class="form-field">
+              <label>Nombre completo <span class="required">*</span></label>
+              <input type="text" formControlName="name" placeholder="Tu nombre completo" />
+              <span class="field-error" *ngIf="profileForm.get('name')?.invalid && profileForm.get('name')?.touched">
+                El nombre es obligatorio
+              </span>
+            </div>
+            <div class="form-field">
+              <label>Login</label>
+              <input type="text" formControlName="login" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field half">
+              <label>Rol</label>
+              <input type="text" formControlName="role" />
+            </div>
+            <div class="form-field half">
+              <label>Acceso Rendiciones</label>
+              <input type="text" formControlName="appRend" />
+            </div>
+          </div>
+        </form>
+
+        <div class="section-footer">
+          <button
+            *ngIf="isProfileDirty"
+            class="btn btn-primary"
+            (click)="saveProfile()"
+            [disabled]="profileForm.invalid || isSavingProfile">
+            <svg *ngIf="!isSavingProfile" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17,21 17,13 7,13 7,21"/>
+              <polyline points="7,3 7,8 15,8"/>
+            </svg>
+            {{ isSavingProfile ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+          <button
+            *ngIf="!isProfileDirty"
+            class="btn btn-ghost"
+            (click)="closeProfile()">
+            OK
+          </button>
+        </div>
+      </div>
+
+      <!-- Cambiar contraseña -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <h3>Cambiar contraseña</h3>
+          </div>
+        </div>
+
+        <form [formGroup]="passwordForm" class="form-body">
+          <div class="form-field">
+            <label>Contraseña actual <span class="required">*</span></label>
+            <input type="password" formControlName="currentPassword" placeholder="••••••••" />
+            <span class="field-error" *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched">
+              Ingresa tu contraseña actual
+            </span>
+          </div>
+          <div class="form-field">
+            <label>Nueva contraseña <span class="required">*</span></label>
+            <input type="password" formControlName="newPassword" placeholder="Mínimo 6 caracteres" />
+            <span class="field-error" *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched">
+              Mínimo 6 caracteres
+            </span>
+          </div>
+          <div class="form-field">
+            <label>Confirmar nueva contraseña <span class="required">*</span></label>
+            <input type="password" formControlName="confirmPassword" placeholder="••••••••" />
+            <span class="field-error" *ngIf="passwordForm.get('confirmPassword')?.touched && passwordForm.hasError('mismatch')">
+              Las contraseñas no coinciden
+            </span>
+          </div>
+          <div class="field-error" *ngIf="passwordError">✕ {{ passwordError }}</div>
+        </form>
+
+        <div class="section-footer">
+          <button
+            class="btn"
+            [class.btn-primary]="isPasswordReady"
+            [class.btn-ghost]="!isPasswordReady"
+            (click)="changePassword()"
+            [disabled]="passwordForm.invalid || isSavingPassword">
+            {{ isSavingPassword ? 'Actualizando...' : (isPasswordReady ? 'Actualizar contraseña' : 'OK') }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

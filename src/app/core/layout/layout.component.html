@@ -1,0 +1,46 @@
+<div class="layout">
+  <!-- Botón flotante para expandir sidebar colapsado -->
+  <button 
+    class="sidebar-expand-btn" 
+    *ngIf="sidebarCollapsed" 
+    (click)="toggleSidebar()"
+    title="Expandir sidebar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </button>
+
+  <app-sidebar #sidebar (toggle)="onSidebarToggle($event)"></app-sidebar>
+
+  <!-- Botón para colapsar sidebar en desktop -->
+  <button 
+    class="sidebar-collapse-btn" 
+    *ngIf="!sidebarCollapsed" 
+    (click)="toggleSidebar()"
+    title="Colapsar sidebar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M15 18l-6-6 6-6"/>
+    </svg>
+  </button>
+
+  <main class="content" [class.collapsed]="sidebarCollapsed">
+    <!-- settingsReady garantiza que settings.snapshot tenga el valor real del servidor
+         antes de cualquier formulario de precios lo lea para calcular IVA. -->
+    @if (settingsReady) {
+      <router-outlet></router-outlet>
+    }
+  </main>
+</div>
+
+<!-- Toast global: montado una sola vez, visible en todas las páginas -->
+<app-toast></app-toast>
+
+<!-- Confirm dialog global: gestionado por ConfirmDialogService -->
+@if (confirm.state()) {
+  <app-confirm-dialog
+    [config]="confirm.state()!.config"
+    [visible]="true"
+    (confirmed)="confirm.resolve(true)"
+    (cancelled)="confirm.resolve(false)">
+  </app-confirm-dialog>
+}

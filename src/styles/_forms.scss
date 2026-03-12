@@ -1,0 +1,1451 @@
+// ═══════════════════════════════════════════════════════════════
+// FORMS — layout, sections, fields
+// Usado en: todos los formularios de documentos
+// ═══════════════════════════════════════════════════════════════
+
+/* ── Contenedor de página de formulario ── */
+.form-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  // Espacio inferior para que el sticky action-bar no tape el último campo
+  padding-bottom: 100px;
+
+  @media (max-width: 640px) { padding: 12px; padding-bottom: 90px; }
+  @media (max-width: 400px) { padding: 8px; padding-bottom: 84px; }
+}
+
+/* ── Cabecera ── */
+.form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;   // más compacto — el breadcrumb/banner debajo ya tiene su propio margin-bottom
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.form-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 0;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color var(--transition);
+
+  &:hover { color: var(--text-heading); }
+  &:focus { outline: none; }
+  &:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+}
+
+/* ── Banners informativos ── */
+.info-banner {
+  display: block;          // flujo de texto normal, no flex
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--color-warning);
+  strong { font-weight: 600; }
+  small  { display: block; margin-top: 4px; font-size: 12px; opacity: 0.85; }
+}
+
+.info-neutral {
+  background: var(--bg-subtle);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Banner con link de navegación a documento relacionado (ej. "esta entrega pertenece al Pedido X →") */
+.info-link-banner {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary-text);
+}
+
+/* Banner de borrador / draft — azul informativo */
+.info-draft {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #1d4ed8;
+}
+[data-theme="dark"] .info-draft {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+}
+
+/* Banner de advertencia — rojo suave (manual sin trazabilidad, acciones destructivas) */
+.info-warning {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+}
+[data-theme="dark"] .info-warning {
+  background: rgba(252, 165, 165, 0.08);
+  border-color: rgba(252, 165, 165, 0.3);
+  color: #fca5a5;
+}
+
+/* Banner pendiente de confirmar */
+.info-pending-confirm {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+[data-theme="dark"] .info-pending-confirm {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fcd34d;
+}
+
+/* Banner pendiente de facturar */
+.info-pending-invoice {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #92400e;
+}
+[data-theme="dark"] .info-pending-invoice {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fcd34d;
+}
+
+/* ── Estructura del formulario ── */
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-section {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 22px 28px;
+  position: relative;  // necesario para el overlay de sección bloqueada
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+
+  // Ligero realce al interactuar con la sección activa
+  &:focus-within {
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.08);
+    border-color: var(--color-primary-border);
+  }
+
+  [data-theme="dark"] &:focus-within {
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.12);
+  }
+
+  @media (max-width: 640px) { padding: 14px; }
+  @media (max-width: 400px) { padding: 12px 10px; }
+}
+
+.section-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  .section-title {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  @media (max-width: 560px) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* ── Grid de campos ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
+
+  // En pantallas grandes (>= 900px) 2 columnas es el default adecuado
+  @media (max-width: 640px) { grid-template-columns: 1fr; gap: 12px; }
+}
+
+// 3 columnas: default desde 760px, colapsa a 2 en tablet, 1 en móvil
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
+
+  @media (max-width: 760px) { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+// 4 columnas: para secciones muy densas (fechas, referencias, almacén)
+.form-row-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  &:last-child { margin-bottom: 0; }
+
+  @media (max-width: 900px) { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+/* ── Campo individual ── */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-label);
+  }
+
+  .required { color: var(--color-danger); }
+
+  select,
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--text-heading);
+    background: var(--bg-surface);
+    width: 100%;
+    font-family: inherit;
+    min-height: 40px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+
+    &:hover:not(:disabled):not(:focus) {
+      border-color: var(--text-faint);
+    }
+
+    &:focus         { outline: none; }
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: var(--focus-ring);
+    }
+
+    &:disabled {
+      background: var(--bg-subtle);
+      color: var(--text-faint);
+      cursor: not-allowed;
+    }
+  }
+
+  textarea { resize: vertical; }
+}
+
+.form-field-sm { flex: 0 0 auto; min-width: 120px; }
+
+.label-muted { color: var(--text-faint) !important; }
+
+.field-error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+/* Valor de solo lectura que imita un input */
+.readonly-value {
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: var(--bg-subtle);
+  color: var(--text-body);
+  font-family: var(--font-mono);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Barra de acciones — sticky en la parte inferior de la ventana ── */
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+
+  padding: 14px 32px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
+
+  // Compensar el sidebar — usa la misma variable que layout.component
+  // El sidebar emite un evento que añade/quita .collapsed al .content
+  // Aquí sincronizamos con el mismo breakpoint
+  margin-left: var(--sidebar-width, 240px);
+  transition: margin-left 0.22s cubic-bezier(.4,0,.2,1);
+
+  // Separador flexible — empuja todo lo que viene después al extremo derecho
+  // Se coloca en el HTML justo antes del botón Volver
+  .bar-spacer { margin-left: auto; }
+
+  // Fallback: si no hay bar-spacer, el btn-ghost actúa como separador
+  .btn-ghost { margin-left: auto; }
+  // Pero si hay btn-payment u otros btns después, anulamos el auto para que no se desplace
+  .btn-ghost + .btn-more,
+  .btn-ghost + .more-menu-wrap { margin-left: 0; }
+
+  [data-theme="dark"] & {
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    border-top-color: var(--border-color);
+  }
+
+  @media (max-width: 768px) {
+    margin-left: 0;
+    padding: 12px 16px;
+  }
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    padding: 10px 12px;
+
+    .btn { width: 100%; justify-content: center; }
+    .btn-ghost:last-of-type { margin-left: 0; }
+    .btn-ghost { order: 10; } // Volver al final en móvil
+  }
+}
+
+/* ── Popup post-creación ── */
+.popup-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-color);
+  padding: 36px 40px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-modal);
+  animation: popup-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popup-in {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.popup-icon    { font-size: 40px; margin-bottom: 16px; line-height: 1; }
+.popup-message { font-size: 16px; font-weight: 500; color: var(--text-heading); margin-bottom: 28px; line-height: 1.5; }
+.popup-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ── Enlace inline dentro de banners ── */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover { color: var(--color-primary-hover); }
+  &:focus { outline: none; }
+  &:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 2px; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ITEM FLAGS — clasificación (Venta / Compra / Inventario)
+// Usado en: item-detail (page) e item-form (modal)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Grid de toggles ───────────────────────────────────────────
+// ── Grid de 3 tarjetas de clasificación ───────────────────────
+.flags-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  &.flags-invalid .flag-toggle {
+    border-color: var(--color-danger, #ef4444);
+  }
+}
+
+// ── Tarjeta de clasificación con pill-toggle arriba ───────────
+// Estructura HTML esperada:
+// <label class="flag-toggle [flag-active]">
+//   <input type="checkbox" hidden />        ← oculto, para el formControl
+//   <span class="flag-pill">               ← pill ON/OFF visible
+//     <span class="flag-pill-track">
+//       <span class="flag-pill-thumb"></span>
+//     </span>
+//     <span class="flag-pill-state">ON</span>
+//   </span>
+//   <span class="flag-icon">🏷️</span>
+//   <span class="flag-label">Venta</span>
+//   <span class="flag-hint">…</span>
+// </label>
+.flag-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+  user-select: none;
+  text-align: center;
+  min-height: 96px;
+
+  // Checkbox nativo oculto — solo para el formControl
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: var(--color-primary-border, #bfdbfe);
+    background: var(--color-primary-bg, #eff6ff);
+  }
+
+  &.flag-active {
+    border-color: var(--color-primary, #3b82f6);
+    background: var(--color-primary-bg, #eff6ff);
+    box-shadow: 0 0 0 3px var(--color-primary-bg, #eff6ff);
+  }
+
+  &.field-changed {
+    border-color: var(--color-warning, #f59e0b);
+    background: #fffbeb;
+  }
+
+  &.flag-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  // En móvil: layout horizontal compacto
+  @media (max-width: 480px) {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    min-height: unset;
+    padding: 10px 14px;
+    gap: 10px;
+
+    .flag-pill  { order: -1; }
+    .flag-icon  { font-size: 16px; }
+  }
+}
+
+// ── Pill toggle visual (track + thumb + estado) ───────────────
+.flag-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.flag-pill-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--border-color);
+  transition: background 0.18s;
+  flex-shrink: 0;
+
+  .flag-active & { background: var(--color-primary, #3b82f6); }
+}
+
+.flag-pill-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  transition: transform 0.18s cubic-bezier(0.34,1.36,0.64,1);
+
+  .flag-active & { transform: translateX(14px); }
+}
+
+.flag-pill-state {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  min-width: 18px;
+  transition: color 0.15s;
+
+  .flag-active & { color: var(--color-primary, #3b82f6); }
+}
+
+// ── Ícono central de la tarjeta ───────────────────────────────
+.flag-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+// ── Label y hint ──────────────────────────────────────────────
+.flag-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  line-height: 1.2;
+}
+
+.flag-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+// Columna de texto (label + hint) — usado en layouts alternativos
+.flag-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+// Fallback selector antiguo
+.flag-toggle .flag-icon + span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+// ── Presets rápidos ───────────────────────────────────────────
+.category-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.preset-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg-surface);
+  color: var(--text-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: var(--color-primary-border);
+    color: var(--color-primary-text);
+  }
+
+  &.preset-active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+    color: var(--color-primary-text);
+    font-weight: 600;
+  }
+}
+
+// ── Resumen de combinación ────────────────────────────────────
+.combination-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-body);
+
+  .summary-icon { font-size: 16px; }
+  .summary-policy { color: var(--text-muted); font-size: 12px; }
+}
+
+.flag-error {
+  margin-top: 8px;
+  font-size: 12.5px;
+}
+
+// ── Modo lectura: chips de clasificación ──────────────────────
+.item-flags-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.category-label-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.flags-readonly {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.flag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+
+  &--on {
+    background: var(--status-closed-bg);
+    color: var(--status-closed-color);
+    border-color: var(--status-closed-border);
+  }
+
+  &--off {
+    background: var(--bg-subtle);
+    color: var(--text-faint);
+    border-color: var(--border-soft);
+    opacity: 0.6;
+  }
+}
+
+.flag-policy-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// ── Dark mode ─────────────────────────────────────────────────
+[data-theme="dark"] {
+  .flag-toggle.flag-active {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .flag-toggle:hover {
+    background: rgba(59, 130, 246, 0.07);
+    border-color: rgba(59, 130, 246, 0.35);
+  }
+
+  .flag-toggle.field-changed {
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  .flag-pill-track { background: rgba(255,255,255,0.15); }
+  .flag-pill-thumb { background: rgba(255,255,255,0.9); }
+
+  .preset-btn.preset-active {
+    background: rgba(59, 130, 246, 0.12);
+  }
+
+  .combination-summary {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// UNIFIED SEARCH DROPDOWNS
+// Item picker + Partner picker — mismo sistema para todos los forms
+// ═══════════════════════════════════════════════════════════════
+
+// ── Wrapper (position:relative en el form-field) ──────────────
+.search-field { position: relative; }
+
+// ── Input de búsqueda compartido ──────────────────────────────
+.item-search-input,
+.partner-search-input {
+  width: 100%;
+  padding: 8px 34px 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-body);
+  font-size: 13.5px;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+
+  &::placeholder { color: var(--text-faint); }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-bg);
+  }
+
+  // Ícono de lupa decorativo via background
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+// ── Dropdown base (ambos pickeres) ────────────────────────────
+.item-dropdown,
+.partner-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.08);
+  z-index: 200;
+  max-height: 260px;
+  overflow-y: auto;
+  // Scroll suave y sin scrollbar visible
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+// Variante fixed — dentro de tablas con overflow hidden
+.item-dropdown-fixed,
+.partner-dropdown-fixed {
+  position: fixed !important;
+  z-index: 9999;
+}
+
+// ── Opción de artículo ────────────────────────────────────────
+.item-option {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 1px;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-soft);
+  transition: background .1s;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover { background: var(--color-primary-bg, #eff6ff); }
+
+  // Nombre: fila 1 columna 1
+  .item-option-name {
+    grid-row: 1; grid-column: 1;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Código: fila 2 columna 1
+  .item-option-code {
+    grid-row: 2; grid-column: 1;
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-faint);
+    letter-spacing: .03em;
+  }
+
+  // Stock chip: ocupa filas 1-2, columna 2, centrado verticalmente
+  .item-option-stock {
+    grid-row: 1 / 3; grid-column: 2;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill, 999px);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    white-space: nowrap;
+    border: 1px solid transparent;
+
+    &.stock-ok {
+      background: var(--status-closed-bg);
+      color: var(--status-closed-color);
+      border-color: var(--status-closed-border);
+    }
+    &.stock-low {
+      background: var(--status-confirmed-bg, #fff7ed);
+      color: var(--status-confirmed-color, #ea580c);
+      border-color: var(--status-confirmed-border, #fed7aa);
+    }
+    &.stock-zero {
+      background: var(--bg-subtle);
+      color: var(--text-faint);
+      border-color: var(--border-soft);
+    }
+    &.stock-na {
+      // No aplica (servicios, gastos)
+      display: none;
+    }
+  }
+
+  &.item-no-results {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    justify-items: center;
+    color: var(--text-faint);
+    font-size: 13px;
+    font-style: italic;
+    cursor: default;
+    padding: 12px;
+    &:hover { background: transparent; }
+  }
+}
+
+// ── Opción de partner (cliente/proveedor) ─────────────────────
+.partner-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-soft);
+  transition: background .1s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--color-primary-bg, #eff6ff); }
+
+  .partner-option-code {
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    color: var(--color-primary-text, #2563eb);
+    background: var(--color-primary-bg, #eff6ff);
+    border: 1px solid var(--color-primary-border, #bfdbfe);
+    border-radius: var(--radius-sm, 4px);
+    padding: 1px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .partner-option-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-heading);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .partner-option-type {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &.partner-no-results {
+    justify-content: center;
+    color: var(--text-faint);
+    font-size: 13px;
+    font-style: italic;
+    cursor: default;
+    &:hover { background: transparent; }
+  }
+}
+
+// ── Estado seleccionado (partner ya elegido) ──────────────────
+.partner-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--status-closed-bg, #f0fdf4);
+  border: 1px solid var(--status-closed-border, #bbf7d0);
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+
+  .partner-selected-code {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--status-closed-color, #16a34a);
+    background: rgba(22,163,74,.08);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  .partner-selected-name {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-heading);
+  }
+
+  .partner-clear {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+    transition: color .15s, background .15s;
+    &:hover { color: var(--color-danger); background: var(--status-cancelled-bg); }
+  }
+}
+
+// ── Dark mode ─────────────────────────────────────────────────
+[data-theme="dark"] {
+  .item-dropdown,
+  .partner-dropdown {
+    box-shadow: 0 8px 24px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.2);
+  }
+
+  .item-option:hover,
+  .partner-option:hover {
+    background: rgba(59,130,246,.1);
+  }
+
+  .partner-option-code {
+    background: rgba(59,130,246,.12);
+    border-color: rgba(59,130,246,.3);
+  }
+
+  .item-option-stock.stock-ok {
+    background: rgba(22,163,74,.12);
+    border-color: rgba(22,163,74,.3);
+    color: #34d399;
+  }
+  .item-option-stock.stock-low {
+    background: rgba(234,88,12,.12);
+    border-color: rgba(234,88,12,.3);
+    color: #fb923c;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITARIOS DE MODAL — indicadores y separadores de sección
+// ═══════════════════════════════════════════════════════════════
+
+// ── Indicador de cambios sin guardar en el modal-header ───────
+.dirty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 10px;
+  vertical-align: middle;
+  letter-spacing: 0;
+  text-transform: none;
+
+  [data-theme="dark"] & {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fbbf24;
+  }
+}
+
+// ── Separador de sección dentro del modal-body ────────────────
+// Uso: <div class="form-section-label">Título</div>
+// El gap del modal-body (14px) ya provee el espacio superior.
+// Se añade padding-top adicional para el separador (excepto el primero).
+.form-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+  // Espacio extra arriba (el gap ya da 14px, sumamos 8px más = 22px total)
+  margin-top: 8px;
+
+  // El primer separador no necesita margen extra
+  &:first-child { margin-top: 0; }
+}
+
+// ── Inputs numéricos con prefijo ($) o sufijo (kg, %) ─────────
+.input-with-prefix,
+.input-with-suffix {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  input[type="number"],
+  input[type="text"] {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    flex: 1;
+    min-width: 0;
+
+    &:focus,
+    &:focus-visible { outline: none; }
+  }
+}
+
+.input-prefix,
+.input-suffix {
+  flex-shrink: 0;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix { border-right: 1px solid var(--border-color); }
+.input-suffix  { border-left:  1px solid var(--border-color); }
+
+// ═══════════════════════════════════════════════════════════════
+// _forms-additions.scss  — AGREGAR al final de _forms.scss
+// Parches responsive y dark mode para formularios
+// ═══════════════════════════════════════════════════════════════
+
+// ── form-row a una columna en móvil (ya está en _forms.scss, confirmar) ──
+.form-row {
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Checkboxes: mejor táctil en móvil ────────────────────────────
+.form-field--checkbox,
+.form-field--checkbox-inline {
+  .checkbox-label,
+  .checkbox-label-inline {
+    // Target de toque mínimo de 44px
+    min-height: 44px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      margin-top: 3px;
+      flex-shrink: 0;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+    }
+  }
+}
+
+// ── Separador de sección mejorado (dark mode aware) ───────────────
+.form-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 18px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+
+  // El color del borde en dark mode es correcto vía CSS vars;
+  // no se necesita override adicional.
+}
+
+// ── field-hint con color semántico ────────────────────────────────
+.field-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+// ── label-muted ───────────────────────────────────────────────────
+.label-muted {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+// ── Inputs disabled: dark mode fix ────────────────────────────────
+// Los valores deshabilitados (código de almacén, código de partner)
+// deben verse legibles en ambos temas
+.form-field {
+  input:disabled,
+  select:disabled {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    border-color: var(--border-soft);
+  }
+}
+
+// ── Botón disparador del modal de artículos ───────────────────
+// ── Botón selector de artículo (columna Artículo en tablas de documento) ──
+.item-select-btn {
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-heading);
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+
+  // Ícono de búsqueda a la izquierda
+  &::before {
+    content: '⌕';
+    font-size: 15px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.12s;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary);
+
+    &::before { color: var(--color-primary); }
+    .item-select-name { color: var(--color-primary-text); }
+    .item-select-icon { opacity: 1; transform: translateX(2px); }
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+
+    &::before { display: none; }
+  }
+
+  // Estado vacío: borde punteado sutil
+  &.item-select-btn-empty {
+    &::before { content: '＋'; font-size: 13px; }
+
+    .item-select-placeholder {
+      color: var(--text-faint);
+    }
+
+    &:hover:not(:disabled) .item-select-placeholder {
+      color: var(--color-primary-text);
+    }
+  }
+}
+
+.item-select-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-heading);
+  transition: color 0.12s;
+}
+
+.item-select-placeholder {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.item-select-icon {
+  font-size: 11px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
+}
+// ═══════════════════════════════════════════════════════════════
+// CABECERA DE PÁGINA DE DETALLE — reutilizable
+// ═══════════════════════════════════════════════════════════════
+
+// Chip de código (mono, pill gris) — usado en cabeceras de detalle
+.code-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+// Acciones del header (botones de editar, inactivar, etc.)
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// Wrapper del tab-switcher con separación inferior uniforme
+.tab-bar {
+  margin-bottom: 20px;
+
+  @media (max-width: 640px) { margin-bottom: 14px; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL DE DOS COLUMNAS — patrón estándar para modales anchos
+// con datos a la izquierda y permisos/configuración a la derecha.
+//
+// Estructura HTML esperada:
+//
+//   <div class="modal-backdrop" ...>
+//     <div class="user-modal" ...>               ← o cualquier nombre
+//       <div class="modal-header">...</div>
+//       <form class="modal-2col-layout">
+//         <div class="modal-body modal-col">      ← col izquierda
+//           <div class="form-section-label">...</div>
+//           <div class="form-field">...</div>
+//           <div class="form-row">...</div>       ← 2 campos en fila
+//           <div class="toggle-field">...</div>   ← ver patrón abajo
+//         </div>
+//         <div class="modal-body modal-col">      ← col derecha
+//           <div class="perms-card">...</div>
+//         </div>
+//         <div class="modal-footer modal-2col-footer">...</div>
+//       </form>
+//     </div>
+//   </div>
+//
+// El componente solo necesita definir el ancho del modal (.user-modal)
+// y cualquier estilo de negocio específico.
+// ═══════════════════════════════════════════════════════════════
+
+.modal-2col-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  flex: 1;          // crecer dentro del flex column del .user-modal
+  overflow: hidden; // el overflow lo manejan las columnas individualmente
+}
+
+.modal-col {
+  min-height: 0;  // permite que overflow-y: auto de .modal-body funcione
+
+  &:first-child { border-right: 1px solid var(--border-color); }
+}
+
+.modal-2col-footer {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .modal-2col-layout {
+    grid-template-columns: 1fr;
+  }
+  .modal-col:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .modal-2col-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .modal-2col-footer {
+    flex-direction: column;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERMS CARD — tarjeta de permisos con toggle por fila
+// Usada en modales de usuarios y configuraciones.
+//
+// Estructura HTML esperada:
+//
+//   <div class="perms-card">
+//     <div class="perm-row [perm-row--changed]">
+//       <div class="perm-info">
+//         <span class="perm-name">Nombre permiso</span>
+//         <span class="perm-desc">Descripción breve</span>
+//       </div>
+//       <input type="checkbox" class="toggle-input" id="toggle-X" ... />
+//       <label class="toggle-switch" for="toggle-X"></label>
+//     </div>
+//   </div>
+// ═══════════════════════════════════════════════════════════════
+
+.perms-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.perm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.875rem;
+  gap: 1rem;
+  transition: background var(--transition);
+
+  &:not(:last-child) { border-bottom: 1px solid var(--border-color); }
+  &:hover { background: var(--bg-subtle); }
+
+  &--changed {
+    background: var(--color-primary-bg);
+    border-left: 2px solid var(--color-primary) !important;
+    padding-left: calc(0.875rem - 2px);
+  }
+}
+
+.perm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.perm-name {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-heading);
+}
+
+.perm-desc {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BTN-SAVE-CHANGES — botón verde para confirmar ediciones
+// Indica que hay cambios pendientes de guardar.
+// ═══════════════════════════════════════════════════════════════
+
+.btn-save-changes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  border: 1px solid var(--status-closed-border);
+  background: var(--status-closed-bg);
+  color: var(--status-closed-color);
+  transition: opacity var(--transition);
+
+  &:hover:not(:disabled) { opacity: 0.85; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:focus { outline: none; }
+  &:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  [data-theme="dark"] & {
+    background: rgba(34, 197, 94, 0.12);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+}

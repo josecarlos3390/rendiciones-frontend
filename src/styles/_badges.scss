@@ -1,0 +1,96 @@
+// ═══════════════════════════════════════════════════════════════
+// BADGES & STATUS — estado de documentos
+// ═══════════════════════════════════════════════════════════════
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  // Punto de estado (opcional — se muestra con ::before cuando hay clase)
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: currentColor;
+    opacity: 0.7;
+  }
+}
+
+.status-open {
+  background: var(--status-open-bg);
+  color: var(--status-open-color);
+  border-color: var(--status-open-border);
+}
+
+// CLOSED = factura pagada al 100%
+.status-closed {
+  background: var(--status-closed-bg);
+  color: var(--status-closed-color);
+  border-color: var(--status-closed-border);
+}
+
+.status-cancelled {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-color);
+  border-color: var(--status-cancelled-border);
+  // Cancelado: sin punto de estado
+  &::before { display: none; }
+}
+
+.status-confirmed {
+  background: var(--status-confirmed-bg);
+  color: var(--status-confirmed-color);
+  border-color: var(--status-confirmed-border);
+}
+
+/* ── Badge con punto de estado (ej. Activo / Inactivo en usuarios) ── */
+.status-badge-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+.status-active   { color: var(--status-closed-color); }
+.status-inactive { color: var(--text-faint); }
+
+/* ── Badge de modo manual (sin trazabilidad a documento origen) ── */
+.manual-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-warning, #c97a00);
+  background: rgba(201, 122, 0, 0.1);
+  border: 1px solid rgba(201, 122, 0, 0.25);
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-left: 0.5rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ── Breadcrumb de draft (documento aún no guardado) ── */
+.breadcrumb-draft {
+  color: var(--text-muted);
+  font-style: italic;
+}

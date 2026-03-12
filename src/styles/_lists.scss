@@ -1,0 +1,444 @@
+// ═══════════════════════════════════════════════════════════════
+// LISTS — páginas de listado con tabla, filtros y paginación
+//
+// Patrón estándar para TODOS los módulos del ERP.
+// Usar estas clases garantiza consistencia visual al agregar
+// nuevos módulos (Inventario, Contabilidad, RRHH, etc.)
+//
+// Estructura HTML esperada:
+//
+//   <div class="page-header">
+//     <h2>Título del módulo</h2>
+//     <button / a class="btn btn-primary">+ Nuevo</button>
+//   </div>
+//
+//   <div class="filter-bar">
+//     <div class="filter-search">
+//       <span class="search-icon">🔍</span>
+//       <input class="search-input" ... />
+//       <button class="search-clear" *ngIf="search">✕</button>
+//     </div>
+//     <select class="filter-select" ...>...</select>         <!-- opcional -->
+//     <button class="btn-clear-filters" ...>× Limpiar</button> <!-- opcional -->
+//     <span class="filter-count">N resultados</span>         <!-- opcional -->
+//   </div>
+//
+//   <div class="empty-state">Cargando... / Sin resultados</div>  <!-- cuando aplique -->
+//
+//   <div class="table-wrapper">
+//     <table class="data-table">...</table>
+//     <app-paginator ...></app-paginator>                     <!-- si hay paginación -->
+//   </div>
+//
+//   <!-- Modal inline (para crear/editar sin salir de la página) -->
+//   <div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+//     <div class="modal-card" (click)="$event.stopPropagation()">
+//       <div class="modal-header">...</div>
+//       <form class="modal-body">...</form>
+//       <div class="modal-footer">...</div>
+//     </div>
+//   </div>
+//
+// ═══════════════════════════════════════════════════════════════
+
+/* ── Cabecera de página ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 0;
+  }
+}
+
+/* ── Barra de filtros estándar ──
+   Usada en: sales-quotations, purchase-quotations, sales-orders, etc.
+   TODOS los módulos nuevos deben usar este patrón (no .search-bar simple). ── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+  max-width: 360px;
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 13px;
+    pointer-events: none;
+    color: var(--text-faint);
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 8px 32px 8px 30px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-heading);
+    background: var(--bg-surface);
+    font-family: inherit;
+    transition: border-color var(--transition), box-shadow var(--transition);
+
+    &:focus         { outline: none; }
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: var(--focus-ring);
+    }
+
+    &::placeholder { color: var(--text-faint); }
+  }
+
+  .search-clear {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-faint);
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    transition: color var(--transition);
+
+    &:hover { color: var(--text-muted); }
+  }
+}
+
+/* Barra de búsqueda simple (legacy — preferir .filter-bar + .filter-search) */
+.search-bar {
+  margin-bottom: 16px;
+
+  .search-input {
+    width: 100%;
+    max-width: 360px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-heading);
+    background: var(--bg-surface);
+    font-family: inherit;
+    transition: border-color var(--transition);
+
+    &:focus         { outline: none; }
+    &:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
+    &::placeholder  { color: var(--text-faint); }
+  }
+}
+
+.filter-select {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-heading);
+  background: var(--bg-surface);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition);
+
+  &:focus         { outline: none; }
+  &:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
+}
+
+.btn-clear-filters {
+  padding: 7px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color var(--transition), border-color var(--transition);
+
+  &:hover { color: var(--color-danger); border-color: var(--color-danger-border); }
+}
+
+.filter-count {
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ── Estado vacío ── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-faint);
+  font-size: 14px;
+
+  a {
+    color: var(--color-primary);
+    cursor: pointer;
+    margin-left: 4px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+/* ── Tabla de datos estándar ── */
+.table-wrapper {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-faint);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 13.5px;
+    color: var(--text-body);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td      { background: var(--bg-faint); }
+
+  .text-right  { text-align: right; }
+  .text-center { text-align: center; }
+}
+
+/* ── Celda de código / ID ── */
+.cell-code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-text);
+}
+
+/* ── Texto secundario en celda ── */
+.muted { color: var(--text-muted); }
+
+/* ── Sub-texto debajo del nombre (ej. descripción de artículo) ── */
+.item-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+/* ── Celda de acciones ── */
+.actions {
+  white-space: nowrap;
+  text-align: right;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── Celda de usuario con avatar ── */
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--color-primary), #6366f1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Responsive: tabla como tarjetas en móvil ── */
+@media (max-width: 640px) {
+  .data-table {
+    display: block;
+
+    thead { display: none; }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+
+      &:last-child { border-bottom: none; }
+    }
+
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 0;
+      border-bottom: none;
+      font-size: 13px;
+
+      &::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-faint);
+      }
+    }
+
+    td[data-label="Nombre"],
+    td[data-label="Artículo"] { grid-column: 1 / -1; }
+
+    .actions {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      justify-content: flex-end;
+      padding-top: 4px;
+      &::before { display: none; }
+    }
+  }
+}
+/* ────────────────────────────────────────────────────────────
+   Menú ··· por fila (columna Acciones en listas de documentos)
+   ────────────────────────────────────────────────────────── */
+.row-menu-wrap {
+  position: relative;
+  display: inline-flex;
+
+  // btn-more compacto para filas
+  .btn-more {
+    padding: 4px 10px;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    line-height: 1;
+    height: 30px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background var(--transition), border-color var(--transition), color var(--transition);
+
+    &:hover { background: var(--bg-subtle); border-color: var(--text-faint); color: var(--text-heading); }
+    &:focus { outline: none; }
+    &:focus-visible { box-shadow: var(--focus-ring); }
+  }
+
+  &.open .btn-more {
+    background: var(--bg-subtle);
+    border-color: var(--text-faint);
+    color: var(--text-heading);
+  }
+}
+
+.row-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  min-width: 200px;
+  z-index: 200;
+  overflow: hidden;
+  animation: dropdown-in 0.13s ease;
+
+  [data-theme="dark"] & {
+    border-color: #3d5068;
+    background: #1e293b;
+  }
+}
+
+.row-menu-wrap.open .row-dropdown { display: block; }
+
+// drop-up fallback para cuando la directiva no está disponible
+.row-menu-wrap.drop-up .row-dropdown {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.row-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-body);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background var(--transition);
+
+  &:hover:not(:disabled) { background: var(--bg-subtle); }
+  &:focus { outline: none; }
+  &:focus-visible { background: var(--bg-subtle); }
+
+  .item-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+
+  &.item-warning {
+    color: var(--color-warning);
+    &:hover:not(:disabled) { background: rgba(245, 158, 11, 0.08); }
+  }
+  &.item-danger {
+    color: var(--color-danger);
+    &:hover:not(:disabled) { background: rgba(239, 68, 68, 0.08); }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+.row-divider { height: 1px; background: var(--border-soft); margin: 2px 0; }

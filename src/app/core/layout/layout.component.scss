@@ -1,0 +1,89 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.content {
+  flex: 1;
+  margin-left: 240px;
+  padding: 28px 32px;
+  background: var(--bg-page);
+  min-height: 100vh;
+  transition: margin-left 0.22s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
+  min-width: 0;
+  // Expone el ancho del sidebar como CSS variable para que .action-bar
+  // pueda sincronizar su margin-left sin depender de clases de Angular
+  --sidebar-width: 240px;
+}
+
+.content.collapsed {
+  margin-left: 72px;
+  --sidebar-width: 72px;
+}
+
+// Botón flotante para expandir sidebar colapsado
+.sidebar-expand-btn {
+  position: fixed;
+  left: 72px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  width: 24px;
+  height: 48px;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 0 8px 8px 0;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    left: 76px;
+    background: var(--color-primary-hover);
+  }
+}
+
+// Botón para colapsar sidebar en desktop
+.sidebar-collapse-btn {
+  position: fixed;
+  left: 240px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  width: 24px;
+  height: 48px;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 0 8px 8px 0;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    left: 244px;
+    background: var(--color-primary-hover);
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+    --sidebar-width: 0px;
+    /* 60px para el botón hamburguesa fixed + 16px margen superior */
+    padding: 64px 16px 24px;
+  }
+  
+  .sidebar-expand-btn,
+  .sidebar-collapse-btn {
+    display: none;
+  }
+}

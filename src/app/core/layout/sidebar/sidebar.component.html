@@ -1,0 +1,158 @@
+<!-- Overlay mobile -->
+<div class="overlay" *ngIf="mobileOpen" (click)="closeMobile()"></div>
+
+<aside class="sidebar" [class.collapsed]="collapsed" [class.mobile-open]="mobileOpen">
+
+  <!-- ── Logo / Header ─────────────────────────────────── -->
+  <div class="sidebar-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3b82f6"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+          <path d="M4 5a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" fill="url(#logoGrad)"/>
+          <path d="M15 5a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2V5z" fill="url(#logoGrad)" opacity="0.6"/>
+          <path d="M4 14a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z" fill="url(#logoGrad)" opacity="0.6"/>
+          <path d="M15 14a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2v-3z" fill="url(#logoGrad)"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">ERP Suite</span>
+        <span class="brand-tag">BO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Navegación ─────────────────────────────────────── -->
+  <nav class="nav">
+
+    <!-- Busqueda -->
+    <div class="sidebar-search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input 
+        type="text" 
+        class="search-input"
+        placeholder="Buscar módulo..."
+        [value]="searchQuery"
+        (input)="onSearchInput($event)"
+        autocomplete="off"
+      />
+      <button *ngIf="searchQuery" class="search-clear" (click)="searchQuery = ''">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Dashboard (visible siempre cuando no se busca) -->
+    <a class="nav-item" *ngIf="!isSearching" 
+       routerLink="/dashboard" routerLinkActive="active" [title]="collapsed ? 'Dashboard' : ''">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      <span class="nav-label">Dashboard</span>
+    </a>
+
+    <!-- Resultados de búsqueda -->
+    <ng-container *ngIf="isSearching">
+      <div class="search-results" *ngFor="let group of groupedSearchResults | keyvalue">
+        <div class="search-section-title">{{ group.key }}</div>
+        <a class="nav-child" *ngFor="let item of group.value" 
+           [routerLink]="item.route" routerLinkActive="active-child">
+          <span class="child-dot"></span>{{ item.label }}
+        </a>
+      </div>
+      <div class="no-results" *ngIf="filteredItems.length === 0">
+        No se encontraron resultados
+      </div>
+    </ng-container>
+
+    <!-- ── Administración ─────────────────────────────── -->
+    <div class="nav-section" *ngIf="!isSearching">
+      <button class="nav-group-btn" [class.open]="openMenu === 'admin'" (click)="toggleMenu('admin')" [title]="collapsed ? 'Administración' : ''">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M20 21a8 8 0 10-16 0"/>
+        </svg>
+        <span class="nav-label">Administración</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <div class="nav-children" *ngIf="openMenu === 'admin' && !menuCollapsed">
+        <a class="nav-child" routerLink="/users" routerLinkActive="active-child">
+          <span class="child-dot"></span>Usuarios
+        </a>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- ── Footer: theme toggle + usuario ────────────────── -->
+  <div class="sidebar-footer">
+
+    <!-- Toggle de tema -->
+    <button
+      class="theme-toggle"
+      (click)="toggleTheme()"
+      [title]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+      <!-- Sol -->
+      <svg *ngIf="!isDark" class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1"  x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22"  y1="4.22"  x2="5.64"  y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1"  y1="12" x2="3"  y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
+        <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+      </svg>
+      <!-- Luna -->
+      <svg *ngIf="isDark" class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+      </svg>
+      <span class="theme-label">{{ isDark ? 'Modo oscuro' : 'Modo claro' }}</span>
+    </button>
+
+    <div class="footer-divider"></div>
+
+    <!-- Fila de usuario: avatar + nombre/rol + logout -->
+    <div class="user-row-wrap">
+      <a class="user-row" routerLink="/profile" [title]="collapsed ? 'Mi perfil' : ''">
+        <div class="user-avatar">{{ userInitial }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ userName }}</span>
+          <span class="user-role">{{ userRole }}</span>
+        </div>
+      </a>
+      <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16,17 21,12 16,7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</aside>
+
+<!-- Mobile toggle -->
+<button class="mobile-toggle" (click)="toggleMobile()">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="3" y1="6"  x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>

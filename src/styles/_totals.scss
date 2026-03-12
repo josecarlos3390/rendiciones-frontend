@@ -1,0 +1,76 @@
+// ═══════════════════════════════════════════════════════════════
+// TOTALS — sección de totales de documentos
+// Usado en: cotizaciones, pedidos, entregas
+// ═══════════════════════════════════════════════════════════════
+
+.totals-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.totals-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @media (max-width: 640px) {
+    min-width: unset;
+    width: 100%;
+  }
+}
+
+.totals-secondary {
+  background: var(--bg-faint);
+
+  .total-row span:first-child { color: var(--text-muted); }
+  .total-row span:last-child  { color: var(--text-body); }
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--text-muted);
+
+  span:last-child {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-body);
+    white-space: nowrap;
+  }
+}
+
+.total-final {
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-heading);
+
+  span:first-child { color: var(--text-heading); }
+  span:last-child  { font-size: 18px; color: var(--text-heading); }
+}
+
+.text-discount {
+  color: var(--color-danger) !important;
+  font-weight: 600;
+}
+
+.margin-positive { color: var(--color-success) !important; font-weight: 700; }
+.margin-negative { color: var(--color-danger)  !important; font-weight: 700; }

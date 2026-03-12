@@ -1,0 +1,340 @@
+<div class="page-header">
+  <h2>Administración de Usuarios</h2>
+  <button class="btn btn-primary btn-sm" (click)="openNew()">+ Nuevo Usuario</button>
+</div>
+
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Modal ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+  <div class="user-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+        {{ editingUser ? 'Editar — ' + editingUser.U_Login : 'Nuevo Usuario' }}
+        <span class="dirty-badge" *ngIf="editingUser && isDirty">● cambios sin guardar</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-2col-layout">
+
+      <!-- ══ Columna izquierda: datos ══ -->
+      <div class="modal-body modal-col">
+
+        <div class="form-section-label">Datos del usuario</div>
+
+        <div class="form-field" *ngIf="!editingUser">
+          <label>Usuario <span class="required">*</span><span class="label-muted"> (máx. 10)</span></label>
+          <input type="text" formControlName="login" placeholder="JPEREZ" maxlength="10" autocomplete="off" />
+          <span class="field-error" *ngIf="form.get('login')?.invalid && form.get('login')?.touched">
+            Obligatorio, máx. 10 caracteres
+          </span>
+        </div>
+
+        <div class="form-field" *ngIf="editingUser">
+          <label>Usuario</label>
+          <input type="text" [value]="editingUser.U_Login" disabled />
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('name')">
+          <label>Nombre y Apellido <span class="required">*</span></label>
+          <input type="text" formControlName="name" placeholder="Juan Pérez" autocomplete="off" />
+          <span class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">Obligatorio</span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('supervisorName')">
+          <label>Nombre Superior</label>
+          <input type="text" formControlName="supervisorName" placeholder="María López" autocomplete="off" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" [class.field-changed]="fieldChanged('superUser')">
+            <label>Tipo de Usuario <span class="required">*</span></label>
+            <select formControlName="superUser">
+              <option [ngValue]="0">Normal</option>
+              <option [ngValue]="1">Administrador</option>
+            </select>
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('fechaExpiracion')">
+            <label>Fecha Expiración <span class="required">*</span></label>
+            <input type="date" formControlName="fechaExpiracion" />
+          </div>
+        </div>
+
+        <div class="form-field" *ngIf="!editingUser">
+          <label>Contraseña <span class="required">*</span></label>
+          <input type="password" formControlName="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+          <span class="field-error" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">Mínimo 6 caracteres</span>
+        </div>
+        <div class="form-field" *ngIf="editingUser">
+          <label>Nueva contraseña <span class="label-muted">(vacío = no cambiar)</span></label>
+          <input type="password" formControlName="password" placeholder="••••••••" autocomplete="new-password" />
+        </div>
+
+        <div class="form-section-label">Normas de Reparto</div>
+
+        <!-- Fijar NR — toggle inline con label clicable completo -->
+        <div class="toggle-field" [class.field-changed]="fieldChanged('fijarNr')">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title">Fijar Norma Reparto</span>
+            </div>
+            <div class="toggle-wrap">
+              <label class="u-toggle">
+                <input type="checkbox"
+                  [checked]="form.get('fijarNr')?.value === 'Y'"
+                  (change)="onCheckToggle('fijarNr', $event)" />
+                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" [class.field-changed]="fieldChanged('nr1')">
+            <label>NR 1</label>
+            <input type="text" formControlName="nr1" placeholder="14600 SOPO" maxlength="50" />
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('nr2')">
+            <label>NR 2</label>
+            <input type="text" formControlName="nr2" placeholder="11111 PRODI" maxlength="50" />
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('nr3')">
+            <label>NR 3</label>
+            <input type="text" formControlName="nr3" placeholder="2000 TIENDA" maxlength="50" />
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('nr4')">
+            <label>NR 4</label>
+            <input type="text" formControlName="nr4" maxlength="50" />
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('nr5')">
+            <label>NR 5</label>
+            <input type="text" formControlName="nr5" maxlength="50" />
+          </div>
+        </div>
+
+      </div><!-- /col izquierda -->
+
+      <!-- ══ Columna derecha: permisos ══ -->
+      <div class="modal-body modal-col">
+
+        <div class="form-section-label">Módulos y permisos</div>
+
+        <div class="perms-card">
+          <div class="perm-row" [class.perm-row--changed]="fieldChanged('appRend')">
+            <div class="perm-info">
+              <span class="perm-name">Rendiciones</span>
+              <span class="perm-desc">Acceso al módulo de rendiciones de gastos</span>
+            </div>
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('appRend')?.value === 'Y'" (change)="onCheckToggle('appRend', $event)" />
+              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="perm-row" [class.perm-row--changed]="fieldChanged('appConf')">
+            <div class="perm-info">
+              <span class="perm-name">Configuraciones</span>
+              <span class="perm-desc">Ver y editar configuraciones del sistema</span>
+            </div>
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('appConf')?.value === 'Y'" (change)="onCheckToggle('appConf', $event)" />
+              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="perm-row" [class.perm-row--changed]="fieldChanged('genDocPre')">
+            <div class="perm-info">
+              <span class="perm-name">Genera Preliminar</span>
+              <span class="perm-desc">Permite generar documentos en estado borrador</span>
+            </div>
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('genDocPre')?.value === 'Y'" (change)="onCheckToggle('genDocPre', $event)" />
+              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="perm-row" [class.perm-row--changed]="fieldChanged('fijarSaldo')">
+            <div class="perm-info">
+              <span class="perm-name">Fijar Saldo</span>
+              <span class="perm-desc">Permite fijar manualmente el saldo en rendiciones</span>
+            </div>
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('fijarSaldo')?.value === 'Y'" (change)="onCheckToggle('fijarSaldo', $event)" />
+              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="perm-row" [class.perm-row--changed]="fieldChanged('appExtB')">
+            <div class="perm-info">
+              <span class="perm-name">Ext. B</span>
+              <span class="perm-desc">Acceso al módulo externo B</span>
+            </div>
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('appExtB')?.value === 'Y'" (change)="onCheckToggle('appExtB', $event)" />
+              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="perm-row" [class.perm-row--changed]="fieldChanged('appUpLA')">
+            <div class="perm-info">
+              <span class="perm-name">UpLA</span>
+              <span class="perm-desc">Permite carga de LA</span>
+            </div>
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('appUpLA')?.value === 'Y'" (change)="onCheckToggle('appUpLA', $event)" />
+              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <ng-container *ngIf="editingUser">
+          <div class="form-section-label">Estado de la cuenta</div>
+          <div class="perms-card">
+            <div class="perm-row" [class.perm-row--changed]="fieldChanged('estado')">
+              <div class="perm-info">
+                <span class="perm-name">Cuenta activa</span>
+                <span class="perm-desc">
+                  {{ form.get('estado')?.value === 'A'
+                    ? 'El usuario puede iniciar sesión normalmente'
+                    : 'El usuario no puede iniciar sesión' }}
+                </span>
+              </div>
+              <label class="u-toggle">
+                <input type="checkbox" [checked]="form.get('estado')?.value === 'A'" (change)="onEstadoToggle($event)" />
+                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+              </label>
+            </div>
+          </div>
+        </ng-container>
+
+      </div><!-- /col derecha -->
+
+      <!-- Footer -->
+      <div class="modal-footer modal-2col-footer">
+        <ng-container *ngIf="isDirty; else noChanges">
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+          <button type="submit"
+            [class]="editingUser ? 'btn btn-save-changes' : 'btn btn-primary'"
+            [disabled]="form.invalid || isSaving">
+            <span *ngIf="isSaving">Guardando...</span>
+            <span *ngIf="!isSaving">{{ editingUser ? '💾 Guardar cambios' : 'Crear Usuario' }}</span>
+          </button>
+        </ng-container>
+        <ng-template #noChanges>
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+        </ng-template>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ── Buscador ── -->
+<div class="filter-bar">
+  <div class="filter-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" placeholder="Buscar por nombre o usuario..."
+      [(ngModel)]="search" (input)="filter()" />
+    <button class="search-clear" *ngIf="search" (click)="search=''; filter()">✕</button>
+  </div>
+  <span class="filter-count" *ngIf="!loading">{{ filtered.length }} usuario{{ filtered.length !== 1 ? 's' : '' }}</span>
+</div>
+
+<div *ngIf="loading" class="empty-state">Cargando usuarios...</div>
+<div *ngIf="!loading && filtered.length === 0" class="empty-state">
+  No hay usuarios registrados. <a (click)="openNew()">Crear el primero</a>
+</div>
+
+<!-- ── Tabla ── -->
+<div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Nombre</th>
+        <th>Tipo</th>
+        <th>Módulos</th>
+        <th>Estado</th>
+        <th>Expira</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of paged" [class.row-inactive]="!isActive(u)">
+
+        <!-- Usuario (login + avatar) -->
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar" [class.avatar-inactive]="!isActive(u)">{{ initial(u) }}</div>
+            <div class="user-cell-info">
+              <span class="user-login">{{ u.U_Login }}</span>
+              <span class="user-sup muted" *ngIf="u.U_NomSup">↑ {{ u.U_NomSup }}</span>
+            </div>
+          </div>
+        </td>
+
+        <!-- Nombre completo -->
+        <td>{{ u.U_NomUser || '—' }}</td>
+
+        <!-- Tipo -->
+        <td>
+          <span class="type-badge" [class.role-admin]="u.U_SuperUser === 1" [class.role-user]="u.U_SuperUser === 0">
+            {{ u.U_SuperUser === 1 ? 'Admin' : 'Normal' }}
+          </span>
+        </td>
+
+        <!-- Módulos habilitados -->
+        <td>
+          <div class="perm-badges">
+            <span class="perm-badge" [class.perm-on]="u.U_AppRend === 'Y'" title="Rendiciones">R</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppConf === 'Y'" title="Configuraciones">C</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppExtB === 'Y'" title="Ext. B">B</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppUpLA === 'Y'" title="UpLA">L</span>
+          </div>
+        </td>
+
+        <!-- Estado -->
+        <td>
+          <span class="status-badge-dot"
+            [class.status-active]="isActive(u)"
+            [class.status-inactive]="!isActive(u)">
+            <span class="status-dot"></span>
+            {{ isActive(u) ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+
+        <!-- Fecha expiración -->
+        <td>
+          <span [class.text-expired]="isExpired(u)">
+            {{ u.U_FECHAEXPIRACION | date:'dd/MM/yyyy' }}
+          </span>
+        </td>
+
+        <!-- Acciones -->
+        <td class="actions">
+          <button class="btn btn-sm btn-ghost" (click)="openEdit(u)">Editar</button>
+          <button class="btn btn-sm"
+            [class.btn-danger-soft]="isActive(u)"
+            [class.btn-success]="!isActive(u)"
+            (click)="confirmToggleStatus(u)">
+            {{ isActive(u) ? 'Inactivar' : 'Activar' }}
+          </button>
+        </td>
+
+      </tr>
+    </tbody>
+  </table>
+
+  <app-paginator
+    [page]="page"
+    [limit]="limit"
+    [total]="filtered.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)">
+  </app-paginator>
+</div>
