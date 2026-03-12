@@ -1,0 +1,224 @@
+<div class="page-header">
+  <h2>Configuración de Perfiles</h2>
+  <button class="btn btn-primary btn-sm" (click)="openNew()">+ Nuevo Perfil</button>
+</div>
+
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Modal ─────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+  <div class="user-modal perfil-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+        {{ editingPerfil ? 'Editar Perfil — ' + editingPerfil.U_NombrePerfil : 'Nuevo Perfil' }}
+        <span class="dirty-badge" *ngIf="editingPerfil && isDirty">● cambios sin guardar</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-2col-layout">
+
+      <!-- ══ Columna izquierda ══ -->
+      <div class="modal-body modal-col">
+
+        <div class="form-section-label">Datos del perfil</div>
+
+        <div class="form-field">
+          <label>Nombre del Perfil <span class="required">*</span></label>
+          <input type="text" formControlName="nombrePerfil"
+            placeholder="CAJA CHICA GENERAL-Moneda Local(BS)" maxlength="300" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('nombrePerfil')?.invalid && form.get('nombrePerfil')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Perfil Trabaja</label>
+            <select formControlName="trabaja">
+              <option *ngFor="let o of monedaOptions" [value]="o.value">{{ o.label }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Líneas por Página</label>
+            <select formControlName="cntLineas">
+              <option *ngFor="let n of lineasOptions" [ngValue]="n">{{ n }} Líneas por página</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Permitir Cuenta Vacía</label>
+            <select formControlName="perCtaBl">
+              <option [ngValue]="0">NO</option>
+              <option [ngValue]="1">SÍ</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Control Partida</label>
+            <input type="number" formControlName="controlPartida" min="0" />
+          </div>
+        </div>
+
+        <div class="form-section-label">Reportes</div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Reporte 1</label>
+            <input type="text" formControlName="rep1" maxlength="50" placeholder="Nombre reporte..." />
+          </div>
+          <div class="form-field">
+            <label>Reporte 2</label>
+            <input type="text" formControlName="rep2" maxlength="50" placeholder="Nombre reporte..." />
+          </div>
+        </div>
+
+      </div><!-- /col izquierda -->
+
+      <!-- ══ Columna derecha ══ -->
+      <div class="modal-body modal-col">
+
+        <div class="form-section-label">Filtro Proveedores</div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Característica</label>
+            <select formControlName="proCar">
+              <option *ngFor="let o of caracteristicaOptions" [value]="o.value">{{ o.label }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Texto</label>
+            <input type="text" formControlName="proTexto" maxlength="25" placeholder="PL, P, ..." />
+          </div>
+        </div>
+
+        <div class="form-section-label">Filtro Cuentas</div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Característica</label>
+            <select formControlName="cueCar">
+              <option *ngFor="let o of caracteristicaOptions" [value]="o.value">{{ o.label }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Texto</label>
+            <input type="text" formControlName="cueTexto" maxlength="30" placeholder="/1/2/5/6/8" />
+          </div>
+        </div>
+
+        <div class="form-section-label">Filtro Empleados</div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Característica</label>
+            <select formControlName="empCar">
+              <option *ngFor="let o of caracteristicaOptions" [value]="o.value">{{ o.label }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Texto</label>
+            <input type="text" formControlName="empTexto" maxlength="10" placeholder="EL, ..." />
+          </div>
+        </div>
+
+      </div><!-- /col derecha -->
+
+      <!-- Footer -->
+      <div class="modal-footer modal-2col-footer">
+        <ng-container *ngIf="isDirty; else noChanges">
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+          <button type="submit"
+            [class]="editingPerfil ? 'btn btn-save-changes' : 'btn btn-primary'"
+            [disabled]="form.invalid || isSaving">
+            <span *ngIf="isSaving">Guardando...</span>
+            <span *ngIf="!isSaving">{{ editingPerfil ? '💾 Guardar cambios' : 'Crear Perfil' }}</span>
+          </button>
+        </ng-container>
+        <ng-template #noChanges>
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+        </ng-template>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ── Buscador ── -->
+<div class="filter-bar">
+  <div class="filter-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" placeholder="Buscar perfil..."
+      [(ngModel)]="search" (input)="applyFilter()" />
+    <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
+  </div>
+  <span class="filter-count" *ngIf="!loading">
+    {{ filtered.length }} perfil{{ filtered.length !== 1 ? 'es' : '' }}
+  </span>
+</div>
+
+<div *ngIf="loading" class="empty-state">Cargando perfiles...</div>
+<div *ngIf="!loading && loadError" class="empty-state">
+  No se pudo cargar la lista de perfiles.
+  <a (click)="load()">Reintentar</a>
+</div>
+<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
+  No hay perfiles registrados. <a (click)="openNew()">Crear el primero</a>
+</div>
+
+<!-- ── Tabla ── -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Cód.</th>
+        <th>Nombre Perfil</th>
+        <th>Moneda</th>
+        <th>Proveedores</th>
+        <th>Cuentas</th>
+        <th>Empleados</th>
+        <th class="text-center">Líneas</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of paged">
+        <td class="text-center">{{ p.U_CodPerfil }}</td>
+        <td class="col-nombre">{{ p.U_NombrePerfil }}</td>
+        <td>{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</td>
+        <td>
+          <span class="carac-badge">{{ p.U_PRO_CAR }}</span>
+          <span class="carac-text" *ngIf="p.U_PRO_Texto"> {{ p.U_PRO_Texto }}</span>
+        </td>
+        <td>
+          <span class="carac-badge">{{ p.U_CUE_CAR }}</span>
+          <span class="carac-text" *ngIf="p.U_CUE_Texto"> {{ p.U_CUE_Texto }}</span>
+        </td>
+        <td>
+          <span class="carac-badge">{{ p.U_EMP_CAR }}</span>
+          <span class="carac-text" *ngIf="p.U_EMP_TEXTO"> {{ p.U_EMP_TEXTO }}</span>
+        </td>
+        <td class="text-center">{{ p.U_CntLineas }}</td>
+        <td class="actions">
+          <button class="btn btn-sm btn-ghost" (click)="openEdit(p)">Editar</button>
+          <button class="btn btn-sm btn-danger-soft" (click)="confirmDelete(p)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-paginator
+    [page]="page"
+    [limit]="limit"
+    [total]="filtered.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)">
+  </app-paginator>
+</div>

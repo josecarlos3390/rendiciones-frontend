@@ -28,11 +28,58 @@ export const routes: Routes = [
             .then(m => m.DashboardComponent)
       },
       {
+        path: 'documentos',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/documentos/documentos.component')
+            .then(m => m.DocumentosComponent)
+      },
+      {
+        path: 'permisos',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/permisos/permisos.component')
+            .then(m => m.PermisosComponent)
+      },
+      {
+        path: 'cuentas-cabecera',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/cuentas-cabecera/cuentas-cabecera.component')
+            .then(m => m.CuentasCabeceraComponent)
+      },
+      {
+        path: 'cuentas-lista',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/cuentas-lista/cuentas-lista.component')
+            .then(m => m.CuentasListaComponent)
+      },
+      {
+        path: 'perfiles',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/perfiles/perfiles.component')
+            .then(m => m.PerfilesComponent)
+      },
+      {
         path: 'users',
         canActivate: [roleGuard(['ADMIN'])],
         loadComponent: () =>
           import('./pages/users/users.component')
             .then(m => m.UsersComponent)
+      },
+      {
+        path: 'rend-m',
+        loadComponent: () =>
+          import('./pages/rend-m/rend-m.component')
+            .then(m => m.RendMComponent)
+      },
+      {
+        path: 'rend-m/:id/detalle',
+        loadComponent: () =>
+          import('./pages/rend-d/rend-d.component')
+            .then(m => m.RendDComponent)
       },
     ]
   },

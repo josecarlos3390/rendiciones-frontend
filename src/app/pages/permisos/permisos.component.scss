@@ -1,0 +1,111 @@
+.page-subtitle {
+  font-size:   0.85rem;
+  color:       var(--color-primary);
+  margin:      -8px 0 20px;
+  font-weight: 500;
+}
+
+// ── Toolbar de selección ──────────────────────────────────────
+.permisos-toolbar {
+  display:     flex;
+  align-items: flex-end;
+  gap:         16px;
+  flex-wrap:   wrap;
+  padding:     20px;
+  background:  var(--bg-surface);
+  border:      1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.toolbar-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+
+  label {
+    font-size:      0.78rem;
+    font-weight:    600;
+    color:          var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.toolbar-select {
+  height:        38px;
+  min-width:     260px;
+  padding:       0 12px;
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-md, 6px);
+  // Tokens correctos: --text-body (existe) en lugar de --text-primary (no existe)
+  background:    var(--bg-surface);
+  color:         var(--text-body);
+  font-size:     0.9rem;
+  cursor:        pointer;
+  font-family:   inherit;
+
+  &:focus {
+    outline:      none;
+    border-color: var(--color-primary);
+    box-shadow:   var(--focus-ring);
+  }
+}
+
+// ── Panel de permisos ─────────────────────────────────────────
+.permisos-panel {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow:      hidden;
+}
+
+.panel-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         12px 20px;
+  background:      var(--bg-faint);
+  border-bottom:   1px solid var(--border-color);
+  font-size:       0.9rem;
+  // Tokens correctos: --text-body en lugar de --text-secondary (no existe)
+  color:           var(--text-body);
+
+  strong { color: var(--text-heading); }
+}
+
+.panel-count {
+  font-size:   0.8rem;
+  color:       var(--text-muted);
+  font-weight: 500;
+}
+
+.panel-empty {
+  padding:    40px;
+  text-align: center;
+  color:      var(--text-muted);
+  font-size:  0.9rem;
+}
+
+// ── Botón eliminar ────────────────────────────────────────────
+// Nota: .btn-remove está definido globalmente en styles.scss.
+// Se redefine aquí con variante circular (sin borde, redondo)
+// para sobrescribir el cuadrado del global.
+.btn-remove {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  width:           28px;
+  height:          28px;
+  border-radius:   50%;
+  border:          none;
+  background:      transparent;
+  color:           var(--color-danger);
+  cursor:          pointer;
+  transition:      background 0.15s, transform 0.1s;
+
+  &:hover  { background: var(--color-danger-soft); transform: scale(1.1); }
+  &:active { transform: scale(0.95); }
+}
+
+.text-center { text-align: center; }

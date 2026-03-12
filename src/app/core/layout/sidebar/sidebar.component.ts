@@ -29,11 +29,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // ── Datos del usuario ────────────────────────────────
   get userName(): string {
-    return this.auth.user?.name ?? this.auth.user?.email ?? 'Usuario';
+    return this.auth.user?.name ?? this.auth.user?.username ?? 'Usuario';
   }
 
   get userInitial(): string {
-    return (this.auth.user?.name ?? this.auth.user?.email ?? 'U')[0].toUpperCase();
+    return (this.auth.user?.name ?? this.auth.user?.username ?? 'U')[0].toUpperCase();
   }
 
   get userRole(): string {
@@ -52,8 +52,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Items de navegación para búsqueda
   navItems: { label: string; route: string; icon: string; section: string }[] = [
-    { label: 'Dashboard', route: '/dashboard', icon: 'dashboard', section: 'General' },
-    { label: 'Usuarios', route: '/users', icon: 'admin', section: 'Administración' },
+    { label: 'Dashboard',         route: '/dashboard',        icon: 'dashboard', section: 'General' },
+    { label: 'Nueva Rendición',   route: '/rend-m',           icon: 'rend',      section: 'Rendiciones' },
+    { label: 'Usuarios',          route: '/users',            icon: 'admin',     section: 'Administración' },
+    { label: 'Perfiles',          route: '/perfiles',         icon: 'admin',     section: 'Administración' },
+    { label: 'Documentos',        route: '/documentos',       icon: 'admin',     section: 'Administración' },
+    { label: 'Usuario/Perfil',    route: '/permisos',         icon: 'admin',     section: 'Administración' },
+    { label: 'Cuentas Cabecera',  route: '/cuentas-cabecera', icon: 'admin',     section: 'Administración' },
+    { label: 'Lista de Cuentas',  route: '/cuentas-lista',    icon: 'admin',     section: 'Administración' },
   ];
 
   private _filteredItems: { label: string; route: string; icon: string; section: string }[] = [];

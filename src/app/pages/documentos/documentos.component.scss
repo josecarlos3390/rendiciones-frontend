@@ -1,0 +1,110 @@
+.page-subtitle {
+  font-size: 0.85rem; color: var(--color-primary); margin: -8px 0 16px; font-weight: 500;
+}
+
+// ── Modal grande ─────────────────────────────────────────────
+.doc-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: min(860px, 96vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-modal);
+  animation: _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes _modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-body { overflow-y: auto; }
+
+// ── Separador de sección del formulario ──────────────────────
+// Usa tokens tokenizados: color-primary ya responde al tema en dark mode
+.section-divider {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-primary-border);
+  padding-bottom: 4px;
+  margin: 16px 0 10px;
+}
+
+.form-row {
+  display: grid;
+  gap: 12px;
+  &.two-col   { grid-template-columns: 1fr 1fr; }
+  &.three-col { grid-template-columns: 1fr 1fr 1fr; }
+  &.one-col   { grid-template-columns: 1fr; }
+}
+
+.field-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+// ── Filtros ───────────────────────────────────────────────────
+.filter-bar {
+  display: flex; align-items: flex-end; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 16px; justify-content: space-between;
+}
+.filter-left { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.filter-field {
+  display: flex; flex-direction: column; gap: 4px;
+  label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+}
+.filter-select {
+  height: 38px; min-width: 240px; padding: 0 12px;
+  border: 1px solid var(--border-color); border-radius: var(--radius-md, 6px);
+  // Token correcto: --text-body en lugar de --text-primary (no existe)
+  background: var(--bg-surface); color: var(--text-body); font-size: 0.9rem;
+  cursor: pointer; font-family: inherit;
+  &:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
+}
+
+// ── Tabla ─────────────────────────────────────────────────────
+.doc-table {
+  font-size: 0.82rem;
+  th, td { padding: 8px 10px; white-space: nowrap; }
+}
+
+.col-mono { font-family: var(--font-mono, monospace); font-size: 0.8rem; }
+.num      { font-variant-numeric: tabular-nums; }
+.text-right  { text-align: right; }
+.text-center { text-align: center; }
+
+// ── Badge tipo cálculo — tokenizado para ambos modos ─────────
+// Normal: usa tokens status-closed (verde) — contraste OK en ambos modos
+// Grossing: usa tokens color-primary — contraste OK en ambos modos
+.badge-calc {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 0.74rem; font-weight: 700;
+  background: var(--status-closed-bg);
+  color:      var(--status-closed-color);
+  border:     1px solid var(--status-closed-border);
+
+  &.grossing {
+    background: var(--color-primary-bg);
+    color:      var(--color-primary-text);
+    border:     1px solid var(--color-primary-border);
+  }
+}
+
+// ── Botones acción ────────────────────────────────────────────
+.btn-action {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: none; background: transparent; cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  &:active { transform: scale(0.9); }
+  &.edit   { color: var(--color-primary);     &:hover { background: var(--color-primary-bg); } }
+  &.remove { color: var(--color-danger);      &:hover { background: var(--color-danger-soft); } }
+}

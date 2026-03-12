@@ -10,6 +10,30 @@ interface LoginResponse {
   user: any;
 }
 
+/** Estructura esperada del payload del JWT emitido por el backend */
+interface JwtPayload {
+  sub:      number;
+  username: string;
+  name:     string;
+  role:     'ADMIN' | 'USER';
+  appRend:  string;
+  appConf:  string;
+  exp:      number;
+  iat:      number;
+}
+
+/** Valida que el payload tenga los campos mínimos requeridos */
+function isValidPayload(p: any): p is JwtPayload {
+  return (
+    p !== null &&
+    typeof p === 'object' &&
+    typeof p.sub      === 'number' &&
+    typeof p.role     === 'string' &&
+    typeof p.exp      === 'number' &&
+    (p.role === 'ADMIN' || p.role === 'USER')
+  );
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private api        = environment.apiUrl;
@@ -61,7 +85,8 @@ export class AuthService {
   isLoggedIn(): boolean {
     const payload = this.user;
     if (!payload) return false;
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
+    // exp es obligatorio — si no está presente el token no es válido
+    if (Date.now() / 1000 > payload.exp) {
       this.logout();
       return false;
     }
@@ -72,14 +97,17 @@ export class AuthService {
     return this.storage.get('token');
   }
 
-  private _cachedUser: any = null;
+  private _cachedUser: JwtPayload | null = null;
 
-  get user() {
+  get user(): JwtPayload | null {
     if (this._cachedUser) return this._cachedUser;
     const token = this.storage.get('token');
     if (!token) return null;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('Formato JWT invalido');
+      const payload = JSON.parse(atob(parts[1]));
+      if (!isValidPayload(payload)) throw new Error('Payload JWT invalido');
       this._cachedUser = payload;
       return payload;
     } catch {

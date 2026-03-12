@@ -1,0 +1,391 @@
+<!-- ── Confirm dialog ── -->
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Cabecera de página ── -->
+<div class="page-header">
+  <div class="page-title-group">
+    <button class="back-btn" (click)="goBack()">
+      ← Volver
+    </button>
+    <div class="title-block">
+      <h2>Detalle de Rendición
+        <span class="rend-id-badge" *ngIf="cabecera">N° {{ cabecera.U_IdRendicion }}</span>
+      </h2>
+      <p class="page-subtitle" *ngIf="cabecera">
+        {{ cabecera.U_NombrePerfil }} · {{ cabecera.U_Objetivo }} · {{ cabecera.U_NombreEmpleado }}
+      </p>
+    </div>
+  </div>
+  <button class="btn btn-primary btn-sm"
+    *ngIf="!isReadonly"
+    (click)="openNew()">
+    + Adicionar Documento
+  </button>
+</div>
+
+<!-- ── Panel de datos maestros ── -->
+<div class="maestros-panel" *ngIf="cabecera">
+  <div class="maestro-grid">
+    <div class="maestro-item">
+      <span class="maestro-label">Rendición N°</span>
+      <span class="maestro-value mono">{{ cabecera.U_IdRendicion }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Perfil</span>
+      <span class="maestro-value">{{ cabecera.U_NombrePerfil }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Usuario</span>
+      <span class="maestro-value">{{ cabecera.U_NomUsuario }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Cuenta</span>
+      <span class="maestro-value mono">{{ cabecera.U_Cuenta }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Nombre Cuenta</span>
+      <span class="maestro-value">{{ cabecera.U_NombreCuenta }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Empleado</span>
+      <span class="maestro-value mono">{{ cabecera.U_Empleado }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Nombre Empleado</span>
+      <span class="maestro-value">{{ cabecera.U_NombreEmpleado }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Objetivo</span>
+      <span class="maestro-value">{{ cabecera.U_Objetivo }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Fecha Inicio</span>
+      <span class="maestro-value">{{ formatDate(cabecera.U_FechaIni) }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Fecha Final</span>
+      <span class="maestro-value">{{ formatDate(cabecera.U_FechaFinal) }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Monto Inicial</span>
+      <span class="maestro-value mono">{{ cabecera.U_Monto | number:'1.2-2' }}</span>
+    </div>
+    <div class="maestro-item">
+      <span class="maestro-label">Preliminar</span>
+      <span class="maestro-value mono">{{ cabecera.U_Preliminar || '—' }}</span>
+    </div>
+  </div>
+
+  <div class="maestros-banner readonly-banner" *ngIf="isReadonly">
+    ⚠ Esta rendición está en estado <strong>{{ cabecera.U_Estado === 1 ? 'CERRADO' : 'CONTABILIZADO' }}</strong> — solo lectura.
+  </div>
+</div>
+
+<!-- ── Modal de documento ── -->
+<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+  <div class="user-modal doc-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+        {{ editingDoc ? 'Editar Documento N° ' + editingDoc.U_RD_IdRD : 'Nuevo Documento' }}
+        <span class="dirty-badge" *ngIf="editingDoc && isDirty">● cambios sin guardar</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="modal-body doc-form-body">
+
+        <!-- ══ Sección: Documento ══ -->
+        <div class="form-section-label">Documento</div>
+        <div class="doc-form-grid">
+
+          <div class="form-field col-span-2" [class.field-changed]="fieldChanged('concepto')">
+            <label>Concepto <span class="required">*</span></label>
+            <input type="text" formControlName="concepto" maxlength="200" placeholder="Descripción del gasto" autocomplete="off" />
+            <span class="field-error" *ngIf="form.get('concepto')?.invalid && form.get('concepto')?.touched">Obligatorio</span>
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('fecha')">
+            <label>Fecha <span class="required">*</span></label>
+            <input type="date" formControlName="fecha" />
+            <span class="field-error" *ngIf="form.get('fecha')?.invalid && form.get('fecha')?.touched">Obligatoria</span>
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('tipoDoc')">
+            <label>Tipo Documento <span class="required">*</span></label>
+            <select formControlName="tipoDoc">
+              <option value="FACTURA">Factura</option>
+              <option value="RECIBO">Recibo</option>
+              <option value="NOTA">Nota</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('numDocumento')">
+            <label>N° Documento</label>
+            <input type="text" formControlName="numDocumento" maxlength="20" placeholder="0" autocomplete="off" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('nroAutor')">
+            <label>N° Autorización</label>
+            <input type="text" formControlName="nroAutor" maxlength="250" placeholder="0" autocomplete="off" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('ctrl')">
+            <label>Código de Control</label>
+            <input type="text" formControlName="ctrl" maxlength="25" placeholder="0" autocomplete="off" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('cuf')">
+            <label>CUF</label>
+            <input type="text" formControlName="cuf" maxlength="250" placeholder="CUF factura electrónica" autocomplete="off" />
+          </div>
+
+        </div>
+
+        <!-- ══ Sección: Proveedor ══ -->
+        <div class="form-section-label">Proveedor</div>
+        <div class="doc-form-grid">
+
+          <div class="form-field" [class.field-changed]="fieldChanged('nit')">
+            <label>NIT <span class="required">*</span></label>
+            <input type="text" formControlName="nit" maxlength="50" placeholder="0" autocomplete="off" />
+            <span class="field-error" *ngIf="form.get('nit')?.invalid && form.get('nit')?.touched">Obligatorio</span>
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('codProv')">
+            <label>Código Proveedor</label>
+            <input type="text" formControlName="codProv" maxlength="25" autocomplete="off" />
+          </div>
+
+          <div class="form-field col-span-2" [class.field-changed]="fieldChanged('prov')">
+            <label>Nombre Proveedor</label>
+            <input type="text" formControlName="prov" maxlength="200" autocomplete="off" />
+          </div>
+
+        </div>
+
+        <!-- ══ Sección: Cuenta ══ -->
+        <div class="form-section-label">Cuenta</div>
+        <div class="doc-form-grid">
+
+          <div class="form-field" [class.field-changed]="fieldChanged('cuenta')">
+            <label>Código Cuenta</label>
+            <input type="text" formControlName="cuenta" maxlength="25" autocomplete="off" />
+          </div>
+
+          <div class="form-field col-span-3" [class.field-changed]="fieldChanged('nombreCuenta')">
+            <label>Nombre Cuenta</label>
+            <input type="text" formControlName="nombreCuenta" maxlength="250" autocomplete="off" />
+          </div>
+
+        </div>
+
+        <!-- ══ Sección: Montos ══ -->
+        <div class="form-section-label">Montos</div>
+        <div class="doc-form-grid">
+
+          <div class="form-field" [class.field-changed]="fieldChanged('importe')">
+            <label>Importe <span class="required">*</span></label>
+            <input type="number" formControlName="importe" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('descuento')">
+            <label>Descuento</label>
+            <input type="number" formControlName="descuento" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('exento')">
+            <label>Exento</label>
+            <input type="number" formControlName="exento" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('tasaCero')">
+            <label>Tasa Cero</label>
+            <input type="number" formControlName="tasaCero" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('impRet')">
+            <label>Imp. Retenido</label>
+            <input type="number" formControlName="impRet" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('total')">
+            <label>Total</label>
+            <input type="number" formControlName="total" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('tasa')">
+            <label>Tasa Cambio</label>
+            <input type="number" formControlName="tasa" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('giftCard')">
+            <label>Gift Card</label>
+            <input type="number" formControlName="giftCard" min="0" step="0.01" />
+          </div>
+
+        </div>
+
+        <!-- ══ Sección: Impuestos ══ -->
+        <div class="form-section-label">Impuestos</div>
+        <div class="doc-form-grid">
+
+          <div class="form-field" [class.field-changed]="fieldChanged('montoIVA')">
+            <label>IVA <span class="required">*</span></label>
+            <input type="number" formControlName="montoIVA" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('montoIT')">
+            <label>IT <span class="required">*</span></label>
+            <input type="number" formControlName="montoIT" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('montoIUE')">
+            <label>IUE <span class="required">*</span></label>
+            <input type="number" formControlName="montoIUE" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('montoRCIVA')">
+            <label>RC-IVA <span class="required">*</span></label>
+            <input type="number" formControlName="montoRCIVA" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('ice')">
+            <label>ICE <span class="required">*</span></label>
+            <input type="number" formControlName="ice" min="0" step="0.01" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('ctaExento')">
+            <label>Cta. Exento <span class="required">*</span></label>
+            <input type="text" formControlName="ctaExento" maxlength="25" autocomplete="off" />
+            <span class="field-error" *ngIf="form.get('ctaExento')?.invalid && form.get('ctaExento')?.touched">Obligatorio</span>
+          </div>
+
+        </div>
+
+        <!-- ══ Sección: Otros ══ -->
+        <div class="form-section-label">Otros</div>
+        <div class="doc-form-grid">
+
+          <div class="form-field" [class.field-changed]="fieldChanged('proyecto')">
+            <label>Proyecto</label>
+            <input type="text" formControlName="proyecto" maxlength="100" autocomplete="off" />
+          </div>
+
+          <div class="form-field" [class.field-changed]="fieldChanged('partida')">
+            <label>Partida</label>
+            <input type="text" formControlName="partida" maxlength="50" autocomplete="off" />
+          </div>
+
+          <div class="form-field col-span-2" [class.field-changed]="fieldChanged('nroOT')">
+            <label>N° OT</label>
+            <input type="text" formControlName="nroOT" maxlength="250" autocomplete="off" />
+          </div>
+
+        </div>
+
+      </div><!-- /modal-body -->
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <ng-container *ngIf="isDirty; else noChanges">
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+          <button type="submit"
+            [class]="editingDoc ? 'btn btn-save-changes' : 'btn btn-primary'"
+            [disabled]="form.invalid || isSaving">
+            <span *ngIf="isSaving">Guardando...</span>
+            <span *ngIf="!isSaving">{{ editingDoc ? '💾 Guardar cambios' : '➕ Agregar Documento' }}</span>
+          </button>
+        </ng-container>
+        <ng-template #noChanges>
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+        </ng-template>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ── Estado de carga / error ── -->
+<div *ngIf="loadingDocs" class="empty-state">Cargando documentos...</div>
+<div *ngIf="!loadingDocs && loadError" class="empty-state">
+  No se pudo cargar los documentos.
+  <a (click)="loadDocs()">Reintentar</a>
+</div>
+
+<!-- ── Tabla de documentos ── -->
+<div class="table-wrapper" *ngIf="!loadingDocs && !loadError">
+
+  <div *ngIf="documentos.length === 0" class="empty-state">
+    No hay documentos registrados.
+    <ng-container *ngIf="!isReadonly">
+      <a (click)="openNew()">Agregar el primero</a>
+    </ng-container>
+  </div>
+
+  <table class="data-table" *ngIf="documentos.length > 0">
+    <thead>
+      <tr>
+        <th class="text-center">N°</th>
+        <th>Cuenta</th>
+        <th>Fecha</th>
+        <th>Tipo Doc.</th>
+        <th>N° Doc.</th>
+        <th>Concepto</th>
+        <th class="text-right">Importe</th>
+        <th class="text-right">Descuento</th>
+        <th class="text-right">IVA</th>
+        <th class="text-right">Total</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let d of paged">
+        <td class="text-center col-id">{{ d.U_RD_IdRD }}</td>
+        <td class="col-cuenta">
+          <span class="code-tag" *ngIf="d.U_RD_Cuenta">{{ d.U_RD_Cuenta }}</span>
+          <span class="cuenta-nombre" *ngIf="d.U_RD_NombreCuenta">{{ d.U_RD_NombreCuenta }}</span>
+          <span class="text-muted-cell" *ngIf="!d.U_RD_Cuenta">—</span>
+        </td>
+        <td class="text-center">{{ formatDate(d.U_RD_Fecha) }}</td>
+        <td><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
+        <td class="mono-cell">{{ d.U_RD_NumDocumento || '—' }}</td>
+        <td class="col-concepto">{{ d.U_RD_Concepto }}</td>
+        <td class="text-right mono-cell">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell">{{ d.U_RD_Descuento | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell">{{ d.U_MontoIVA | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
+        <td class="actions">
+          <button class="btn btn-sm btn-ghost" (click)="openEdit(d)">Editar</button>
+          <button class="btn btn-sm btn-danger-soft"
+            *ngIf="!isReadonly" (click)="confirmDelete(d)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+    <!-- Fila de totales -->
+    <tfoot>
+      <tr class="totals-row">
+        <td colspan="6" class="totals-label">Totales</td>
+        <td class="text-right mono-cell total-cell">{{ totalImporte  | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ totalDescuento | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ totalIVA       | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ totalGeneral   | number:'1.2-2' }}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <app-paginator *ngIf="documentos.length > 0"
+    [page]="page"
+    [limit]="limit"
+    [total]="documentos.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)">
+  </app-paginator>
+
+</div>

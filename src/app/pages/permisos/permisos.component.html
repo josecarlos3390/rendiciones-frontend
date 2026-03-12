@@ -1,0 +1,92 @@
+<div class="page-header">
+  <h2>Administración de Permisos por Usuario/Perfil</h2>
+</div>
+
+<p class="page-subtitle">
+  Asigne los perfiles sobre los cuales cada usuario podrá trabajar en el sistema.
+</p>
+
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Barra de selección ─────────────────────────────────── -->
+<div class="permisos-toolbar">
+
+  <div class="toolbar-field">
+    <label>Seleccione Usuario</label>
+    <select class="toolbar-select" (change)="onUsuarioChange($event)">
+      <option value="">— Seleccione —</option>
+      <option *ngFor="let u of usuarios" [value]="u.U_IdU">
+        {{ u.U_NomUser || u.U_Login }}
+      </option>
+    </select>
+  </div>
+
+  <div class="toolbar-field" *ngIf="selectedUsuarioId">
+    <label>Seleccione Perfil</label>
+    <select class="toolbar-select" (change)="onPerfilChange($event)" [value]="selectedPerfilId ?? ''">
+      <option value="">— Seleccione —</option>
+      <option *ngFor="let p of perfilesDisponibles" [value]="p.U_CodPerfil">
+        {{ p.U_NombrePerfil }}
+      </option>
+    </select>
+  </div>
+
+  <button class="btn btn-primary"
+    [disabled]="!selectedUsuarioId || !selectedPerfilId || isSaving"
+    (click)="asignar()">
+    <span *ngIf="isSaving">Guardando...</span>
+    <span *ngIf="!isSaving">+ Adicionar Permiso</span>
+  </button>
+
+</div>
+
+<!-- ── Estados vacíos ─────────────────────────────────────── -->
+<div *ngIf="!selectedUsuarioId" class="empty-state">
+  Seleccione un usuario para ver y gestionar sus permisos.
+</div>
+<div *ngIf="selectedUsuarioId && loading" class="empty-state">
+  Cargando permisos...
+</div>
+
+<!-- ── Tabla de permisos actuales ────────────────────────── -->
+<div class="permisos-panel" *ngIf="selectedUsuarioId && !loading">
+
+  <div class="panel-header">
+    <span>Permisos actuales de
+      <strong>{{ selectedUsuario?.U_NomUser || selectedUsuario?.U_Login }}</strong>
+    </span>
+    <span class="panel-count">{{ permisos.length }} perfil{{ permisos.length !== 1 ? 'es' : '' }} asignado{{ permisos.length !== 1 ? 's' : '' }}</span>
+  </div>
+
+  <div *ngIf="permisos.length === 0" class="panel-empty">
+    Este usuario no tiene perfiles asignados.
+  </div>
+
+  <table class="data-table" *ngIf="permisos.length > 0">
+    <thead>
+      <tr>
+        <th>Código Perfil</th>
+        <th>Nombre del Perfil</th>
+        <th class="actions">Eliminar</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of permisos">
+        <td class="text-center">{{ p.U_IDPERFIL }}</td>
+        <td>{{ p.U_NOMBREPERFIL }}</td>
+        <td class="actions">
+          <button class="btn-remove" title="Quitar permiso" (click)="confirmRemove(p)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>

@@ -10,15 +10,19 @@ import { AuthService } from '../auth/auth.service';
  *
  * Maneja automáticamente:
  *   0   → Sin conexión al servidor
+ *   400 → Bad request → mensaje del backend si existe
  *   401 → Token expirado o inválido → logout y redirige a login
  *   403 → Sin permisos → toast informativo
- *   404 → Recurso no encontrado → toast (solo para mutaciones, no GETs)
- *   409 → Conflicto (regla de negocio) → mensaje del backend
- *   422 → Validación backend → mensaje del backend
  *   5xx → Error del servidor → mensaje genérico
  *
- * Los componentes ya NO necesitan manejar estos casos individualmente.
- * Solo deben manejar errores con lógica de UI propia (ej: limpiar un spinner).
+ * NO maneja (el componente es responsable):
+ *   409 → Conflicto de negocio — siempre tiene un mensaje específico del backend
+ *   422 → Validación — siempre tiene un mensaje específico del backend
+ *   404 → No encontrado — el componente decide cómo reaccionar en su contexto
+ *
+ * El callback error() en los componentes solo debe limpiar estado de UI
+ * (ej: isSaving = false). No necesita volver a mostrar un toast para
+ * los errores que ya maneja este interceptor (0, 400, 401, 403, 5xx).
  *
  * Para suprimir el manejo global en una petición específica, agregar el header:
  *   { headers: { 'X-Skip-Error-Handler': 'true' } }
@@ -41,9 +45,14 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
         err.error?.message || err.error?.error || err.error?.detail;
 
       switch (true) {
-        // ── Sin conexión ─────────────────────────────────────────
+        // ── Sin conexión ──────────────────────────────────────────
         case err.status === 0:
           toast.error('Sin conexión con el servidor. Verifica tu red.');
+          break;
+
+        // ── Bad request ───────────────────────────────────────────
+        case err.status === 400:
+          toast.error(backendMsg || 'La solicitud contiene datos inválidos.');
           break;
 
         // ── Token expirado / no autenticado ───────────────────────
@@ -63,18 +72,12 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
           toast.error('No tienes permisos para realizar esta acción.');
           break;
 
-        // ── Conflicto de negocio / validación ─────────────────────
-        case err.status === 409:
-        case err.status === 422:
-          toast.error(backendMsg || 'Los datos enviados no son válidos.');
-          break;
-
         // ── Error del servidor ────────────────────────────────────
         case err.status >= 500:
           toast.error(backendMsg || 'Error en el servidor. Intenta de nuevo en unos momentos.');
           break;
 
-        // ── Otros errores (400, 404, etc.) — dejar que el componente decida ──
+        // ── 404, 409, 422 y otros — el componente decide ──────────
         default:
           break;
       }

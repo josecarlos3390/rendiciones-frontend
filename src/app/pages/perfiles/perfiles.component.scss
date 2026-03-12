@@ -1,0 +1,82 @@
+// ═══════════════════════════════════════════════════════════════
+// perfiles.component.scss
+// Clases globales reutilizadas (no se redefinen aquí):
+//   Modal    → .modal-backdrop, .modal-header, .modal-body, .modal-footer  (_modals.scss)
+//   Form     → .form-field, .form-row, .form-section-label                 (_forms.scss)
+//   Layout   → .modal-2col-layout, .modal-col, .modal-2col-footer          (_forms.scss)
+//   Botones  → .btn, .btn-ghost, .btn-primary, .btn-save-changes            (_buttons.scss)
+//   Tabla    → .data-table, .table-wrapper                                  (_tables.scss)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Modal ────────────────────────────────────────────────────────
+.user-modal {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width:         min(1000px, 96vw);
+  max-height:    90vh;
+  display:       flex;
+  flex-direction: column;
+  overflow:      hidden;
+  box-shadow:    var(--shadow-modal);
+  animation:     _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes _modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+// ── Tabla — columnas específicas ─────────────────────────────────
+.col-nombre {
+  max-width:    240px;
+  font-weight:  500;
+  white-space:  normal;
+  line-height:  1.3;
+}
+
+.col-cuenta-texto {
+  max-width:   120px;
+  font-family: var(--font-mono, monospace);
+  font-size:   0.8rem;
+  color:       var(--text-muted);
+}
+
+// ── Badge característica — tokenizado para ambos modos ───────────
+// Light: fondo azul muy suave, texto primary oscuro (5.17:1 ✅)
+// Dark: fondo semitransparente azul, texto primary claro (ya en token)
+.carac-badge {
+  display:        inline-block;
+  padding:        2px 8px;
+  border-radius:  var(--radius-sm, 4px);
+  font-size:      0.72rem;
+  font-weight:    600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background:     var(--color-primary-bg);
+  color:          var(--color-primary-text);
+  border:         1px solid var(--color-primary-border);
+}
+
+// ── Botón ícono (editar/eliminar) ─────────────────────────────────
+.btn-icon {
+  padding:       4px 8px;
+  font-size:     1rem;
+  line-height:   1;
+  border-radius: var(--radius-sm, 4px);
+  background:    transparent;
+  border:        1px solid transparent;
+  cursor:        pointer;
+  transition:    background 0.15s;
+
+  &:hover {
+    background: var(--bg-subtle);
+  }
+}
+
+// ── Dirty badge ─────────────────────────────────────────────────
+// Reutiliza la clase global .dirty-badge de _forms.scss
+// No se redefine aquí para evitar duplicación.
+
+// ── Centro ──────────────────────────────────────────────────────
+.text-center { text-align: center; }

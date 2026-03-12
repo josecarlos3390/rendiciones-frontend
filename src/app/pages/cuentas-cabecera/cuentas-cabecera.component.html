@@ -1,0 +1,169 @@
+<div class="page-header">
+  <h2>Cuentas Cabecera Rendición</h2>
+  <button class="btn btn-primary btn-sm" (click)="openForm()" [disabled]="!selectedPerfilId">
+    + Adicionar
+  </button>
+</div>
+
+<p class="page-subtitle">
+  Configure las cuentas de la Cabecera de la Rendición por Perfil —
+  seleccione las cuentas disponibles para los usuarios al crear la cabecera de la rendición.
+</p>
+
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Modal agregar ──────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+  <div class="cabecera-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>Agregar Cuenta Cabecera — {{ selectedPerfil?.U_NombrePerfil }}</h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="modal-body">
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Código SYS <span class="required">*</span></label>
+            <input type="text" formControlName="cuentaSys" maxlength="50"
+              placeholder="11102001" autocomplete="off" />
+            <span class="field-error"
+              *ngIf="form.get('cuentaSys')?.invalid && form.get('cuentaSys')?.touched">
+              Obligatorio
+            </span>
+          </div>
+          <div class="form-field">
+            <label>Código Cuenta <span class="required">*</span></label>
+            <input type="text" formControlName="cuentaFormatCode" maxlength="50"
+              placeholder="11102001" autocomplete="off" />
+            <span class="field-error"
+              *ngIf="form.get('cuentaFormatCode')?.invalid && form.get('cuentaFormatCode')?.touched">
+              Obligatorio
+            </span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Nombre Cuenta <span class="required">*</span></label>
+          <input type="text" formControlName="cuentaNombre" maxlength="150"
+            placeholder="Caja Chica" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('cuentaNombre')?.invalid && form.get('cuentaNombre')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label>Cuenta Asociada</label>
+          <div class="toggle-row">
+            <label class="toggle-option" [class.active]="form.get('cuentaAsociada')?.value === 'N'">
+              <input type="radio" formControlName="cuentaAsociada" value="N" /> No
+            </label>
+            <label class="toggle-option" [class.active]="form.get('cuentaAsociada')?.value === 'Y'">
+              <input type="radio" formControlName="cuentaAsociada" value="Y" /> Sí
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || isSaving">
+          <span *ngIf="isSaving">Guardando...</span>
+          <span *ngIf="!isSaving">Agregar Cuenta</span>
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ── Filtros ─────────────────────────────────────────────── -->
+<div class="filter-bar">
+  <div class="filter-left">
+    <div class="filter-field">
+      <label>Seleccione Perfil</label>
+      <select class="filter-select" (change)="onPerfilChange($event)">
+        <option value="">— Seleccione —</option>
+        <option *ngFor="let p of perfiles" [value]="p.U_CodPerfil">
+          {{ p.U_NombrePerfil }}
+        </option>
+      </select>
+    </div>
+
+    <div class="filter-field" *ngIf="selectedPerfilId">
+      <label>Buscar cuenta</label>
+      <div class="filter-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" placeholder="Código o nombre..."
+          [(ngModel)]="search" (input)="applyFilter()" />
+        <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <span class="filter-count" *ngIf="selectedPerfilId && !loading">
+    {{ filtered.length }} cuenta{{ filtered.length !== 1 ? 's' : '' }}
+  </span>
+</div>
+
+<!-- ── Estados vacíos ──────────────────────────────────────── -->
+<div *ngIf="!selectedPerfilId" class="empty-state">
+  Seleccione un perfil para ver sus cuentas de cabecera.
+</div>
+<div *ngIf="selectedPerfilId && loading" class="empty-state">Cargando cuentas...</div>
+<div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && !search" class="empty-state">
+  No hay cuentas de cabecera en este perfil.
+  <a (click)="openForm()">Agregar la primera</a>
+</div>
+<div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && search" class="empty-state">
+  No se encontraron cuentas para "{{ search }}".
+</div>
+
+<!-- ── Tabla ───────────────────────────────────────────────── -->
+<div class="table-wrapper" *ngIf="selectedPerfilId && !loading && filtered.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Cod. Perfil</th>
+        <th>Código SYS</th>
+        <th>Código Cuenta</th>
+        <th>Nombre Cuenta</th>
+        <th class="text-center">Cuenta Asociada</th>
+        <th class="actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of paged">
+        <td class="text-center">{{ c.U_IdPerfil }}</td>
+        <td class="col-mono">{{ c.U_CuentaSys }}</td>
+        <td class="col-mono">{{ c.U_CuentaFormatCode }}</td>
+        <td>{{ c.U_CuentaNombre }}</td>
+        <td class="text-center">
+          <span class="badge-asociada" [class.yes]="c.U_CuentaAsociada === 'Y'">
+            {{ c.U_CuentaAsociada }}
+          </span>
+        </td>
+        <td class="actions">
+          <button class="btn-remove" title="Eliminar" (click)="confirmRemove(c)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-paginator
+    [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
+  </app-paginator>
+</div>

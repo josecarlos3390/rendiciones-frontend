@@ -21,7 +21,8 @@ export class UsersComponent implements OnInit {
   filtered: User[] = [];
   paged:    User[] = [];
   search   = '';
-  loading  = false;
+  loading   = false;
+  loadError = false;
 
   // Paginación
   page       = 1;
@@ -111,14 +112,18 @@ export class UsersComponent implements OnInit {
 
   // ── CRUD ─────────────────────────────────────────────────
   load() {
-    this.loading = true;
+    this.loading   = true;
+    this.loadError = false;
     this.usersService.getAll().subscribe({
       next: (users) => {
         this.users = users;
         this.applyFilter();
         this.loading = false;
       },
-      error: () => { this.loading = false; },
+      error: () => {
+        this.loading   = false;
+        this.loadError = true;
+      },
     });
   }
 
@@ -132,7 +137,6 @@ export class UsersComponent implements OnInit {
     this.updatePaging();
   }
 
-  filter() { this.applyFilter(); }
 
   updatePaging() {
     this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
@@ -248,7 +252,10 @@ export class UsersComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          this.toast.error(err?.error?.message || 'Error al actualizar usuario');
+          // 409/422: errores de negocio con mensaje específico del backend
+          if (err?.status === 409 || err?.status === 422) {
+            this.toast.error(err?.error?.message || 'Error al actualizar usuario');
+          }
         },
       });
     } else {
@@ -261,7 +268,9 @@ export class UsersComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          this.toast.error(err?.error?.message || 'Error al crear usuario');
+          if (err?.status === 409 || err?.status === 422) {
+            this.toast.error(err?.error?.message || 'Error al crear usuario');
+          }
         },
       });
     }
@@ -291,7 +300,11 @@ export class UsersComponent implements OnInit {
     }, () => {
       this.usersService.toggleStatus(u.U_IdU, isActive ? 'I' : 'A').subscribe({
         next:  () => { this.toast.success(isActive ? 'Usuario inactivado' : 'Usuario activado'); this.load(); },
-        error: (err: any) => this.toast.error(err?.error?.message || 'Error al cambiar estado'),
+        error: (err: any) => {
+          if (err?.status === 409 || err?.status === 422) {
+            this.toast.error(err?.error?.message || 'Error al cambiar estado');
+          }
+        },
       });
     });
   }

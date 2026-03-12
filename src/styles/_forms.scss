@@ -1448,4 +1448,191 @@
     color: #4ade80;
     border-color: rgba(34, 197, 94, 0.3);
   }
+}// ═══════════════════════════════════════════════════════════════
+// _forms-additions.scss  — AGREGAR al final de _forms.scss
+// Parches responsive y dark mode para formularios
+// ═══════════════════════════════════════════════════════════════
+
+// ── form-row a una columna en móvil (ya está en _forms.scss, confirmar) ──
+.form-row {
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Checkboxes: mejor táctil en móvil ────────────────────────────
+.form-field--checkbox,
+.form-field--checkbox-inline {
+  .checkbox-label,
+  .checkbox-label-inline {
+    // Target de toque mínimo de 44px
+    min-height: 44px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 0;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      margin-top: 3px;
+      flex-shrink: 0;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+    }
+  }
+}
+
+// ── Separador de sección mejorado (dark mode aware) ───────────────
+.form-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 18px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+
+  // El color del borde en dark mode es correcto vía CSS vars;
+  // no se necesita override adicional.
+}
+
+// ── field-hint con color semántico ────────────────────────────────
+.field-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+// ── label-muted ───────────────────────────────────────────────────
+.label-muted {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+// ── Inputs disabled: dark mode fix ────────────────────────────────
+// Los valores deshabilitados (código de almacén, código de partner)
+// deben verse legibles en ambos temas
+.form-field {
+  input:disabled,
+  select:disabled {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    border-color: var(--border-soft);
+  }
+}
+
+// ── action-bar: en móvil botones full-width ───────────────────────
+.action-bar {
+  @media (max-width: 480px) {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    // En móvil el "Cancelar" va arriba (orden visual más común)
+    .btn-ghost { order: 2; }
+    .btn-primary,
+    .btn-save-changes { order: 1; }
+  }
+}
+
+// ── Botón disparador del modal de artículos ───────────────────
+// ── Botón selector de artículo (columna Artículo en tablas de documento) ──
+.item-select-btn {
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-heading);
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+
+  // Ícono de búsqueda a la izquierda
+  &::before {
+    content: '⌕';
+    font-size: 15px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.12s;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary);
+
+    &::before { color: var(--color-primary); }
+    .item-select-name { color: var(--color-primary-text); }
+    .item-select-icon { opacity: 1; transform: translateX(2px); }
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+
+    &::before { display: none; }
+  }
+
+  // Estado vacío: borde punteado sutil
+  &.item-select-btn-empty {
+    &::before { content: '＋'; font-size: 13px; }
+
+    .item-select-placeholder {
+      color: var(--text-faint);
+    }
+
+    &:hover:not(:disabled) .item-select-placeholder {
+      color: var(--color-primary-text);
+    }
+  }
+}
+
+.item-select-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-heading);
+  transition: color 0.12s;
+}
+
+.item-select-placeholder {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.item-select-icon {
+  font-size: 11px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
 }

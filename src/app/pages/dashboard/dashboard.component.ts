@@ -86,7 +86,7 @@ export class DashboardComponent {
   }
 
   get userName(): string {
-    return this.auth.user?.name ?? this.auth.user?.email ?? 'Usuario';
+    return this.auth.user?.name ?? this.auth.user?.username ?? 'Usuario';
   }
 
   get today(): string {

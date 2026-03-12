@@ -1,0 +1,240 @@
+<div class="page-header">
+  <h2>Cabeceras de Rendición</h2>
+  <button class="btn btn-primary btn-sm" (click)="openNew()">+ Nueva Rendición</button>
+</div>
+
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Modal ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+  <div class="user-modal rend-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+        {{ editingRend ? 'Editar Rendición N° ' + editingRend.U_IdRendicion : 'Nueva Rendición' }}
+        <span class="dirty-badge" *ngIf="editingRend && isDirty">● cambios sin guardar</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-2col-layout">
+
+      <!-- ══ Columna izquierda ══ -->
+      <div class="modal-body modal-col">
+
+        <div class="form-section-label">Datos del empleado</div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('empleado')">
+          <label>Código Empleado <span class="required">*</span></label>
+          <input type="text" formControlName="empleado"
+            placeholder="EL00005" maxlength="25" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('empleado')?.invalid && form.get('empleado')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('nombreEmpleado')">
+          <label>Nombre Empleado <span class="required">*</span></label>
+          <input type="text" formControlName="nombreEmpleado"
+            placeholder="NINO QUEVEDO" maxlength="250" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('nombreEmpleado')?.invalid && form.get('nombreEmpleado')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-section-label">Período</div>
+
+        <div class="form-row">
+          <div class="form-field" [class.field-changed]="fieldChanged('fechaIni')">
+            <label>Fecha Inicio <span class="required">*</span></label>
+            <input type="date" formControlName="fechaIni" />
+            <span class="field-error"
+              *ngIf="form.get('fechaIni')?.invalid && form.get('fechaIni')?.touched">
+              Obligatoria
+            </span>
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('fechaFinal')">
+            <label>Fecha Final <span class="required">*</span></label>
+            <input type="date" formControlName="fechaFinal" />
+            <span class="field-error"
+              *ngIf="form.get('fechaFinal')?.invalid && form.get('fechaFinal')?.touched">
+              Obligatoria
+            </span>
+          </div>
+        </div>
+
+        <p class="field-hint">
+          ⚠ La fecha final registrada será utilizada como fecha del documento preliminar
+        </p>
+
+      </div><!-- /col izquierda -->
+
+      <!-- ══ Columna derecha ══ -->
+      <div class="modal-body modal-col">
+
+        <div class="form-section-label">Cuenta y Perfil</div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('idPerfil')">
+          <label>ID Perfil <span class="required">*</span></label>
+          <input type="number" formControlName="idPerfil" min="1" placeholder="1" />
+          <span class="field-error"
+            *ngIf="form.get('idPerfil')?.invalid && form.get('idPerfil')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('cuenta')">
+          <label>Código de Cuenta <span class="required">*</span></label>
+          <input type="text" formControlName="cuenta"
+            placeholder="CA-11105003" maxlength="25" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('cuenta')?.invalid && form.get('cuenta')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('nombreCuenta')">
+          <label>Nombre de Cuenta <span class="required">*</span></label>
+          <input type="text" formControlName="nombreCuenta"
+            placeholder="Fondos a Rendir Bs." maxlength="250" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('nombreCuenta')?.invalid && form.get('nombreCuenta')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-section-label">Rendición</div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('objetivo')">
+          <label>Objetivo / Descripción <span class="required">*</span></label>
+          <input type="text" formControlName="objetivo"
+            placeholder="PRUEBA" maxlength="250" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('objetivo')?.invalid && form.get('objetivo')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" [class.field-changed]="fieldChanged('monto')">
+            <label>Monto Recepcionado <span class="required">*</span></label>
+            <input type="number" formControlName="monto"
+              min="0" step="0.01" placeholder="0.00" />
+            <span class="field-error"
+              *ngIf="form.get('monto')?.invalid && form.get('monto')?.touched">
+              Obligatorio, mínimo 0
+            </span>
+          </div>
+          <div class="form-field" [class.field-changed]="fieldChanged('preliminar')">
+            <label>Doc. Preliminar</label>
+            <input type="text" formControlName="preliminar"
+              maxlength="25" placeholder="Opcional" autocomplete="off" />
+          </div>
+        </div>
+
+      </div><!-- /col derecha -->
+
+      <!-- Footer -->
+      <div class="modal-footer modal-2col-footer">
+        <ng-container *ngIf="isDirty; else noChanges">
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+          <button type="submit"
+            [class]="editingRend ? 'btn btn-save-changes' : 'btn btn-primary'"
+            [disabled]="form.invalid || isSaving">
+            <span *ngIf="isSaving">Guardando...</span>
+            <span *ngIf="!isSaving">{{ editingRend ? '💾 Guardar cambios' : '➕ Crear Rendición' }}</span>
+          </button>
+        </ng-container>
+        <ng-template #noChanges>
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+        </ng-template>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ── Buscador ── -->
+<div class="filter-bar">
+  <div class="filter-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" placeholder="Buscar por objetivo, empleado, cuenta o perfil..."
+      [(ngModel)]="search" (input)="applyFilter()" />
+    <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
+  </div>
+  <span class="filter-count" *ngIf="!loading">
+    {{ filtered.length }} rendición{{ filtered.length !== 1 ? 'es' : '' }}
+  </span>
+</div>
+
+<div *ngIf="loading" class="empty-state">Cargando rendiciones...</div>
+<div *ngIf="!loading && loadError" class="empty-state">
+  No se pudo cargar la lista de rendiciones.
+  <a (click)="load()">Reintentar</a>
+</div>
+<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
+  No hay rendiciones registradas. <a (click)="openNew()">Crear la primera</a>
+</div>
+
+<!-- ── Tabla ── -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center">N°</th>
+        <th>Perfil</th>
+        <th>Objetivo</th>
+        <th>Cuenta</th>
+        <th>Empleado</th>
+        <th>Fecha Inicio</th>
+        <th>Fecha Fin</th>
+        <th class="text-right">Monto</th>
+        <th class="text-center">Estado</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of paged">
+        <td class="text-center col-id">{{ r.U_IdRendicion }}</td>
+        <td class="col-perfil">{{ r.U_NombrePerfil }}</td>
+        <td class="col-objetivo">{{ r.U_Objetivo }}</td>
+        <td class="col-cuenta">
+          <span class="code-tag">{{ r.U_Cuenta }}</span>
+          <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
+        </td>
+        <td class="col-empleado">{{ r.U_NombreEmpleado }}</td>
+        <td class="text-center">{{ formatDate(r.U_FechaIni) }}</td>
+        <td class="text-center">{{ formatDate(r.U_FechaFinal) }}</td>
+        <td class="text-right col-monto">{{ r.U_Monto | number:'1.2-2' }}</td>
+        <td class="text-center">
+          <span [class]="estadoCss(r.U_Estado)">
+            {{ estadoTexto(r.U_Estado) }}
+          </span>
+        </td>
+        <td class="actions">
+          <a class="btn btn-sm btn-ghost-primary"
+            [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
+            📄 Ver Detalle
+          </a>
+          <button class="btn btn-sm btn-ghost"
+            *ngIf="canEdit(r)" (click)="openEdit(r)">Editar</button>
+          <button class="btn btn-sm btn-danger-soft"
+            *ngIf="canDelete(r)" (click)="confirmDelete(r)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-paginator
+    [page]="page"
+    [limit]="limit"
+    [total]="filtered.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)">
+  </app-paginator>
+</div>

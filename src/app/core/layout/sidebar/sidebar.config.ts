@@ -12,10 +12,18 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     roles: ['ADMIN', 'USER']
   },
   {
+    label: 'Rendiciones',
+    roles: ['ADMIN', 'USER'],
+    children: [
+      { label: 'Cabeceras', route: '/rend-m', roles: ['ADMIN', 'USER'] },
+    ]
+  },
+  {
     label: 'Administración',
     roles: ['ADMIN'],
     children: [
-      { label: 'Usuarios', route: '/users' },
+      { label: 'Usuarios',  route: '/users' },
+      { label: 'Perfiles',  route: '/perfiles' },
     ]
   },
 ];
