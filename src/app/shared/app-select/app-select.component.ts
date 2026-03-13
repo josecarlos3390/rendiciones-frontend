@@ -74,7 +74,7 @@ export interface SelectOption<T = string | number> {
   selector: 'app-select',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   styles: [`
     /* ── Host ── */
     :host { display: block; }
@@ -579,6 +579,7 @@ export interface SelectOption<T = string | number> {
           <div class="as-search-wrap">
             <span class="as-search-icon">⌕</span>
             <input
+              #searchInput
               type="text"
               class="as-search-input"
               [placeholder]="'Buscar ' + (label || 'opción') + '...'"
@@ -590,7 +591,7 @@ export interface SelectOption<T = string | number> {
               *ngIf="searchTerm"
               type="button"
               class="as-search-clear"
-              (click)="filterOptions('')">✕</button>
+              (click)="filterOptions(''); searchInput.value=''">✕</button>
           </div>
         </div>
 

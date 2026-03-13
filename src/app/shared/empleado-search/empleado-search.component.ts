@@ -19,16 +19,23 @@ export interface Empleado {
  *
  * Uso:
  *   <app-empleado-search
+ *     [car]="perfilEmpCar"
  *     [filtro]="perfilFiltroEmpleado"
  *     (empleadoChange)="onEmpleadoSelected($event)">
  *   </app-empleado-search>
  *
  * Con valor inicial (edición):
  *   <app-empleado-search
+ *     [car]="perfilEmpCar"
  *     [filtro]="perfilFiltroEmpleado"
  *     [initialCode]="form.get('empleado')?.value"
  *     (empleadoChange)="onEmpleadoSelected($event)">
  *   </app-empleado-search>
+ *
+ * Valores de `car` (U_EMP_CAR del perfil):
+ *   - 'EMPIEZA'  → trae BusinessPartners cuyo CardCode empieza con `filtro`
+ *   - 'TERMINA'  → trae BusinessPartners cuyo CardCode termina con `filtro`
+ *   - 'NOTIENE'  → no consulta SAP, muestra lista vacía
  */
 @Component({
   selector: 'app-empleado-search',
@@ -155,13 +162,13 @@ export interface Empleado {
         <div class="es-search-bar">
           <div class="es-search-wrap">
             <span class="es-search-icon">⌕</span>
-            <input type="text" class="es-search-input"
+            <input #searchInput type="text" class="es-search-input"
               placeholder="Buscar por código o nombre..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
               autofocus autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="es-search-clear"
-              (click)="onSearch('')">✕</button>
+              (click)="onSearch(''); searchInput.value=''">✕</button>
           </div>
         </div>
 
@@ -201,6 +208,9 @@ export interface Empleado {
 })
 export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
 
+  /** Característica del perfil (U_EMP_CAR): 'EMPIEZA' | 'TERMINA' | 'NOTIENE' */
+  @Input() car:          string = 'EMPIEZA';
+  /** Texto del filtro del perfil (U_EMP_TEXTO), p.ej. 'EL' */
   @Input() filtro:       string = '';
   @Input() placeholder_text    = '— Buscar y seleccionar empleado —';
   @Input() initialCode: string | null = null;
@@ -223,6 +233,7 @@ export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
   private get api() { return `${environment.apiUrl}/sap/empleados`; }
 
   ngOnInit() {
+    // Filtrado local con debounce
     this.search$.pipe(
       debounceTime(150),
       distinctUntilChanged(),
@@ -237,10 +248,28 @@ export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
         : this.all.slice();
       this.cdr.markForCheck();
     });
+
+    // Cargar empleados al iniciar si hay filtro disponible y no es NOTIENE
+    if (this.filtro && this.car !== 'NOTIENE') this.loadEmpleados();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    // Si cambia el initialCode y ya tenemos datos, buscar el empleado
+    // Si cambia el filtro o la característica (cambio de perfil), recargar
+    const filtroChanged = changes['filtro'] && !changes['filtro'].firstChange;
+    const carChanged    = changes['car']    && !changes['car'].firstChange;
+
+    if (filtroChanged || carChanged) {
+      this.all      = [];
+      this.filtered = [];
+      // Solo consultar SAP si no es NOTIENE y hay filtro
+      if (this.filtro && this.car !== 'NOTIENE') {
+        this.loadEmpleados();
+      } else {
+        this.cdr.markForCheck();
+      }
+    }
+
+    // Si cambia el initialCode y ya tenemos datos
     if (changes['initialCode'] && this.initialCode && this.all.length > 0) {
       this.restoreInitial();
     }
@@ -255,21 +284,19 @@ export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
   onEsc() { if (this.isOpen) this.close(); }
 
   open() {
-    if (!this.filtro) return;
-    this.isOpen = true;
-    if (this.all.length === 0) {
-      this.loadEmpleados();
-    } else {
-      this.searchTerm = '';
-      this.filtered   = this.all.slice();
-    }
+    if (!this.filtro || this.car === 'NOTIENE') return;
+    this.isOpen     = true;
+    this.searchTerm = '';
+    this.filtered   = this.all.slice();
     this.cdr.markForCheck();
   }
 
   private loadEmpleados() {
     this.loading = true;
     this.cdr.markForCheck();
-    this.http.get<Empleado[]>(`${this.api}?filtro=${encodeURIComponent(this.filtro)}`)
+    // Enviamos tanto `car` (U_EMP_CAR) como `filtro` (U_EMP_TEXTO) al backend
+    const url = `${this.api}?car=${encodeURIComponent(this.car)}&filtro=${encodeURIComponent(this.filtro)}`;
+    this.http.get<Empleado[]>(url)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
@@ -295,7 +322,14 @@ export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
 
   onSearch(term: string) {
     this.searchTerm = term;
-    this.search$.next(term);
+    const q = term.toLowerCase().trim();
+    this.filtered = q
+      ? this.all.filter(e =>
+          e.cardCode.toLowerCase().includes(q) ||
+          e.cardName.toLowerCase().includes(q)
+        )
+      : this.all.slice();
+    this.cdr.detectChanges();
   }
 
   select(e: Empleado) {

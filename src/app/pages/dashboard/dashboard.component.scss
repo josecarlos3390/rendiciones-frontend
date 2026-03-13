@@ -19,26 +19,26 @@ $transition: 0.18s ease;
 }
 
 .title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   color: var(--text-heading);
   margin: 0 0 4px;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: 14px;
+  font-size: var(--text-md);
   color: var(--text-muted);
   margin: 0;
 
-  strong { color: var(--text-body); font-weight: 600; }
+  strong { color: var(--text-body); font-weight: var(--weight-semibold); }
 }
 
 .header-date {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text-faint);
   background: var(--bg-faint);
   border: 1px solid var(--border-color);
@@ -91,16 +91,16 @@ $transition: 0.18s ease;
 }
 
 .kpi-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .kpi-value {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   color: var(--text-heading);
   letter-spacing: -0.02em;
   line-height: 1;
@@ -110,8 +110,8 @@ $transition: 0.18s ease;
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   padding: 3px 7px;
   border-radius: 20px;
 
@@ -125,8 +125,8 @@ $transition: 0.18s ease;
 }
 
 .section-title {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   color: var(--text-heading);
   margin: 0;
   letter-spacing: -0.01em;
@@ -177,13 +177,13 @@ $transition: 0.18s ease;
 }
 
 .shortcut-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
   color: var(--text-heading);
 }
 
 .shortcut-desc {
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   color: var(--text-faint);
 }
 
@@ -228,14 +228,14 @@ $transition: 0.18s ease;
 
 .status-name {
   flex: 1;
-  font-size: 13.5px;
+  font-size: var(--text-base);
   color: var(--text-body);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .status-badge {
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   padding: 2px 8px;
   border-radius: 20px;
 

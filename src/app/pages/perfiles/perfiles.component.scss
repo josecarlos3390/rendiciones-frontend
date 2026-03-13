@@ -30,7 +30,7 @@
 // ── Tabla — columnas específicas ─────────────────────────────────
 .col-nombre {
   max-width:    240px;
-  font-weight:  500;
+  font-weight: var(--weight-medium);
   white-space:  normal;
   line-height:  1.3;
 }
@@ -38,7 +38,7 @@
 .col-cuenta-texto {
   max-width:   120px;
   font-family: var(--font-mono, monospace);
-  font-size:   0.8rem;
+  font-size: var(--text-base);
   color:       var(--text-muted);
 }
 
@@ -49,8 +49,8 @@
   display:        inline-block;
   padding:        2px 8px;
   border-radius:  var(--radius-sm, 4px);
-  font-size:      0.72rem;
-  font-weight:    600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   background:     var(--color-primary-bg);
@@ -61,7 +61,7 @@
 // ── Botón ícono (editar/eliminar) ─────────────────────────────────
 .btn-icon {
   padding:       4px 8px;
-  font-size:     1rem;
+  font-size: var(--text-lg);
   line-height:   1;
   border-radius: var(--radius-sm, 4px);
   background:    transparent;
@@ -77,6 +77,20 @@
 // ── Dirty badge ─────────────────────────────────────────────────
 // Reutiliza la clase global .dirty-badge de _forms.scss
 // No se redefine aquí para evitar duplicación.
+
+// ── Filtros ──────────────────────────────────────────────────────
+.filter-bar {
+  display: flex; align-items: flex-end; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 16px; justify-content: space-between;
+}
+.filter-left { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.filter-field {
+  display: flex; flex-direction: column; gap: 4px;
+  label {
+    font-size: var(--text-sm); font-weight: var(--weight-semibold);
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+}
 
 // ── Centro ──────────────────────────────────────────────────────
 .text-center { text-align: center; }

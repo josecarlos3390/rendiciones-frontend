@@ -310,6 +310,47 @@
   align-items: center;
 }
 
+/* ── Campo bloqueado / no editable ──────────────────────────────────
+   Uso: añadir clase .field-locked al .form-field contenedor.
+   Diferencia visual clara en light Y dark mode:
+   - Borde punteado en lugar de sólido
+   - Fondo con tinte azul-grisáceo muy suave
+   - Label con ícono 🔒 prepended via ::before
+   - Cursor not-allowed
+   ─────────────────────────────────────────────────────────────── */
+.field-locked {
+  label::before {
+    content: '🔒';
+    font-size: 10px;
+    margin-right: 5px;
+    opacity: 0.55;
+    vertical-align: middle;
+  }
+
+  input,
+  select,
+  textarea {
+    border-style:  dashed !important;
+    border-color:  var(--border-color) !important;
+    background:    var(--field-locked-bg, rgba(99, 102, 180, 0.06)) !important;
+    color:         var(--text-muted) !important;
+    cursor:        not-allowed !important;
+    pointer-events: none;
+
+    &::placeholder { color: var(--text-faint) !important; opacity: 1; }
+  }
+}
+
+[data-theme="dark"] .field-locked {
+  input,
+  select,
+  textarea {
+    background: rgba(99, 102, 180, 0.10) !important;
+    border-color: rgba(130, 133, 200, 0.30) !important;
+    color: var(--text-muted) !important;
+  }
+}
+
 /* ── Barra de acciones — sticky en la parte inferior de la ventana ── */
 .action-bar {
   position: fixed;
@@ -1140,8 +1181,9 @@
 // ── field-hint con color semántico ────────────────────────────────
 .field-hint {
   font-size: var(--text-sm);
-  color: var(--text-faint);
-  line-height: 1.4;
+  color:      var(--text-muted);
+  line-height: 1.45;
+  margin-top:  3px;
 }
 
 // ── label-muted ───────────────────────────────────────────────────

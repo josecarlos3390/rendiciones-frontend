@@ -1,112 +1,181 @@
-.page-subtitle {
-  font-size:   0.85rem;
-  color:       var(--color-primary);
-  margin:      -8px 0 20px;
-  font-weight: 500;
-}
+// ═══════════════════════════════════════════════════════════════
+// rend-m.component.scss
+// ═══════════════════════════════════════════════════════════════
 
-// ── Toolbar de selección ──────────────────────────────────────
-.permisos-toolbar {
-  display:     flex;
-  align-items: flex-end;
-  gap:         16px;
-  flex-wrap:   wrap;
-  padding:     20px;
-  background:  var(--bg-surface);
-  border:      1px solid var(--border-color);
+// ── Modal base (.user-modal scoped a este componente) ─────────
+.user-modal {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  margin-bottom: 20px;
+  width:         min(1000px, 96vw);
+  max-height:    90vh;
+  display:       flex;
+  flex-direction: column;
+  overflow:      hidden;
+  box-shadow:    var(--shadow-modal);
+  animation:     _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 
-.toolbar-field {
+@keyframes _modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+// ── Modal picker de perfil — tamaño compacto ──────────────────
+.perfil-picker-modal {
+  width:      min(480px, 96vw);
+  max-height: 70vh;
+}
+
+// ── Estados del picker ────────────────────────────────────────
+.picker-loading,
+.picker-empty {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  padding:         40px 20px;
+  gap:             12px;
+  color:           var(--text-faint);
+  text-align:      center;
+
+  p { margin: 0; font-size: var(--text-md); line-height: 1.5; }
+}
+
+.picker-loading-icon,
+.picker-empty-icon { font-size: 2rem; }
+
+.picker-intro {
+  margin-bottom: 12px;
+  p { margin: 0; font-size: var(--text-md); color: var(--text-muted); }
+}
+
+// ── Lista de perfiles seleccionables ─────────────────────────
+.perfil-picker-list {
   display:        flex;
   flex-direction: column;
   gap:            6px;
-  min-width:      260px;
-
-  label {
-    font-size:      0.78rem;
-    font-weight:    600;
-    color:          var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
 }
 
-.toolbar-select {
-  height:        38px;
-  min-width:     260px;
-  padding:       0 12px;
-  border:        1px solid var(--border-color);
-  border-radius: var(--radius-md, 6px);
-  // Tokens correctos: --text-body (existe) en lugar de --text-primary (no existe)
-  background:    var(--bg-surface);
-  color:         var(--text-body);
-  font-size:     0.9rem;
+.perfil-picker-item {
+  display:       flex;
+  align-items:   center;
+  gap:           12px;
+  width:         100%;
+  padding:       12px 16px;
+  background:    var(--bg-faint);
+  border:        1.5px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
   cursor:        pointer;
+  text-align:    left;
   font-family:   inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color:         var(--text-body);
+  transition:    border-color 0.15s, background 0.15s, box-shadow 0.15s;
 
-  &:focus {
-    outline:      none;
+  &:hover {
     border-color: var(--color-primary);
-    box-shadow:   var(--focus-ring);
+    background:   var(--bg-surface);
+  }
+
+  &--selected {
+    border-color: var(--color-primary);
+    background:   color-mix(in srgb, var(--color-primary) 8%, var(--bg-surface));
+    box-shadow:   0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color:        var(--text-heading);
   }
 }
 
-// ── Panel de permisos ─────────────────────────────────────────
-.permisos-panel {
-  background:    var(--bg-surface);
-  border:        1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  overflow:      hidden;
+.perfil-picker-check {
+  width:       20px;
+  flex-shrink: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color:       var(--color-primary);
+  text-align:  center;
 }
 
-.panel-header {
-  display:         flex;
-  align-items:     center;
-  justify-content: space-between;
-  padding:         12px 20px;
-  background:      var(--bg-faint);
-  border-bottom:   1px solid var(--border-color);
-  font-size:       0.9rem;
-  // Tokens correctos: --text-body en lugar de --text-secondary (no existe)
-  color:           var(--text-body);
+.perfil-picker-name { flex: 1; }
 
-  strong { color: var(--text-heading); }
-}
-
-.panel-count {
-  font-size:   0.8rem;
+// ── Hint especial de fecha ─────────────────────────────────────
+.field-hint {
+  font-size: var(--text-sm);
   color:       var(--text-muted);
-  font-weight: 500;
+  margin-top:  0.25rem;
+  line-height: 1.4;
 }
 
-.panel-empty {
-  padding:    40px;
-  text-align: center;
-  color:      var(--text-muted);
-  font-size:  0.9rem;
+// ── Columnas específicas de la tabla ──────────────────────────
+.data-table td { font-size: var(--text-sm); }
+
+.col-id {
+  width:       50px;
+  font-family: var(--font-mono);
+  font-size:   var(--text-sm);
+  color:       var(--text-muted);
 }
 
-// ── Botón eliminar ────────────────────────────────────────────
-// Nota: .btn-remove está definido globalmente en styles.scss.
-// Se redefine aquí con variante circular (sin borde, redondo)
-// para sobrescribir el cuadrado del global.
-.btn-remove {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  width:           28px;
-  height:          28px;
-  border-radius:   50%;
-  border:          none;
-  background:      transparent;
-  color:           var(--color-danger);
-  cursor:          pointer;
-  transition:      background 0.15s, transform 0.1s;
-
-  &:hover  { background: var(--color-danger-soft); transform: scale(1.1); }
-  &:active { transform: scale(0.95); }
+.col-perfil {
+  max-width:   150px;
+  font-size:   var(--text-sm);
+  line-height: 1.3;
+  white-space: normal;
 }
 
-.text-center { text-align: center; }
+.col-objetivo {
+  max-width:   200px;
+  font-weight: var(--weight-medium);
+  font-size:   var(--text-sm);
+  color:       var(--text-heading);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.col-cuenta {
+  max-width:      200px;
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.code-tag {
+  font-family:    var(--font-mono);
+  font-size:      var(--text-sm);
+  font-weight:    var(--weight-semibold);
+  color:          var(--text-heading);
+  background:     var(--bg-subtle);
+  border:         1px solid var(--border-color);
+  padding:        1px 6px;
+  border-radius:  var(--radius-sm);
+  width:          fit-content;
+  letter-spacing: 0.01em;
+}
+
+.cuenta-nombre {
+  font-size:   var(--text-xs);
+  color:       var(--text-muted);
+  line-height: 1.2;
+}
+
+.col-empleado {
+  max-width:   160px;
+  font-size:   var(--text-sm);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.col-monto {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size:   var(--text-sm);
+  white-space: nowrap;
+  color:       var(--text-heading);
+}
+
+// ── Columna acciones — 3 botones ──────────────────────────────
+.data-table th.actions,
+.data-table td.actions {
+  min-width:   220px;
+  white-space: nowrap;
+}

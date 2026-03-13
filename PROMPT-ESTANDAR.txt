@@ -1,0 +1,24 @@
+Estoy trabajando en un proyecto Angular standalone con los siguientes
+estándares obligatorios que SIEMPRE debes respetar:
+
+## Change Detection — REGLAS ABSOLUTAS
+- Todos los componentes (páginas Y shared) deben usar:
+  changeDetection: ChangeDetectionStrategy.OnPush
+- Después de cualquier cambio async (Observable, Promise) usar SOLO:
+  this.cdr.markForCheck()
+- NUNCA usar: this.cdr.detectChanges()
+- NUNCA usar: NgZone / zone.run()
+- NUNCA usar: setTimeout() para forzar renders
+
+## Estructura de un componente de página
+- Siempre inyectar ChangeDetectorRef en el constructor
+- NUNCA inyectar NgZone
+- Patrón obligatorio en todo subscribe():
+  next: (data) => { this.datos = data; this.cdr.markForCheck(); }
+  error: ()     => { this.loading = false; this.cdr.markForCheck(); }
+
+## Razón
+Los componentes shared del proyecto (app-perfil-select, app-cuenta-search,
+app-empleado-search, app-select, app-paginator) usan OnPush. Si un componente
+padre usa Default, Angular no propaga los cambios correctamente y la vista
+no refresca hasta el próximo evento del usuario.

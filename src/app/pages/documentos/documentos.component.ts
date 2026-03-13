@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -19,6 +19,7 @@ import { ChartOfAccount }         from '../../services/sap.service';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent],
   templateUrl: './documentos.component.html',
   styleUrls: ['./documentos.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DocumentosComponent implements OnInit {
 
@@ -57,7 +58,6 @@ export class DocumentosComponent implements OnInit {
     private toast:   ToastService,
     private fb:      FormBuilder,
     private cdr:     ChangeDetectorRef,
-    private zone:    NgZone,
   ) {}
 
   ngOnInit() {
@@ -102,14 +102,12 @@ export class DocumentosComponent implements OnInit {
     this.loading = true;
     this.service.getByPerfil(this.selectedPerfilId).subscribe({
       next: (data) => {
-        this.zone.run(() => {
-          this.documentos = data;
-          this.loading = false;
-          this.applyFilter();
-          this.cdr.detectChanges();
-        });
+        this.documentos = data;
+        this.loading = false;
+        this.applyFilter();
+        this.cdr.markForCheck();
       },
-      error: () => { this.zone.run(() => { this.loading = false; this.cdr.detectChanges(); }); },
+      error: () => { this.loading = false; this.cdr.markForCheck(); },
     });
   }
 

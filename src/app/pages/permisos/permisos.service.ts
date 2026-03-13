@@ -18,6 +18,11 @@ export class PermisosService {
     return this.http.get<Perfil[]>(this.apiPerfiles);
   }
 
+  /** Perfiles asignados al usuario autenticado (cualquier rol) */
+  getMisPerfiles() {
+    return this.http.get<Permiso[]>(`${this.api}/mis-perfiles`);
+  }
+
   getByUsuario(idUsuario: number) {
     return this.http.get<Permiso[]>(`${this.api}/usuario/${idUsuario}`);
   }

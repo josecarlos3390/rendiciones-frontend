@@ -1,0 +1,154 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PLANTILLA ESTÁNDAR — HTML del componente con tabla + formulario modal
+     TODO: ajustar títulos, columnas y campos al modelo real
+     ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- ── Confirm dialog (siempre al inicio) ─────────────────────────────── -->
+<app-confirm-dialog
+  [config]="dialogConfig"
+  [visible]="showDialog"
+  (confirmed)="onDialogConfirm()"
+  (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<!-- ── Encabezado de página ────────────────────────────────────────────── -->
+<div class="page-header">
+  <div class="page-title-group">
+    <!-- TODO: cambiar título y subtítulo -->
+    <h2>Mi Entidad</h2>
+    <p class="page-subtitle">Descripción breve de qué se gestiona en esta pantalla.</p>
+  </div>
+  <button class="btn btn-primary btn-sm" (click)="openNew()">
+    + Nuevo
+  </button>
+</div>
+
+<!-- ── Modal formulario ────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+  <div class="entity-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+        {{ isEditing ? 'Editar — ' + editingItem?.nombre : 'Nuevo Registro' }}
+        <!-- Badge de cambios sin guardar (solo en edición) -->
+        <span class="dirty-badge" *ngIf="isEditing && isDirty">● cambios sin guardar</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="modal-body">
+
+        <!-- TODO: agregar los campos reales de tu entidad -->
+
+        <div class="form-field">
+          <label>Nombre <span class="required">*</span></label>
+          <input type="text" formControlName="nombre"
+            placeholder="Nombre del registro"
+            maxlength="100" autocomplete="off" />
+          <span class="field-error"
+            *ngIf="form.get('nombre')?.invalid && form.get('nombre')?.touched">
+            Obligatorio
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label>Descripción</label>
+          <textarea formControlName="descripcion"
+            placeholder="Descripción opcional"
+            rows="3" maxlength="300"></textarea>
+        </div>
+
+        <!-- Ejemplo con app-select (descomentar si lo necesitás):
+        <div class="form-field">
+          <label>Estado</label>
+          <app-select
+            [options]="estadoOptions"
+            [value]="form.get('activo')?.value"
+            (valueChange)="form.get('activo')?.setValue($event)">
+          </app-select>
+        </div>
+        -->
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" (click)="closeForm()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary"
+          [disabled]="form.invalid || isSaving || (isEditing && !isDirty)">
+          {{ isSaving ? 'Guardando...' : (isEditing ? 'Guardar cambios' : 'Crear') }}
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ── Filtro de búsqueda ───────────────────────────────────────────────── -->
+<div class="filter-bar">
+  <div class="search-wrap">
+    <input type="text" class="search-input"
+      placeholder="Buscar..."
+      [(ngModel)]="search"
+      (ngModelChange)="applyFilter()" />
+  </div>
+</div>
+
+<!-- ── Estado: cargando ────────────────────────────────────────────────── -->
+<div class="table-placeholder" *ngIf="loading">
+  <span class="spinner"></span> Cargando...
+</div>
+
+<!-- ── Estado: error ───────────────────────────────────────────────────── -->
+<div class="table-placeholder text-danger" *ngIf="!loading && loadError">
+  Error al cargar los datos.
+  <button class="btn btn-ghost btn-sm" (click)="load()">Reintentar</button>
+</div>
+
+<!-- ── Estado: sin resultados ──────────────────────────────────────────── -->
+<div class="table-placeholder" *ngIf="!loading && !loadError && filtered.length === 0">
+  No hay registros{{ search ? ' para "' + search + '"' : '' }}.
+</div>
+
+<!-- ── Tabla de datos ───────────────────────────────────────────────────── -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <!-- TODO: columnas reales de tu entidad -->
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Estado</th>
+        <th class="col-actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of paged">
+        <!-- TODO: ajustar campos -->
+        <td>{{ item.nombre }}</td>
+        <td>{{ item.descripcion ?? '—' }}</td>
+        <td>
+          <span class="badge" [class.badge-success]="item.activo === '1'" [class.badge-muted]="item.activo !== '1'">
+            {{ item.activo === '1' ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td class="col-actions">
+          <button class="btn btn-ghost btn-xs" (click)="openEdit(item)" title="Editar">✏️</button>
+          <button class="btn btn-ghost btn-xs text-danger" (click)="confirmDelete(item)" title="Eliminar">🗑️</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Paginador ────────────────────────────────────────────────────────── -->
+<app-paginator
+  *ngIf="totalPages > 1 || paged.length > 0"
+  [page]="page"
+  [totalPages]="totalPages"
+  [limit]="limit"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)">
+</app-paginator>

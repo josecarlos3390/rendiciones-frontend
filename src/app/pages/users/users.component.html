@@ -1,5 +1,8 @@
 <div class="page-header">
-  <h2>Administración de Usuarios</h2>
+  <div class="page-title-group">
+    <h2>Administración de Usuarios</h2>
+    <p class="page-subtitle">Cree y gestione los accesos al sistema. Asigne roles y contraseñas para cada operador.</p>
+  </div>
   <button class="btn btn-primary btn-sm" (click)="openNew()">+ Nuevo Usuario</button>
 </div>
 
@@ -104,7 +107,7 @@
               <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
               <app-select
                 [label]="dim.dimensionDescription || dim.dimensionName"
-                [options]="getDimOptions(1)"
+                [options]="dimOptionsMap[1] ?? []"
                 [value]="form.get('nr1')?.value"
                 (valueChange)="form.get('nr1')?.setValue($event)">
               </app-select>
@@ -123,7 +126,7 @@
               <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
               <app-select
                 [label]="dim.dimensionDescription || dim.dimensionName"
-                [options]="getDimOptions(2)"
+                [options]="dimOptionsMap[2] ?? []"
                 [value]="form.get('nr2')?.value"
                 (valueChange)="form.get('nr2')?.setValue($event)">
               </app-select>
@@ -142,7 +145,7 @@
               <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
               <app-select
                 [label]="dim.dimensionDescription || dim.dimensionName"
-                [options]="getDimOptions(3)"
+                [options]="dimOptionsMap[3] ?? []"
                 [value]="form.get('nr3')?.value"
                 (valueChange)="form.get('nr3')?.setValue($event)">
               </app-select>
@@ -161,7 +164,7 @@
               <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
               <app-select
                 [label]="dim.dimensionDescription || dim.dimensionName"
-                [options]="getDimOptions(4)"
+                [options]="dimOptionsMap[4] ?? []"
                 [value]="form.get('nr4')?.value"
                 (valueChange)="form.get('nr4')?.setValue($event)">
               </app-select>
@@ -180,7 +183,7 @@
               <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
               <app-select
                 [label]="dim.dimensionDescription || dim.dimensionName"
-                [options]="getDimOptions(5)"
+                [options]="dimOptionsMap[5] ?? []"
                 [value]="form.get('nr5')?.value"
                 (valueChange)="form.get('nr5')?.setValue($event)">
               </app-select>
@@ -251,27 +254,7 @@
             </label>
           </div>
 
-          <div class="perm-row" [class.perm-row--changed]="fieldChanged('appExtB')">
-            <div class="perm-info">
-              <span class="perm-name">Ext. B</span>
-              <span class="perm-desc">Acceso al módulo externo B</span>
-            </div>
-            <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appExtB')?.value == '1'" (change)="onCheckToggle('appExtB', $event)" />
-              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-            </label>
-          </div>
-
-          <div class="perm-row" [class.perm-row--changed]="fieldChanged('appUpLA')">
-            <div class="perm-info">
-              <span class="perm-name">UpLA</span>
-              <span class="perm-desc">Permite carga de LA</span>
-            </div>
-            <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appUpLA')?.value == '1'" (change)="onCheckToggle('appUpLA', $event)" />
-              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-            </label>
-          </div>
+          <!-- Ext. B y UpLA ocultos (no en uso) -->
         </div>
 
         <ng-container *ngIf="editingUser">
@@ -281,16 +264,16 @@
               <div class="perm-info">
                 <span class="perm-name">Estado</span>
                 <span class="perm-desc">
-                  {{ form.get('estado')?.value === '1' ? 'El usuario puede iniciar sesión normalmente'
-                   : form.get('estado')?.value === 2 ? 'Cuenta bloqueada por intentos fallidos u otra razón'
-                   : 'El usuario no puede iniciar sesión' }}
+                  {{ form.get('estado')?.value === '1' ? 'El usuario puede iniciar sesión normalmente' : form.get('estado')?.value === '2' ? 'Cuenta bloqueada por intentos fallidos u otra razón' : 'El usuario no puede iniciar sesión' }}
                 </span>
               </div>
-              <select formControlName="estado" style="min-width:130px">
-                <option [value]="1">Activo</option>
-                <option [value]="0">Inactivo</option>
-                <option [value]="2">Bloqueado</option>
-              </select>
+              <app-select
+                label="Estado"
+                [searchable]="false"
+                [options]="estadoOptions"
+                [value]="form.get('estado')?.value"
+                (valueChange)="form.get('estado')?.setValue($event)">
+              </app-select>
             </div>
           </div>
         </ng-container>
@@ -335,8 +318,8 @@
   No se pudo cargar la lista de usuarios.
   <a (click)="load()">Reintentar</a>
 </div>
-<div *ngIf="!loading && !loadError && filtered.length === '0'" class="empty-state">
-  No hay usuarios registrados. <a (click)="openNew()">Crear el primero</a>
+<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
+  No hay usuarios registrados aún. <a (click)="openNew()">Crear el primer usuario</a>
 </div>
 
 <!-- ── Tabla ── -->
@@ -407,12 +390,16 @@
 
         <!-- Acciones -->
         <td class="actions">
-          <button class="btn btn-sm btn-ghost" (click)="openEdit(u)">Editar</button>
-          <button class="btn btn-sm"
+          <button class="btn btn-icon btn-sm btn-ghost" title="Editar usuario" (click)="openEdit(u)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn btn-icon btn-sm"
             [class.btn-danger-soft]="isActive(u)"
             [class.btn-success]="!isActive(u)"
+            [title]="isActive(u) ? 'Inactivar usuario' : 'Activar usuario'"
             (click)="confirmToggleStatus(u)">
-            {{ isActive(u) ? 'Inactivar' : 'Activar' }}
+            <svg *ngIf="isActive(u)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            <svg *ngIf="!isActive(u)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
         </td>
 

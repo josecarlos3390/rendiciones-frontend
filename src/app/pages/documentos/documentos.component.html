@@ -1,12 +1,12 @@
 <div class="page-header">
-  <h2>Configuración de Documentos</h2>
+  <div class="page-title-group">
+    <h2>Configuración de Documentos</h2>
+    <p class="page-subtitle">Configurá los tipos de documento habilitados y su método de cálculo fiscal para cada perfil.</p>
+  </div>
   <button class="btn btn-primary btn-sm" (click)="openCreate()" [disabled]="!selectedPerfilId">
     + Adicionar
   </button>
 </div>
-<p class="page-subtitle">
-  Configure los documentos y su tipo de cálculo fiscal por perfil.
-</p>
 
 <app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
@@ -41,6 +41,7 @@
               [invalid]="!!form.get('idTipoDoc')?.invalid && !!form.get('idTipoDoc')?.touched"
               (valueChange)="form.get('idTipoDoc')?.setValue($event)">
             </app-select>
+            <span class="field-hint">Tipo de documento SAP al que se contabilizará.</span>
           </div>
           <div class="form-field">
             <label>Tipo de Cálculo <span class="required">*</span></label>
@@ -52,11 +53,12 @@
               [invalid]="!!form.get('tipoCalc')?.invalid && !!form.get('tipoCalc')?.touched"
               (valueChange)="form.get('tipoCalc')?.setValue($event)">
             </app-select>
+            <span class="field-hint">Define cómo se calculan los impuestos: si están incluidos en el monto o se suman por encima.</span>
           </div>
         </div>
 
         <!-- Grid de impuestos: cards agrupadas por tipo -->
-        <div class="section-divider">Impuestos</div>
+        <div class="section-divider">Impuestos <span style="font-weight: var(--weight-regular); font-size: var(--text-sm); opacity: 0.75;">— dejá en 0 los que no apliquen</span></div>
         <div class="tax-grid">
 
           <div class="tax-card">
@@ -202,10 +204,10 @@
 </div>
 
 <!-- ── Estados vacíos ─────────────────────────────────────── -->
-<div *ngIf="!selectedPerfilId" class="empty-state">Seleccione un perfil para ver sus documentos configurados.</div>
+<div *ngIf="!selectedPerfilId" class="empty-state">Seleccioná un perfil para ver los tipos de documento habilitados y su cálculo fiscal.</div>
 <div *ngIf="selectedPerfilId && loading" class="empty-state">Cargando documentos...</div>
 <div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && !search" class="empty-state">
-  No hay documentos configurados en este perfil. <a (click)="openCreate()">Agregar el primero</a>
+  Este perfil aún no tiene documentos configurados. <a (click)="openCreate()">Agregar el primero</a>
 </div>
 <div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && search" class="empty-state">
   No se encontraron documentos para "{{ search }}".

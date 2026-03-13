@@ -1,14 +1,16 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 
 import { CuentasListaService }   from './cuentas-lista.service';
 import { ToastService }          from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent }    from '../../shared/paginator/paginator.component';
 import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
+import { CuentaSearchComponent } from '../../shared/cuenta-search/cuenta-search.component';
 import { CuentaLista }           from '../../models/cuenta-lista.model';
 import { Perfil }                from '../../models/perfil.model';
+import { ChartOfAccount }        from '../../services/sap.service';
 
 @Component({
   standalone: true,
@@ -16,13 +18,14 @@ import { Perfil }                from '../../models/perfil.model';
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     ConfirmDialogComponent,
     PaginatorComponent,
     PerfilSelectComponent,
+    CuentaSearchComponent,
   ],
   templateUrl: './cuentas-lista.component.html',
   styleUrls: ['./cuentas-lista.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CuentasListaComponent implements OnInit {
 
@@ -33,7 +36,7 @@ export class CuentasListaComponent implements OnInit {
 
   // ── Perfil seleccionado ──────────────────────────────────
   selectedPerfilId: number | null = null;
-  selectedPerfil:   Perfil | null = null;   // asignable desde el template via (perfilObjChange)
+  selectedPerfil:   Perfil | null = null;
 
   // ── Filtros ─────────────────────────────────────────────
   search  = '';
@@ -45,9 +48,10 @@ export class CuentasListaComponent implements OnInit {
   totalPages = 1;
 
   // ── Formulario agregar ──────────────────────────────────
-  showForm = false;
-  isSaving = false;
-  form!: FormGroup;
+  showForm      = false;
+  isSaving      = false;
+  selectedCuenta: ChartOfAccount | null = null;
+  cuentaTouched = false;
 
   // ── Confirm dialog ──────────────────────────────────────
   showDialog   = false;
@@ -57,29 +61,16 @@ export class CuentasListaComponent implements OnInit {
   constructor(
     private cuentasService: CuentasListaService,
     private toast: ToastService,
-    private fb:    FormBuilder,
     private cdr:   ChangeDetectorRef,
   ) {}
 
-  ngOnInit() {
-    this.buildForm();
-  }
+  ngOnInit() {}
 
   // ── Callback de PerfilSelectComponent ───────────────────
 
   onPerfilChange(id: number | null) {
     this.selectedPerfilId = id;
     this.loadCuentas();
-  }
-
-  // ── Form ────────────────────────────────────────────────
-
-  private buildForm() {
-    this.form = this.fb.group({
-      cuentaSys:    ['', [Validators.required, Validators.maxLength(50)]],
-      cuenta:       ['', [Validators.required, Validators.maxLength(50)]],
-      nombreCuenta: ['', [Validators.required, Validators.maxLength(150)]],
-    });
   }
 
   // ── Carga de datos ───────────────────────────────────────
@@ -95,7 +86,7 @@ export class CuentasListaComponent implements OnInit {
         this.cuentas = data;
         this.loading = false;
         this.applyFilter();
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: () => { this.loading = false; },
     });
@@ -127,25 +118,32 @@ export class CuentasListaComponent implements OnInit {
 
   openForm() {
     if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
-    this.form.reset({ cuentaSys: '', cuenta: '', nombreCuenta: '' });
-    this.showForm = true;
+    this.selectedCuenta = null;
+    this.cuentaTouched  = false;
+    this.showForm       = true;
   }
 
   closeForm() {
-    this.showForm = false;
-    this.form.reset();
+    this.showForm       = false;
+    this.selectedCuenta = null;
+    this.cuentaTouched  = false;
+  }
+
+  onCuentaSelected(account: ChartOfAccount | null) {
+    this.selectedCuenta = account;
+    this.cuentaTouched  = true;
   }
 
   save() {
-    if (this.form.invalid || this.isSaving || !this.selectedPerfilId) return;
-    this.isSaving = true;
-    const raw = this.form.getRawValue();
+    this.cuentaTouched = true;
+    if (!this.selectedCuenta || this.isSaving || !this.selectedPerfilId) return;
 
+    this.isSaving = true;
     this.cuentasService.create({
       idPerfil:     this.selectedPerfilId,
-      cuentaSys:    raw.cuentaSys.trim(),
-      cuenta:       raw.cuenta.trim(),
-      nombreCuenta: raw.nombreCuenta.trim(),
+      cuentaSys:    this.selectedCuenta.code,
+      cuenta:       this.selectedCuenta.formatCode,
+      nombreCuenta: this.selectedCuenta.name,
       relevante:    'N',
     }).subscribe({
       next: () => {
@@ -153,10 +151,12 @@ export class CuentasListaComponent implements OnInit {
         this.toast.success('Cuenta agregada');
         this.closeForm();
         this.loadCuentas();
+        this.cdr.markForCheck();
       },
       error: (err: any) => {
         this.isSaving = false;
         this.toast.error(err?.error?.message || 'Error al agregar cuenta');
+        this.cdr.markForCheck();
       },
     });
   }

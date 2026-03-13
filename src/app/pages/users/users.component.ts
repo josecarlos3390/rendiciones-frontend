@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -17,6 +17,7 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
   imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsersComponent implements OnInit {
   users:    User[] = [];
@@ -28,6 +29,7 @@ export class UsersComponent implements OnInit {
 
   // Dimensiones SAP (NR1..NR5)
   dimensions:     DimensionWithRules[] = [];
+  dimOptionsMap:  Partial<Record<number, SelectOption[]>> = {};  // cacheado, evitar nuevo array en cada ciclo
   loadingDims     = false;
 
   readonly userTypeOptions: SelectOption[] = [
@@ -35,17 +37,24 @@ export class UsersComponent implements OnInit {
     { value: 1, label: 'Administrador', icon: '👑' },
   ];
 
-  getDimOptions(nrIndex: number): SelectOption[] {
-    const dim = this.getDimension(nrIndex);
-    if (!dim) return [];
-    return [
-      { value: '', label: '— Sin asignar —' },
-      ...dim.rules.map(r => ({
-        value: r.factorCode,
-        label: r.factorDescription,
-        hint:  r.factorCode,
-      })),
-    ];
+  readonly estadoOptions: SelectOption[] = [
+    { value: '1', label: 'Activo',    icon: '✅' },
+    { value: '0', label: 'Inactivo',  icon: '⛔' },
+    { value: '2', label: 'Bloqueado', icon: '🔒' },
+  ];
+
+  private rebuildDimOptions(): void {
+    this.dimOptionsMap = {};
+    for (const dim of this.dimensions) {
+      this.dimOptionsMap[dim.dimensionCode] = [
+        { value: '', label: '— Sin asignar —' },
+        ...dim.rules.map(r => ({
+          value: r.factorCode,
+          label: r.factorDescription,
+          hint:  r.factorCode,
+        })),
+      ];
+    }
   }
 
   // Paginación
@@ -86,7 +95,8 @@ export class UsersComponent implements OnInit {
       next: (dims) => {
         this.dimensions  = dims;
         this.loadingDims = false;
-        this.cdr.detectChanges();
+        this.rebuildDimOptions();
+        this.cdr.markForCheck();
       },
       error: () => {
         // Si SAP no está disponible, los campos NR quedan como texto libre
@@ -179,7 +189,7 @@ export class UsersComponent implements OnInit {
         this.users   = users;
         this.loading = false;
         this.applyFilter();
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading   = false;
@@ -196,6 +206,7 @@ export class UsersComponent implements OnInit {
     );
     this.page = 1;
     this.updatePaging();
+    this.cdr.markForCheck();
   }
 
 
@@ -338,6 +349,13 @@ export class UsersComponent implements OnInit {
   }
 
   // ── Toggle helpers ────────────────────────────────────────
+  onLoginInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const upper = input.value.toUpperCase();
+    input.value = upper;
+    this.form.get('login')?.setValue(upper, { emitEvent: false });
+  }
+
   onEstadoToggle(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     this.form.get('estado')?.setValue(checked ? '1' : '0');

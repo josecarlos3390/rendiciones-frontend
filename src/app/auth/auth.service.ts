@@ -12,14 +12,15 @@ interface LoginResponse {
 
 /** Estructura esperada del payload del JWT emitido por el backend */
 interface JwtPayload {
-  sub:      number;
-  username: string;
-  name:     string;
-  role:     'ADMIN' | 'USER';
-  appRend:  string;
-  appConf:  string;
-  exp:      number;
-  iat:      number;
+  sub:        number;
+  username:   string;
+  name:       string;
+  role:       'ADMIN' | 'USER';
+  appRend:    string;
+  appConf:    string;
+  fijarSaldo: string;   // '1' = debe ingresar monto obligatorio, '0' = opcional
+  exp:        number;
+  iat:        number;
 }
 
 /** Valida que el payload tenga los campos mínimos requeridos */
@@ -126,4 +127,5 @@ export class AuthService {
 
   get canAccessRend(): boolean { return this.user?.appRend === 'Y'; }
   get canAccessConf(): boolean { return this.isAdmin || this.user?.appConf === 'Y'; }
+  get fijarSaldo():    boolean { return this.user?.fijarSaldo === '1'; }
 }

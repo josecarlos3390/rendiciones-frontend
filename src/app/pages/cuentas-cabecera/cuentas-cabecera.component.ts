@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -25,6 +25,7 @@ import { ChartOfAccount }         from '../../services/sap.service';
   ],
   templateUrl: './cuentas-cabecera.component.html',
   styleUrls: ['./cuentas-cabecera.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CuentasCabeceraComponent implements OnInit {
 
@@ -62,7 +63,6 @@ export class CuentasCabeceraComponent implements OnInit {
     private service: CuentasCabeceraService,
     private toast:   ToastService,
     private cdr:     ChangeDetectorRef,
-    private zone:    NgZone,
   ) {}
 
   ngOnInit() {}
@@ -78,7 +78,7 @@ export class CuentasCabeceraComponent implements OnInit {
   /** Recibe la cuenta seleccionada desde <app-cuenta-search> */
   onAccountChange(account: ChartOfAccount | null) {
     this.selectedAccount = account;
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   // ── Carga de cuentas ─────────────────────────────────────
@@ -91,14 +91,12 @@ export class CuentasCabeceraComponent implements OnInit {
     this.loading = true;
     this.service.getByPerfil(this.selectedPerfilId).subscribe({
       next: (data) => {
-        this.zone.run(() => {
-          this.cuentas = data;
-          this.loading = false;
-          this.applyFilter();
-          this.cdr.detectChanges();
-        });
+        this.cuentas = data;
+        this.loading = false;
+        this.applyFilter();
+        this.cdr.markForCheck();
       },
-      error: () => { this.loading = false; },
+      error: () => { this.loading = false; this.cdr.markForCheck(); },
     });
   }
 

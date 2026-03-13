@@ -1,0 +1,79 @@
+// ═══════════════════════════════════════════════════════════════════════════
+//  PLANTILLA ESTÁNDAR — Estilos del componente
+//
+//  Clases globales ya disponibles (NO redefinir aquí):
+//    Modal    → .modal-backdrop, .modal-header, .modal-body, .modal-footer  (_modals.scss)
+//    Form     → .form-field, .form-row, .form-section-label                 (_forms.scss)
+//    Botones  → .btn, .btn-ghost, .btn-primary                              (_buttons.scss)
+//    Tabla    → .data-table, .table-wrapper                                  (_tables.scss)
+//    Badges   → .badge, .badge-success, .badge-muted, .badge-danger         (_badges.scss)
+//
+//  Solo agregar aquí los estilos ESPECÍFICOS del modal de esta entidad.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Modal ────────────────────────────────────────────────────────────────
+.entity-modal {
+  background:     var(--bg-surface);
+  border:         1px solid var(--border-color);
+  border-radius:  var(--radius-lg);
+  width:          min(600px, 96vw);   // TODO: ajustar al ancho que necesite el form
+  max-height:     90vh;
+  display:        flex;
+  flex-direction: column;
+  overflow:       hidden;
+}
+
+// ── Badge "cambios sin guardar" ───────────────────────────────────────────
+.dirty-badge {
+  font-size:   var(--text-xs);
+  font-weight: var(--weight-regular);
+  color:       var(--color-warning);
+  margin-left: 8px;
+}
+
+// ── Filtro de búsqueda ────────────────────────────────────────────────────
+.filter-bar {
+  display:   flex;
+  gap:       12px;
+  margin:    16px 0 12px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input {
+  width:         100%;
+  padding:       8px 14px;
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size:     var(--text-sm);
+  background:    var(--bg-surface);
+  color:         var(--text-body);
+
+  &::placeholder { color: var(--text-faint); }
+  &:focus {
+    outline:      none;
+    border-color: var(--color-primary);
+    box-shadow:   var(--focus-ring);
+  }
+}
+
+// ── Placeholder de estado (cargando / error / vacío) ──────────────────────
+.table-placeholder {
+  padding:    48px 24px;
+  text-align: center;
+  color:      var(--text-faint);
+  font-size:  var(--text-sm);
+
+  &.text-danger { color: var(--color-danger); }
+}
+
+// ── Columna de acciones ───────────────────────────────────────────────────
+.col-actions {
+  width:      100px;
+  text-align: center;
+  white-space: nowrap;
+}

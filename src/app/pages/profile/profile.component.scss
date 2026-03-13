@@ -43,8 +43,8 @@
   border-radius: 18px;
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   color: #fff;
-  font-size: 28px;
-  font-weight: 700;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,13 +58,13 @@
 }
 
 .identity-name {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
   color: var(--text-heading);
 }
 
 .identity-email {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text-muted);
 }
 
@@ -85,15 +85,15 @@
 }
 
 .meta-label {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-faint);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .meta-value {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text-body);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   text-transform: capitalize;
 }
 
@@ -126,8 +126,8 @@
 
   h3 {
     margin: 0;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: var(--text-md);
+    font-weight: var(--weight-bold);
     color: var(--text-heading);
   }
 }
@@ -152,16 +152,16 @@
 
 // ── Feedback de guardado ─────────────────────────────────────
 .save-feedback {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--color-success);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   animation: profile-fade-in 0.2s ease;
 }
 
 .save-error {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--color-danger);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   animation: profile-fade-in 0.2s ease;
 }
 

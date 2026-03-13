@@ -382,6 +382,27 @@
     </tfoot>
   </table>
 
+  <!-- Resumen de totales solo visible en móvil (≤640px) — reemplaza el tfoot -->
+  <div class="totals-mobile" *ngIf="documentos.length > 0">
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">Importe</span>
+      <span class="totals-mobile-value">{{ totalImporte | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">Descuento</span>
+      <span class="totals-mobile-value">{{ totalDescuento | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">IVA</span>
+      <span class="totals-mobile-value">{{ totalIVA | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-divider"></div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">Total General</span>
+      <span class="totals-mobile-value grand-total">{{ totalGeneral | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
   <app-paginator *ngIf="documentos.length > 0"
     [page]="page"
     [limit]="limit"

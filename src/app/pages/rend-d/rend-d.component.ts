@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
@@ -22,6 +22,7 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './rend-d.component.html',
   styleUrls: ['./rend-d.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RendDComponent implements OnInit {
 
@@ -147,7 +148,7 @@ export class RendDComponent implements OnInit {
   loadCabecera() {
     this.loadingCab = true;
     this.rendMSvc.getOne(this.idRendicion).subscribe({
-      next:  c  => { this.cabecera = c; this.loadingCab = false; this.cdr.detectChanges(); },
+      next:  c  => { this.cabecera = c; this.loadingCab = false; this.cdr.markForCheck(); },
       error: () => { this.loadingCab = false; },
     });
   }
@@ -160,7 +161,7 @@ export class RendDComponent implements OnInit {
         this.documentos  = data;
         this.loadingDocs = false;
         this.updatePaging();
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loadingDocs = false;

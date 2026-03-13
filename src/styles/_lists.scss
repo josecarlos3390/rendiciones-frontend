@@ -58,15 +58,47 @@
   }
 }
 
+/* Agrupador título + subtítulo dentro de page-header
+   Usado cuando el módulo necesita una descripción breve bajo el título.
+   Patrón:
+     <div class="page-header">
+       <div class="page-title-group">
+         <h2>Título</h2>
+         <p class="page-subtitle">Descripción breve...</p>
+       </div>
+       <button ...>+ Acción</button>
+     </div>
+*/
+.page-title-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            3px;
+
+  h2 { margin: 0; }
+
+  .page-subtitle {
+    font-size:   0.82rem;
+    color:       var(--text-muted);
+    margin:      0;
+    line-height: 1.4;
+  }
+}
+
 /* ── Barra de filtros estándar ──
    Usada en: sales-quotations, purchase-quotations, sales-orders, etc.
    TODOS los módulos nuevos deben usar este patrón (no .search-bar simple). ── */
 .filter-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;  // align-items: center → flex-end so labels align with inputs
   gap: 10px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
 }
 
 .filter-search {
@@ -76,6 +108,11 @@
   flex: 1;
   min-width: 200px;
   max-width: 360px;
+
+  @media (max-width: 640px) {
+    max-width: none;
+    width: 100%;
+  }
 
   .search-icon {
     position: absolute;
@@ -120,6 +157,36 @@
     transition: color var(--transition);
 
     &:hover { color: var(--text-muted); }
+  }
+}
+
+/* Campo con label dentro del filter-bar (ej: selectores de perfil/usuario) */
+.filter-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  min-width:      220px;
+
+  @media (max-width: 640px) {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.filter-label {
+  font-size:      0.78rem;
+  font-weight:    600;
+  color:          var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Botón de acción dentro del filter-bar (ej: limpiar filtros) */
+.filter-bar > .btn,
+.filter-bar > button {
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -226,7 +293,7 @@
   td {
     padding: 13px 16px;
     border-bottom: 1px solid var(--border-soft);
-    font-size: 13.5px;
+    font-size: var(--text-sm);
     color: var(--text-body);
     vertical-align: middle;
   }

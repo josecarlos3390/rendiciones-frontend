@@ -41,14 +41,14 @@ export type UpdateRendMPayload = Partial<CreateRendMPayload>;
 
 /** Mapeo legible del estado numérico */
 export const ESTADO_LABEL: Record<number, string> = {
-  0: 'ABIERTO',
-  1: 'CERRADO',
-  2: 'CONTABILIZADO',
+  1: 'ABIERTO',
+  2: 'CERRADO',
+  4: 'ENVIADO',
 };
 
 /** Clases del design system (_badges.scss) */
 export const ESTADO_CLASS: Record<number, string> = {
-  0: 'status-badge status-open',        // azul  — abierto
-  1: 'status-badge status-closed',      // verde — cerrado/completado
-  2: 'status-badge status-confirmed',   // naranja — contabilizado
+  1: 'status-badge status-open',        // azul  — abierto
+  2: 'status-badge status-closed',      // verde — cerrado
+  4: 'status-badge status-confirmed',   // naranja — enviado
 };

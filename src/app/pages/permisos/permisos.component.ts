@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -15,6 +15,7 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, AppSelectComponent],
   templateUrl: './permisos.component.html',
   styleUrls: ['./permisos.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PermisosComponent implements OnInit {
 
@@ -22,6 +23,10 @@ export class PermisosComponent implements OnInit {
   usuarios:  UsuarioSimple[] = [];
   perfiles:  Perfil[]        = [];
   permisos:  Permiso[]       = [];
+
+  // ── Options cacheadas (evitar nuevo array en cada ciclo de detección)
+  usuarioOptions:           SelectOption[] = [];
+  perfilDisponiblesOptions: SelectOption[] = [];
 
   // ── Selección ────────────────────────────────────────────
   selectedUsuarioId: number | null = null;
@@ -64,20 +69,20 @@ export class PermisosComponent implements OnInit {
 
   loadUsuarios() {
     this.service.getUsuarios().subscribe({
-      next: (data) => { this.usuarios = [...data]; this.cdr.detectChanges(); },
+      next: (data) => { this.usuarios = [...data]; this.rebuildUsuarioOptions(); this.cdr.markForCheck(); },
       error: () => { this.toast.error('Error al cargar usuarios'); },
     });
   }
 
   loadPerfiles() {
     this.service.getPerfiles().subscribe({
-      next: (data) => { this.perfiles = [...data]; this.cdr.detectChanges(); },
+      next: (data) => { this.perfiles = [...data]; this.rebuildPerfilOptions(); this.cdr.markForCheck(); },
       error: () => { this.toast.error('Error al cargar perfiles'); },
     });
   }
 
-  get usuarioOptions(): SelectOption[] {
-    return this.usuarios.map(u => ({
+  private rebuildUsuarioOptions(): void {
+    this.usuarioOptions = this.usuarios.map(u => ({
       value: u.U_IdU,
       label: u.U_NomUser || u.U_Login,
       hint:  u.U_Login,
@@ -85,8 +90,8 @@ export class PermisosComponent implements OnInit {
     }));
   }
 
-  get perfilDisponiblesOptions(): SelectOption[] {
-    return this.perfilesDisponibles.map(p => ({
+  private rebuildPerfilOptions(): void {
+    this.perfilDisponiblesOptions = this.perfilesDisponibles.map(p => ({
       value: p.U_CodPerfil,
       label: p.U_NombrePerfil,
       icon:  '🏷️',
@@ -103,6 +108,7 @@ export class PermisosComponent implements OnInit {
   onUsuarioSelect(value: number | null) {
     this.selectedUsuarioId = value;
     this.selectedPerfilId  = null;
+    this.rebuildPerfilOptions();
     this.loadPermisos();
   }
 
@@ -122,7 +128,8 @@ export class PermisosComponent implements OnInit {
       next: (data) => {
         this.permisos = data;
         this.loading  = false;
-        this.cdr.detectChanges();
+        this.rebuildPerfilOptions();
+        this.cdr.markForCheck();
       },
       error: () => { this.loading = false; },
     });

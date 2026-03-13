@@ -1,20 +1,25 @@
 <div class="page-header">
-  <h2>Administración de Permisos por Usuario/Perfil</h2>
+  <div class="page-title-group">
+    <h2>Administración de Permisos</h2>
+    <p class="page-subtitle">Asigná perfiles de rendición a cada usuario. Un usuario puede tener múltiples perfiles activos.</p>
+  </div>
+  <button class="btn btn-primary btn-sm"
+    [disabled]="!selectedUsuarioId || !selectedPerfilId || isSaving"
+    (click)="asignar()">
+    <span *ngIf="isSaving">Guardando...</span>
+    <span *ngIf="!isSaving">+ Adicionar Permiso</span>
+  </button>
 </div>
-
-<p class="page-subtitle">
-  Asigne los perfiles sobre los cuales cada usuario podrá trabajar en el sistema.
-</p>
 
 <app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
 
 <!-- ── Barra de selección ─────────────────────────────────── -->
-<div class="permisos-toolbar">
+<div class="filter-bar">
 
-  <div class="toolbar-field">
-    <label>Seleccione Usuario</label>
+  <div class="filter-field">
+    <label class="filter-label">Seleccione Usuario</label>
     <app-select
       label="Usuario"
       placeholder="— Seleccione —"
@@ -26,8 +31,8 @@
     </app-select>
   </div>
 
-  <div class="toolbar-field" *ngIf="selectedUsuarioId">
-    <label>Seleccione Perfil</label>
+  <div class="filter-field" *ngIf="selectedUsuarioId">
+    <label class="filter-label">Seleccione Perfil</label>
     <app-select
       label="Perfil"
       placeholder="— Seleccione —"
@@ -39,18 +44,11 @@
     </app-select>
   </div>
 
-  <button class="btn btn-primary"
-    [disabled]="!selectedUsuarioId || !selectedPerfilId || isSaving"
-    (click)="asignar()">
-    <span *ngIf="isSaving">Guardando...</span>
-    <span *ngIf="!isSaving">+ Adicionar Permiso</span>
-  </button>
-
 </div>
 
 <!-- ── Estados vacíos ─────────────────────────────────────── -->
 <div *ngIf="!selectedUsuarioId" class="empty-state">
-  Seleccione un usuario para ver y gestionar sus permisos.
+  Seleccioná un usuario para ver sus perfiles asignados y agregar nuevos permisos.
 </div>
 <div *ngIf="selectedUsuarioId && loading" class="empty-state">
   Cargando permisos...
@@ -67,9 +65,8 @@
   </div>
 
   <div *ngIf="permisos.length === 0" class="panel-empty">
-    Este usuario no tiene perfiles asignados.
+    Este usuario no tiene perfiles asignados. Seleccioná un perfil en el selector de arriba y presioná <strong>+ Adicionar Permiso</strong>.
   </div>
-
   <table class="data-table" *ngIf="permisos.length > 0">
     <thead>
       <tr>

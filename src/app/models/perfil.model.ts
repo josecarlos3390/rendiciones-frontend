@@ -39,7 +39,7 @@ export type UpdatePerfilPayload = Partial<CreatePerfilPayload>;
 
 export const MONEDA_OPTIONS = [
   { value: '0', label: 'Moneda Local (BS)' },
-  { value: '1', label: 'Dólares (USD)' },
+  { value: '1', label: 'Moneda Sistema (USD)' },
 ];
 
 export const PRO_CAR_OPTIONS = [

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -8,9 +8,10 @@ import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import {
   Perfil, CreatePerfilPayload,
-  MONEDA_OPTIONS, PRO_CAR_OPTIONS, CUE_CAR_OPTIONS, EMP_CAR_OPTIONS,
+  PRO_CAR_OPTIONS, CUE_CAR_OPTIONS, EMP_CAR_OPTIONS,
 } from '../../models/perfil.model';
 import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { AppConfigService } from '../../services/app-config.service';
 
 @Component({
   standalone: true,
@@ -18,6 +19,7 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
   imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './perfiles.component.html',
   styleUrls: ['./perfiles.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PerfilesComponent implements OnInit {
   perfiles:  Perfil[] = [];
@@ -44,10 +46,17 @@ export class PerfilesComponent implements OnInit {
   private _pendingAction: (() => void) | null = null;
 
   // Opciones para selects
-  readonly monedaOptions        = MONEDA_OPTIONS;
+  monedaOptions: SelectOption[] = [];
   readonly proCarOptions = PRO_CAR_OPTIONS;
   readonly cueCarOptions = CUE_CAR_OPTIONS;
   readonly empCarOptions = EMP_CAR_OPTIONS;
+
+  /** Recarga monedaOptions desde el servidor y actualiza la vista */
+  private async reloadMonedaOptions(): Promise<void> {
+    await this.appConfig.load();
+    this.monedaOptions = this.appConfig.monedaOptions as SelectOption[];
+    this.cdr.markForCheck();
+  }
 
   readonly siNoOptions: SelectOption[] = [
     { value: 0, label: 'NO', icon: '✗' },
@@ -59,11 +68,13 @@ export class PerfilesComponent implements OnInit {
     private toast:           ToastService,
     private fb:              FormBuilder,
     private cdr:             ChangeDetectorRef,
+    private appConfig:       AppConfigService,
   ) {}
 
   ngOnInit() {
     this.buildForm();
     this.load();
+    this.reloadMonedaOptions();
   }
 
   // ── Helpers ──────────────────────────────────────────────
@@ -107,7 +118,7 @@ export class PerfilesComponent implements OnInit {
         this.perfiles = data;
         this.loading  = false;
         this.applyFilter();
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.loading   = false;
@@ -123,6 +134,7 @@ export class PerfilesComponent implements OnInit {
     );
     this.page = 1;
     this.updatePaging();
+    this.cdr.markForCheck();
   }
 
 
@@ -138,6 +150,7 @@ export class PerfilesComponent implements OnInit {
   // ── Formulario ───────────────────────────────────────────
 
   openNew() {
+    this.reloadMonedaOptions();
     this.editingPerfil = null;
     this.initialValues = null;
     this.form.reset({
@@ -151,6 +164,7 @@ export class PerfilesComponent implements OnInit {
   }
 
   openEdit(p: Perfil) {
+    this.reloadMonedaOptions();
     this.editingPerfil = p;
     this.form.reset({
       nombrePerfil:   p.U_NombrePerfil   ?? '',
