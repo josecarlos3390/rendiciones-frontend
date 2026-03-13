@@ -25,8 +25,8 @@
   th {
     padding: 9px 10px;
     text-align: left;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -71,7 +71,7 @@
       &:focus-visible {
         outline: none;
         border-color: var(--color-primary);
-        box-shadow: var(--focus-ring);
+        box-shadow: var(--shadow-focus);
       }
       &:disabled {
         background: var(--bg-subtle);
@@ -117,7 +117,7 @@
 .number-cell-sm {
   text-align: right;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 
@@ -129,8 +129,8 @@
   background: var(--color-danger-soft);
   color: var(--color-danger-text);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   font-family: inherit;
   transition: opacity var(--transition);
 
@@ -162,15 +162,15 @@
 /* ── Columnas de estado de pedido/entrega ── */
 .col-secondary   { color: var(--text-muted); font-size: 13px; }
 th.col-secondary { color: var(--text-faint); }
-th.col-pending   { color: var(--color-warning); font-weight: 700; }
-.col-pending     { color: var(--color-warning); font-weight: 600; }
-.col-fulfilled   { color: var(--color-success); font-weight: 600; }
-.col-cost-val    { color: var(--color-cost, #7c3aed); font-weight: 600; }
+th.col-pending   { color: var(--color-warning); font-weight: var(--weight-bold); }
+.col-pending     { color: var(--color-warning); font-weight: var(--weight-semibold); }
+.col-fulfilled   { color: var(--color-success); font-weight: var(--weight-semibold); }
+.col-cost-val    { color: var(--color-cost, #7c3aed); font-weight: var(--weight-semibold); }
 
 /* ── Pestaña Costos — valor y margen por línea ── */
 .cost-val {
   color: var(--color-cost, #7c3aed);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 .cost-readonly {
   display: block;
@@ -181,8 +181,8 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
   display: inline-block;
   padding: 2px 7px;
   border-radius: var(--radius-pill);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
   font-family: var(--font-mono);
   &.margin-pos { background: rgba(34,197,94,0.12); color: var(--color-success); }
   &.margin-neg { background: rgba(239,68,68,0.12);  color: var(--color-danger);  }
@@ -201,7 +201,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
 /* ── Celda de cantidad pendiente con color de alerta ── */
 .pending-cell {
   color: var(--color-warning);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 /* ── Cantidad readonly ── */
@@ -236,7 +236,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
   &:focus-visible {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: var(--focus-ring);
+    box-shadow: var(--shadow-focus);
   }
   &:disabled {
     background: var(--bg-subtle);
@@ -285,7 +285,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
   }
 
   .item-option-code {
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-faint);
     font-family: monospace;
     white-space: nowrap;
@@ -325,7 +325,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
   &.active {
     background: var(--bg-surface);
     color: var(--text-heading);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
     box-shadow: var(--shadow-sm);
   }
 }
@@ -380,7 +380,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
       &::before {
         content: attr(data-label);
         font-size: 10px;
-        font-weight: 700;
+        font-weight: var(--weight-bold);
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: var(--text-faint);
@@ -439,7 +439,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
   // Tab buttons: texto más corto en pantallas pequeñas
   .tab-btn {
     padding: 5px 11px;
-    font-size: 12px;
+    font-size: var(--text-sm);
     white-space: nowrap;
   }
 }
@@ -493,7 +493,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
   &.active {
     background: var(--bg-surface);
     color: var(--color-primary-text);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
     box-shadow: var(--shadow-sm);
 
     .discount-toggle-icon {
@@ -504,16 +504,16 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
 
   &:disabled { cursor: default; opacity: 0.6; }
   &:focus { outline: none; }
-  &:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+  &:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 }
 
 .discount-mode-hint {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-faint);
   line-height: 1.4;
   margin-top: 4px;
 
-  strong { color: var(--text-muted); font-weight: 600; }
+  strong { color: var(--text-muted); font-weight: var(--weight-semibold); }
 }
 
 // form-row donde aparece el toggle + campos de header (hasta 4 columnas)
@@ -532,7 +532,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
 
 .th-discount {
   color: var(--color-warning, #f59e0b);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 
 .td-discount input[type="number"] { max-width: 96px; }
@@ -540,7 +540,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
 // Valor de descuento con color semántico (texto naranja)
 .discount-value {
   color: var(--color-warning, #d97706);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   font-family: var(--font-mono);
   font-size: 13px;
 }
@@ -565,7 +565,7 @@ th.col-pending   { color: var(--color-warning); font-weight: 700; }
 
   .discounts-summary-value {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: var(--weight-bold);
     font-family: var(--font-mono);
   }
 }

@@ -22,8 +22,12 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     label: 'Administración',
     roles: ['ADMIN'],
     children: [
-      { label: 'Usuarios',  route: '/users' },
-      { label: 'Perfiles',  route: '/perfiles' },
+      { label: 'Usuarios',        route: '/users' },
+      { label: 'Perfiles',        route: '/perfiles' },
+      { label: 'Documentos',      route: '/documentos' },
+      { label: 'Permisos',        route: '/permisos' },
+      { label: 'Cuentas Cabecera', route: '/cuentas-cabecera' },
+      { label: 'Cuentas Lista',   route: '/cuentas-lista' },
     ]
   },
 ];

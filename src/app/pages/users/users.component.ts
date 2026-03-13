@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -8,11 +8,13 @@ import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-
 import { AuthService } from '../../auth/auth.service';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { User } from '../../models/user.model';
+import { SapService, DimensionWithRules } from '../../services/sap.service';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
   selector: 'app-users',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
 })
@@ -23,6 +25,28 @@ export class UsersComponent implements OnInit {
   search   = '';
   loading   = false;
   loadError = false;
+
+  // Dimensiones SAP (NR1..NR5)
+  dimensions:     DimensionWithRules[] = [];
+  loadingDims     = false;
+
+  readonly userTypeOptions: SelectOption[] = [
+    { value: 0, label: 'Normal',        icon: '👤' },
+    { value: 1, label: 'Administrador', icon: '👑' },
+  ];
+
+  getDimOptions(nrIndex: number): SelectOption[] {
+    const dim = this.getDimension(nrIndex);
+    if (!dim) return [];
+    return [
+      { value: '', label: '— Sin asignar —' },
+      ...dim.rules.map(r => ({
+        value: r.factorCode,
+        label: r.factorDescription,
+        hint:  r.factorCode,
+      })),
+    ];
+  }
 
   // Paginación
   page       = 1;
@@ -45,11 +69,40 @@ export class UsersComponent implements OnInit {
     private toast:        ToastService,
     private fb:           FormBuilder,
     private auth:         AuthService,
+    private cdr:          ChangeDetectorRef,
+    private sapService:   SapService,
   ) {}
 
   ngOnInit() {
     this.buildForm();
     this.load();
+    this.loadDimensions();
+  }
+
+  // ── Dimensiones SAP ───────────────────────────────────────
+  loadDimensions() {
+    this.loadingDims = true;
+    this.sapService.getDimensions().subscribe({
+      next: (dims) => {
+        this.dimensions  = dims;
+        this.loadingDims = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Si SAP no está disponible, los campos NR quedan como texto libre
+        this.loadingDims = false;
+      },
+    });
+  }
+
+  /** Obtiene la dimensión para un campo NR dado (1-based) */
+  getDimension(nrIndex: number): DimensionWithRules | null {
+    return this.dimensions.find(d => d.dimensionCode === nrIndex) ?? null;
+  }
+
+  /** Lista de normas de reparto para el campo NR dado (1-based) */
+  getRules(nrIndex: number) {
+    return this.getDimension(nrIndex)?.rules ?? [];
   }
 
   // ── Helpers ──────────────────────────────────────────────
@@ -72,7 +125,14 @@ export class UsersComponent implements OnInit {
     return (u.U_NomUser ?? u.U_Login ?? 'U')[0].toUpperCase();
   }
 
-  isActive(u: User): boolean { return u.U_Estado === 'A'; }
+  isActive(u: User): boolean   { return u.U_Estado === '1'; }
+  isBlocked(u: User): boolean  { return u.U_Estado === '2'; }
+
+  estadoLabel(u: User): string {
+    if (u.U_Estado === '1') return 'Activo';
+    if (u.U_Estado === '2') return 'Bloqueado';
+    return 'Inactivo';
+  }
 
   isExpired(u: User): boolean {
     if (!u.U_FECHAEXPIRACION) return false;
@@ -87,19 +147,19 @@ export class UsersComponent implements OnInit {
       supervisorName: [''],
       password:       [''],
       superUser:      [0],
-      appRend:        ['Y'],
-      appConf:        ['N'],
-      appExtB:        ['N'],
-      appUpLA:        ['N'],
-      genDocPre:      ['N'],
-      fijarNr:        ['N'],
+      appRend:        ['1'],
+      appConf:        ['0'],
+      appExtB:        ['0'],
+      appUpLA:        ['0'],
+      genDocPre:      ['0'],
+      fijarNr:        ['0'],
       nr1:            [''],
       nr2:            [''],
       nr3:            [''],
       nr4:            [''],
       nr5:            [''],
-      fijarSaldo:     ['N'],
-      estado:         ['A'],
+      fijarSaldo:     ['0'],
+      estado:         ['1'],
       fechaExpiracion:[''],
     });
   }
@@ -116,9 +176,10 @@ export class UsersComponent implements OnInit {
     this.loadError = false;
     this.usersService.getAll().subscribe({
       next: (users) => {
-        this.users = users;
-        this.applyFilter();
+        this.users   = users;
         this.loading = false;
+        this.applyFilter();
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading   = false;
@@ -162,10 +223,10 @@ export class UsersComponent implements OnInit {
     this.form.get('login')?.enable();
     this.form.reset({
       login: '', name: '', supervisorName: '', password: '',
-      superUser: 0, appRend: 'Y', appConf: 'N',
-      appExtB: 'N', appUpLA: 'N', genDocPre: 'N',
-      fijarNr: 'N', nr1: '', nr2: '', nr3: '', nr4: '', nr5: '',
-      fijarSaldo: 'N', estado: 'A',
+      superUser: 0, appRend: '1', appConf: '0',
+      appExtB: '0', appUpLA: '0', genDocPre: '0',
+      fijarNr: '0', nr1: '', nr2: '', nr3: '', nr4: '', nr5: '',
+      fijarSaldo: '0', estado: '1',
       fechaExpiracion: this.defaultExpiry(),
     });
     this.form.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
@@ -185,19 +246,19 @@ export class UsersComponent implements OnInit {
       supervisorName: user.U_NomSup          ?? '',
       password:       '',
       superUser:      user.U_SuperUser       ?? 0,
-      appRend:        user.U_AppRend         ?? 'N',
-      appConf:        user.U_AppConf         ?? 'N',
-      appExtB:        user.U_AppExtB         ?? 'N',
-      appUpLA:        user.U_AppUpLA         ?? 'N',
-      genDocPre:      user.U_GenDocPre       ?? 'N',
-      fijarNr:        user.U_FIJARNR         ?? 'N',
+      appRend:        user.U_AppRend   == '1' ? '1' : '0',
+      appConf:        user.U_AppConf   == '1' ? '1' : '0',
+      appExtB:        user.U_AppExtB   == '1' ? '1' : '0',
+      appUpLA:        user.U_AppUpLA   == '1' ? '1' : '0',
+      genDocPre:      user.U_GenDocPre == '1' ? '1' : '0',
+      fijarNr:        user.U_FIJARNR   == '1' ? '1' : '0',
       nr1:            user.U_NR1             ?? '',
       nr2:            user.U_NR2             ?? '',
       nr3:            user.U_NR3             ?? '',
       nr4:            user.U_NR4             ?? '',
       nr5:            user.U_NR5             ?? '',
-      fijarSaldo:     user.U_FIJARSALDO      ?? 'N',
-      estado:         user.U_Estado          ?? 'A',
+      fijarSaldo:     user.U_FIJARSALDO == '1' ? '1' : '0',
+      estado:         user.U_Estado ?? '1',
       fechaExpiracion: user.U_FECHAEXPIRACION
         ? String(user.U_FECHAEXPIRACION).substring(0, 10) : '',
     });
@@ -237,7 +298,7 @@ export class UsersComponent implements OnInit {
       nr4:             raw.nr4 ?? '',
       nr5:             raw.nr5 ?? '',
       fijarSaldo:      raw.fijarSaldo,
-      estado:          raw.estado,
+      estado:          String(raw.estado),
       fechaExpiracion: raw.fechaExpiracion || undefined,
     };
     if (raw.password?.trim()) payload.password = raw.password;
@@ -279,12 +340,12 @@ export class UsersComponent implements OnInit {
   // ── Toggle helpers ────────────────────────────────────────
   onEstadoToggle(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
-    this.form.get('estado')?.setValue(checked ? 'A' : 'I');
+    this.form.get('estado')?.setValue(checked ? '1' : '0');
   }
 
   onCheckToggle(field: string, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
-    this.form.get(field)?.setValue(checked ? 'Y' : 'N');
+    this.form.get(field)?.setValue(checked ? '1' : '0');
   }
 
   // ── Dialog ───────────────────────────────────────────────
@@ -298,7 +359,7 @@ export class UsersComponent implements OnInit {
       confirmLabel: isActive ? 'Sí, inactivar' : 'Sí, activar',
       type:         isActive ? 'warning' : 'primary',
     }, () => {
-      this.usersService.toggleStatus(u.U_IdU, isActive ? 'I' : 'A').subscribe({
+      this.usersService.toggleStatus(u.U_IdU, isActive ? '0' : '1', u).subscribe({
         next:  () => { this.toast.success(isActive ? 'Usuario inactivado' : 'Usuario activado'); this.load(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {

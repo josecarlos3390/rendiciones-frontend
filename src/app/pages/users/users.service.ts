@@ -41,8 +41,27 @@ export class UsersService {
     return this.http.patch<User>(`${this.api}/${id}`, data);
   }
 
-  toggleStatus(id: number, estado: 'A' | 'I') {
-    return this.http.patch<User>(`${this.api}/${id}`, { estado });
+  toggleStatus(id: number, estado: '0' | '1', user: User) {
+    const payload = {
+      name:            user.U_NomUser        ?? '',
+      supervisorName:  user.U_NomSup         ?? '',
+      superUser:       user.U_SuperUser       ?? 0,
+      appRend:         user.U_AppRend == '1' ? '1' : '0',
+      appConf:         user.U_AppConf == '1' ? '1' : '0',
+      appExtB:         user.U_AppExtB == '1' ? '1' : '0',
+      appUpLA:         user.U_AppUpLA == '1' ? '1' : '0',
+      genDocPre:       user.U_GenDocPre == '1' ? '1' : '0',
+      fijarNr:         user.U_FIJARNR == '1' ? '1' : '0',
+      nr1:             user.U_NR1             ?? '',
+      nr2:             user.U_NR2             ?? '',
+      nr3:             user.U_NR3             ?? '',
+      nr4:             user.U_NR4             ?? '',
+      nr5:             user.U_NR5             ?? '',
+      fijarSaldo:      user.U_FIJARSALDO == '1' ? '1' : '0',
+      estado,
+      fechaExpiracion: user.U_FECHAEXPIRACION || undefined,
+    };
+    return this.http.patch<User>(`${this.api}/${id}`, payload);
   }
 
   getMe() {

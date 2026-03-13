@@ -53,10 +53,14 @@
         <div class="form-row">
           <div class="form-field" [class.field-changed]="fieldChanged('superUser')">
             <label>Tipo de Usuario <span class="required">*</span></label>
-            <select formControlName="superUser">
-              <option [ngValue]="0">Normal</option>
-              <option [ngValue]="1">Administrador</option>
-            </select>
+            <app-select
+              label="Tipo de Usuario"
+              [required]="true"
+              [searchable]="false"
+              [options]="userTypeOptions"
+              [value]="form.get('superUser')?.value"
+              (valueChange)="form.get('superUser')?.setValue($event)">
+            </app-select>
           </div>
           <div class="form-field" [class.field-changed]="fieldChanged('fechaExpiracion')">
             <label>Fecha Expiración <span class="required">*</span></label>
@@ -85,7 +89,7 @@
             <div class="toggle-wrap">
               <label class="u-toggle">
                 <input type="checkbox"
-                  [checked]="form.get('fijarNr')?.value === 'Y'"
+                  [checked]="form.get('fijarNr')?.value == '1'"
                   (change)="onCheckToggle('fijarNr', $event)" />
                 <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
               </label>
@@ -94,25 +98,104 @@
         </div>
 
         <div class="form-row">
-          <div class="form-field" [class.field-changed]="fieldChanged('nr1')">
-            <label>NR 1</label>
-            <input type="text" formControlName="nr1" placeholder="14600 SOPO" maxlength="50" />
-          </div>
-          <div class="form-field" [class.field-changed]="fieldChanged('nr2')">
-            <label>NR 2</label>
-            <input type="text" formControlName="nr2" placeholder="11111 PRODI" maxlength="50" />
-          </div>
-          <div class="form-field" [class.field-changed]="fieldChanged('nr3')">
-            <label>NR 3</label>
-            <input type="text" formControlName="nr3" placeholder="2000 TIENDA" maxlength="50" />
-          </div>
-          <div class="form-field" [class.field-changed]="fieldChanged('nr4')">
-            <label>NR 4</label>
-            <input type="text" formControlName="nr4" maxlength="50" />
-          </div>
-          <div class="form-field" [class.field-changed]="fieldChanged('nr5')">
-            <label>NR 5</label>
-            <input type="text" formControlName="nr5" maxlength="50" />
+          <!-- NR 1 -->
+          <ng-container *ngIf="getDimension(1) as dim; else nr1Text">
+            <div class="form-field" [class.field-changed]="fieldChanged('nr1')">
+              <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
+              <app-select
+                [label]="dim.dimensionDescription || dim.dimensionName"
+                [options]="getDimOptions(1)"
+                [value]="form.get('nr1')?.value"
+                (valueChange)="form.get('nr1')?.setValue($event)">
+              </app-select>
+            </div>
+          </ng-container>
+          <ng-template #nr1Text>
+            <div class="form-field" [class.field-changed]="fieldChanged('nr1')" *ngIf="!loadingDims">
+              <label>NR 1</label>
+              <input type="text" formControlName="nr1" maxlength="50" />
+            </div>
+          </ng-template>
+
+          <!-- NR 2 -->
+          <ng-container *ngIf="getDimension(2) as dim; else nr2Text">
+            <div class="form-field" [class.field-changed]="fieldChanged('nr2')">
+              <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
+              <app-select
+                [label]="dim.dimensionDescription || dim.dimensionName"
+                [options]="getDimOptions(2)"
+                [value]="form.get('nr2')?.value"
+                (valueChange)="form.get('nr2')?.setValue($event)">
+              </app-select>
+            </div>
+          </ng-container>
+          <ng-template #nr2Text>
+            <div class="form-field" [class.field-changed]="fieldChanged('nr2')" *ngIf="!loadingDims">
+              <label>NR 2</label>
+              <input type="text" formControlName="nr2" maxlength="50" />
+            </div>
+          </ng-template>
+
+          <!-- NR 3 -->
+          <ng-container *ngIf="getDimension(3) as dim; else nr3Text">
+            <div class="form-field" [class.field-changed]="fieldChanged('nr3')">
+              <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
+              <app-select
+                [label]="dim.dimensionDescription || dim.dimensionName"
+                [options]="getDimOptions(3)"
+                [value]="form.get('nr3')?.value"
+                (valueChange)="form.get('nr3')?.setValue($event)">
+              </app-select>
+            </div>
+          </ng-container>
+          <ng-template #nr3Text>
+            <div class="form-field" [class.field-changed]="fieldChanged('nr3')" *ngIf="!loadingDims">
+              <label>NR 3</label>
+              <input type="text" formControlName="nr3" maxlength="50" />
+            </div>
+          </ng-template>
+
+          <!-- NR 4 -->
+          <ng-container *ngIf="getDimension(4) as dim; else nr4Text">
+            <div class="form-field" [class.field-changed]="fieldChanged('nr4')">
+              <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
+              <app-select
+                [label]="dim.dimensionDescription || dim.dimensionName"
+                [options]="getDimOptions(4)"
+                [value]="form.get('nr4')?.value"
+                (valueChange)="form.get('nr4')?.setValue($event)">
+              </app-select>
+            </div>
+          </ng-container>
+          <ng-template #nr4Text>
+            <div class="form-field" [class.field-changed]="fieldChanged('nr4')" *ngIf="!loadingDims">
+              <label>NR 4</label>
+              <input type="text" formControlName="nr4" maxlength="50" />
+            </div>
+          </ng-template>
+
+          <!-- NR 5 -->
+          <ng-container *ngIf="getDimension(5) as dim; else nr5Text">
+            <div class="form-field" [class.field-changed]="fieldChanged('nr5')">
+              <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
+              <app-select
+                [label]="dim.dimensionDescription || dim.dimensionName"
+                [options]="getDimOptions(5)"
+                [value]="form.get('nr5')?.value"
+                (valueChange)="form.get('nr5')?.setValue($event)">
+              </app-select>
+            </div>
+          </ng-container>
+          <ng-template #nr5Text>
+            <div class="form-field" [class.field-changed]="fieldChanged('nr5')" *ngIf="!loadingDims">
+              <label>NR 5</label>
+              <input type="text" formControlName="nr5" maxlength="50" />
+            </div>
+          </ng-template>
+
+          <!-- Spinner mientras carga SAP -->
+          <div *ngIf="loadingDims" class="dim-loading">
+            <span>⏳ Cargando normas de reparto...</span>
           </div>
         </div>
 
@@ -130,7 +213,7 @@
               <span class="perm-desc">Acceso al módulo de rendiciones de gastos</span>
             </div>
             <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appRend')?.value === 'Y'" (change)="onCheckToggle('appRend', $event)" />
+              <input type="checkbox" [checked]="form.get('appRend')?.value == '1'" (change)="onCheckToggle('appRend', $event)" />
               <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
             </label>
           </div>
@@ -141,7 +224,7 @@
               <span class="perm-desc">Ver y editar configuraciones del sistema</span>
             </div>
             <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appConf')?.value === 'Y'" (change)="onCheckToggle('appConf', $event)" />
+              <input type="checkbox" [checked]="form.get('appConf')?.value == '1'" (change)="onCheckToggle('appConf', $event)" />
               <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
             </label>
           </div>
@@ -152,7 +235,7 @@
               <span class="perm-desc">Permite generar documentos en estado borrador</span>
             </div>
             <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('genDocPre')?.value === 'Y'" (change)="onCheckToggle('genDocPre', $event)" />
+              <input type="checkbox" [checked]="form.get('genDocPre')?.value == '1'" (change)="onCheckToggle('genDocPre', $event)" />
               <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
             </label>
           </div>
@@ -163,7 +246,7 @@
               <span class="perm-desc">Permite fijar manualmente el saldo en rendiciones</span>
             </div>
             <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('fijarSaldo')?.value === 'Y'" (change)="onCheckToggle('fijarSaldo', $event)" />
+              <input type="checkbox" [checked]="form.get('fijarSaldo')?.value == '1'" (change)="onCheckToggle('fijarSaldo', $event)" />
               <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
             </label>
           </div>
@@ -174,7 +257,7 @@
               <span class="perm-desc">Acceso al módulo externo B</span>
             </div>
             <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appExtB')?.value === 'Y'" (change)="onCheckToggle('appExtB', $event)" />
+              <input type="checkbox" [checked]="form.get('appExtB')?.value == '1'" (change)="onCheckToggle('appExtB', $event)" />
               <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
             </label>
           </div>
@@ -185,7 +268,7 @@
               <span class="perm-desc">Permite carga de LA</span>
             </div>
             <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appUpLA')?.value === 'Y'" (change)="onCheckToggle('appUpLA', $event)" />
+              <input type="checkbox" [checked]="form.get('appUpLA')?.value == '1'" (change)="onCheckToggle('appUpLA', $event)" />
               <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
             </label>
           </div>
@@ -196,17 +279,18 @@
           <div class="perms-card">
             <div class="perm-row" [class.perm-row--changed]="fieldChanged('estado')">
               <div class="perm-info">
-                <span class="perm-name">Cuenta activa</span>
+                <span class="perm-name">Estado</span>
                 <span class="perm-desc">
-                  {{ form.get('estado')?.value === 'A'
-                    ? 'El usuario puede iniciar sesión normalmente'
-                    : 'El usuario no puede iniciar sesión' }}
+                  {{ form.get('estado')?.value === '1' ? 'El usuario puede iniciar sesión normalmente'
+                   : form.get('estado')?.value === 2 ? 'Cuenta bloqueada por intentos fallidos u otra razón'
+                   : 'El usuario no puede iniciar sesión' }}
                 </span>
               </div>
-              <label class="u-toggle">
-                <input type="checkbox" [checked]="form.get('estado')?.value === 'A'" (change)="onEstadoToggle($event)" />
-                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-              </label>
+              <select formControlName="estado" style="min-width:130px">
+                <option [value]="1">Activo</option>
+                <option [value]="0">Inactivo</option>
+                <option [value]="2">Bloqueado</option>
+              </select>
             </div>
           </div>
         </ng-container>
@@ -251,7 +335,7 @@
   No se pudo cargar la lista de usuarios.
   <a (click)="load()">Reintentar</a>
 </div>
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
+<div *ngIf="!loading && !loadError && filtered.length === '0'" class="empty-state">
   No hay usuarios registrados. <a (click)="openNew()">Crear el primero</a>
 </div>
 
@@ -273,7 +357,7 @@
       <tr *ngFor="let u of paged" [class.row-inactive]="!isActive(u)">
 
         <!-- Usuario (login + avatar) -->
-        <td>
+        <td data-label="Usuario">
           <div class="user-cell">
             <div class="user-avatar" [class.avatar-inactive]="!isActive(u)">{{ initial(u) }}</div>
             <div class="user-cell-info">
@@ -284,37 +368,38 @@
         </td>
 
         <!-- Nombre completo -->
-        <td>{{ u.U_NomUser || '—' }}</td>
+        <td data-label="Nombre">{{ u.U_NomUser || '—' }}</td>
 
         <!-- Tipo -->
-        <td>
+        <td data-label="Tipo">
           <span class="type-badge" [class.role-admin]="u.U_SuperUser === 1" [class.role-user]="u.U_SuperUser === 0">
             {{ u.U_SuperUser === 1 ? 'Admin' : 'Normal' }}
           </span>
         </td>
 
         <!-- Módulos habilitados -->
-        <td>
+        <td data-label="Módulos">
           <div class="perm-badges">
-            <span class="perm-badge" [class.perm-on]="u.U_AppRend === 'Y'" title="Rendiciones">R</span>
-            <span class="perm-badge" [class.perm-on]="u.U_AppConf === 'Y'" title="Configuraciones">C</span>
-            <span class="perm-badge" [class.perm-on]="u.U_AppExtB === 'Y'" title="Ext. B">B</span>
-            <span class="perm-badge" [class.perm-on]="u.U_AppUpLA === 'Y'" title="UpLA">L</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppRend == '1'" title="Rendiciones">R</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppConf == '1'" title="Configuraciones">C</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppExtB == '1'" title="Ext. B">B</span>
+            <span class="perm-badge" [class.perm-on]="u.U_AppUpLA == '1'" title="UpLA">L</span>
           </div>
         </td>
 
         <!-- Estado -->
-        <td>
+        <td data-label="Estado">
           <span class="status-badge-dot"
             [class.status-active]="isActive(u)"
-            [class.status-inactive]="!isActive(u)">
+            [class.status-inactive]="!isActive(u) && !isBlocked(u)"
+            [class.status-blocked]="isBlocked(u)">
             <span class="status-dot"></span>
-            {{ isActive(u) ? 'Activo' : 'Inactivo' }}
+            {{ estadoLabel(u) }}
           </span>
         </td>
 
         <!-- Fecha expiración -->
-        <td>
+        <td data-label="Expira">
           <span [class.text-expired]="isExpired(u)">
             {{ u.U_FECHAEXPIRACION | date:'dd/MM/yyyy' }}
           </span>

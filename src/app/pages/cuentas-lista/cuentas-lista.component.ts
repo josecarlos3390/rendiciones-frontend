@@ -2,31 +2,41 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
-import { CuentasListaService } from './cuentas-lista.service';
-import { ToastService }        from '../../core/toast/toast.service';
+import { CuentasListaService }   from './cuentas-lista.service';
+import { ToastService }          from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }  from '../../shared/paginator/paginator.component';
-import { CuentaLista }         from '../../models/cuenta-lista.model';
-import { Perfil }              from '../../models/perfil.model';
+import { PaginatorComponent }    from '../../shared/paginator/paginator.component';
+import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
+import { CuentaLista }           from '../../models/cuenta-lista.model';
+import { Perfil }                from '../../models/perfil.model';
 
 @Component({
   standalone: true,
   selector: 'app-cuentas-lista',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ConfirmDialogComponent,
+    PaginatorComponent,
+    PerfilSelectComponent,
+  ],
   templateUrl: './cuentas-lista.component.html',
   styleUrls: ['./cuentas-lista.component.scss'],
 })
 export class CuentasListaComponent implements OnInit {
 
   // ── Datos ───────────────────────────────────────────────
-  perfiles:  Perfil[]      = [];
-  cuentas:   CuentaLista[] = [];
-  filtered:  CuentaLista[] = [];
-  paged:     CuentaLista[] = [];
+  cuentas:  CuentaLista[] = [];
+  filtered: CuentaLista[] = [];
+  paged:    CuentaLista[] = [];
+
+  // ── Perfil seleccionado ──────────────────────────────────
+  selectedPerfilId: number | null = null;
+  selectedPerfil:   Perfil | null = null;   // asignable desde el template via (perfilObjChange)
 
   // ── Filtros ─────────────────────────────────────────────
-  selectedPerfilId: number | null = null;
-  search = '';
+  search  = '';
   loading = false;
 
   // ── Paginación ──────────────────────────────────────────
@@ -53,13 +63,13 @@ export class CuentasListaComponent implements OnInit {
 
   ngOnInit() {
     this.buildForm();
-    this.loadPerfiles();
   }
 
-  // ── Helpers ─────────────────────────────────────────────
+  // ── Callback de PerfilSelectComponent ───────────────────
 
-  get selectedPerfil(): Perfil | null {
-    return this.perfiles.find(p => p.U_CodPerfil === this.selectedPerfilId) ?? null;
+  onPerfilChange(id: number | null) {
+    this.selectedPerfilId = id;
+    this.loadCuentas();
   }
 
   // ── Form ────────────────────────────────────────────────
@@ -74,35 +84,18 @@ export class CuentasListaComponent implements OnInit {
 
   // ── Carga de datos ───────────────────────────────────────
 
-  loadPerfiles() {
-    this.cuentasService.getPerfiles().subscribe({
-      next: (data) => {
-        this.perfiles = [...data];
-        this.cdr.detectChanges();
-      },
-      error: (err: any) => { console.error('loadPerfiles error', err); this.toast.error(err?.error?.message || 'Error al cargar perfiles'); },
-    });
-  }
-
-  onPerfilChange(event: Event) {
-    const val = (event.target as HTMLSelectElement).value;
-    this.selectedPerfilId = val ? Number(val) : null;
-    this.loadCuentas();
-  }
-
   loadCuentas() {
     if (!this.selectedPerfilId) {
-      this.cuentas  = [];
-      this.filtered = [];
-      this.paged    = [];
+      this.cuentas = []; this.filtered = []; this.paged = [];
       return;
     }
     this.loading = true;
     this.cuentasService.getByPerfil(this.selectedPerfilId).subscribe({
       next: (data) => {
         this.cuentas = data;
-        this.applyFilter();
         this.loading = false;
+        this.applyFilter();
+        this.cdr.detectChanges();
       },
       error: () => { this.loading = false; },
     });
@@ -121,7 +114,6 @@ export class CuentasListaComponent implements OnInit {
     this.updatePaging();
   }
 
-
   updatePaging() {
     this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
     const start = (this.page - 1) * this.limit;
@@ -134,10 +126,7 @@ export class CuentasListaComponent implements OnInit {
   // ── Agregar cuenta ────────────────────────────────────────
 
   openForm() {
-    if (!this.selectedPerfilId) {
-      this.toast.error('Seleccione un perfil primero');
-      return;
-    }
+    if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
     this.form.reset({ cuentaSys: '', cuenta: '', nombreCuenta: '' });
     this.showForm = true;
   }

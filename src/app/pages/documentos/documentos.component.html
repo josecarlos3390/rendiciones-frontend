@@ -33,87 +33,133 @@
           </div>
           <div class="form-field">
             <label>Tipo Doc SAP <span class="required">*</span></label>
-            <input type="number" formControlName="idTipoDoc" min="0" placeholder="1" />
+            <app-select
+              label="Tipo Doc SAP"
+              [required]="true"
+              [options]="tipoDocSapOptions"
+              [value]="form.get('idTipoDoc')?.value"
+              [invalid]="!!form.get('idTipoDoc')?.invalid && !!form.get('idTipoDoc')?.touched"
+              (valueChange)="form.get('idTipoDoc')?.setValue($event)">
+            </app-select>
           </div>
           <div class="form-field">
             <label>Tipo de Cálculo <span class="required">*</span></label>
-            <select formControlName="tipoCalc">
-              <option *ngFor="let o of tipoCalcOptions" [value]="o.value">{{ o.label }}</option>
-            </select>
+            <app-select
+              label="Tipo de Cálculo"
+              [required]="true"
+              [options]="tipoCalcOptions"
+              [value]="form.get('tipoCalc')?.value"
+              [invalid]="!!form.get('tipoCalc')?.invalid && !!form.get('tipoCalc')?.touched"
+              (valueChange)="form.get('tipoCalc')?.setValue($event)">
+            </app-select>
           </div>
         </div>
 
-        <div class="section-divider">IVA</div>
-        <div class="form-row two-col">
-          <div class="form-field">
-            <label>% IVA</label>
-            <input type="number" formControlName="ivaPercent" step="0.01" min="0" />
-          </div>
-          <div class="form-field">
-            <label>Cuenta IVA</label>
-            <input type="text" formControlName="ivaCuenta" maxlength="25" placeholder="11203001" />
-          </div>
-        </div>
+        <!-- Grid de impuestos: cards agrupadas por tipo -->
+        <div class="section-divider">Impuestos</div>
+        <div class="tax-grid">
 
-        <div class="section-divider">IT</div>
-        <div class="form-row two-col">
-          <div class="form-field">
-            <label>% IT</label>
-            <input type="number" formControlName="itPercent" step="0.01" min="0" />
+          <div class="tax-card">
+            <div class="tax-card-header"><span class="tax-label">IVA</span></div>
+            <div class="tax-card-fields">
+              <div class="form-field tax-pct-field">
+                <label>%</label>
+                <input type="number" style="max-width:110px" formControlName="ivaPercent" step="0.01" min="0" placeholder="13" />
+              </div>
+              <div class="form-field tax-cta-field">
+                <label>Cuenta</label>
+                <app-cuenta-search
+                  [initialCode]="form.get('ivaCuenta')?.value"
+                  (accountChange)="onCuentaChange('ivaCuenta', $event)">
+                </app-cuenta-search>
+              </div>
+            </div>
           </div>
-          <div class="form-field">
-            <label>Cuenta IT</label>
-            <input type="text" formControlName="itCuenta" maxlength="25" placeholder="21102006" />
-          </div>
-        </div>
 
-        <div class="section-divider">IUE</div>
-        <div class="form-row two-col">
-          <div class="form-field">
-            <label>% IUE</label>
-            <input type="number" formControlName="iuePercent" step="0.01" min="0" />
+          <div class="tax-card">
+            <div class="tax-card-header"><span class="tax-label">IT</span></div>
+            <div class="tax-card-fields">
+              <div class="form-field tax-pct-field">
+                <label>%</label>
+                <input type="number" style="max-width:110px" formControlName="itPercent" step="0.01" min="0" placeholder="3" />
+              </div>
+              <div class="form-field tax-cta-field">
+                <label>Cuenta</label>
+                <app-cuenta-search
+                  [initialCode]="form.get('itCuenta')?.value"
+                  (accountChange)="onCuentaChange('itCuenta', $event)">
+                </app-cuenta-search>
+              </div>
+            </div>
           </div>
-          <div class="form-field">
-            <label>Cuenta IUE</label>
-            <input type="text" formControlName="iueCuenta" maxlength="25" placeholder="21102007" />
-          </div>
-        </div>
 
-        <div class="section-divider">RC-IVA</div>
-        <div class="form-row two-col">
-          <div class="form-field">
-            <label>% RC-IVA</label>
-            <input type="number" formControlName="rcivaPercent" step="0.01" min="0" />
+          <div class="tax-card">
+            <div class="tax-card-header"><span class="tax-label">IUE</span></div>
+            <div class="tax-card-fields">
+              <div class="form-field tax-pct-field">
+                <label>%</label>
+                <input type="number" style="max-width:110px" formControlName="iuePercent" step="0.01" min="0" placeholder="25" />
+              </div>
+              <div class="form-field tax-cta-field">
+                <label>Cuenta</label>
+                <app-cuenta-search
+                  [initialCode]="form.get('iueCuenta')?.value"
+                  (accountChange)="onCuentaChange('iueCuenta', $event)">
+                </app-cuenta-search>
+              </div>
+            </div>
           </div>
-          <div class="form-field">
-            <label>Cuenta RC-IVA</label>
-            <input type="text" formControlName="rcivaCuenta" maxlength="25" placeholder="21102009" />
-          </div>
-        </div>
 
-        <div class="section-divider">Exento / Otros</div>
-        <div class="form-row three-col">
-          <div class="form-field">
-            <label>% Exento</label>
-            <input type="number" formControlName="exentoPercent" step="0.01" min="-1" />
-            <span class="field-hint">Registre -1 si es variable</span>
+          <div class="tax-card">
+            <div class="tax-card-header"><span class="tax-label">RC-IVA</span></div>
+            <div class="tax-card-fields">
+              <div class="form-field tax-pct-field">
+                <label>%</label>
+                <input type="number" style="max-width:110px" formControlName="rcivaPercent" step="0.01" min="0" placeholder="13" />
+              </div>
+              <div class="form-field tax-cta-field">
+                <label>Cuenta</label>
+                <app-cuenta-search
+                  [initialCode]="form.get('rcivaCuenta')?.value"
+                  (accountChange)="onCuentaChange('rcivaCuenta', $event)">
+                </app-cuenta-search>
+              </div>
+            </div>
           </div>
-          <div class="form-field">
-            <label>Cuenta Exento</label>
-            <input type="text" formControlName="ctaExento" maxlength="25" />
-          </div>
-          <div class="form-field">
-            <label>% Tasa</label>
-            <input type="number" formControlName="tasa" step="0.01" min="-1" />
-            <span class="field-hint">Registre -1 si es variable</span>
-          </div>
-        </div>
 
-        <div class="form-row one-col">
-          <div class="form-field">
-            <label>% ICE</label>
-            <input type="number" formControlName="ice" step="0.01" min="0" style="max-width:180px" />
+          <div class="tax-card">
+            <div class="tax-card-header"><span class="tax-label">Exento</span></div>
+            <div class="tax-card-fields">
+              <div class="form-field tax-pct-field">
+                <label>%</label>
+                <input type="number" style="max-width:110px" formControlName="exentoPercent" step="0.01" min="-1" placeholder="-1" />
+                <span class="field-hint">-1 si variable</span>
+              </div>
+              <div class="form-field tax-cta-field">
+                <label>Cuenta</label>
+                <app-cuenta-search
+                  [initialCode]="form.get('ctaExento')?.value"
+                  (accountChange)="onCuentaChange('ctaExento', $event)">
+                </app-cuenta-search>
+              </div>
+            </div>
           </div>
+
+          <div class="tax-card">
+            <div class="tax-card-header"><span class="tax-label">ICE / Tasa</span></div>
+            <div class="tax-card-fields">
+              <div class="form-field tax-pct-field">
+                <label>% ICE</label>
+                <input type="number" style="max-width:110px" formControlName="ice" step="0.01" min="0" />
+              </div>
+              <div class="form-field tax-pct-field">
+                <label>% Tasa</label>
+                <input type="number" style="max-width:110px" formControlName="tasa" step="0.01" min="-1" />
+                <span class="field-hint">-1 si variable</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -134,10 +180,11 @@
   <div class="filter-left">
     <div class="filter-field">
       <label>Seleccione Perfil</label>
-      <select class="filter-select" (change)="onPerfilChange($event)">
-        <option value="">— Seleccione —</option>
-        <option *ngFor="let p of perfiles" [value]="p.U_CodPerfil">{{ p.U_NombrePerfil }}</option>
-      </select>
+      <app-perfil-select
+        placeholder="— Seleccione Perfil —"
+        (perfilChange)="onPerfilSelect($event)"
+        (perfilObjChange)="selectedPerfil = $event">
+      </app-perfil-select>
     </div>
     <div class="filter-field" *ngIf="selectedPerfilId">
       <label>Buscar</label>
@@ -164,64 +211,151 @@
   No se encontraron documentos para "{{ search }}".
 </div>
 
-<!-- ── Tabla ───────────────────────────────────────────────── -->
+<!-- ── Tabla (desktop/tablet) + Cards (mobile) ─────────────── -->
 <div class="table-wrapper" *ngIf="selectedPerfilId && !loading && filtered.length > 0">
-  <table class="data-table doc-table">
-    <thead>
-      <tr>
-        <th>Cod Perfil</th>
-        <th>Tipo Documento</th>
-        <th>Tipo Doc SAP</th>
-        <th>Tipo Cálculo</th>
-        <th class="text-right">% IVA</th>
-        <th>IVA Cuenta</th>
-        <th class="text-right">% IT</th>
-        <th>IT Cuenta</th>
-        <th class="text-right">% IUE</th>
-        <th>IUE Cuenta</th>
-        <th class="text-right">% RCIVA</th>
-        <th>RC-IVA Cuenta</th>
-        <th>Cta. Exento</th>
-        <th class="text-right">Exento</th>
-        <th class="text-right">Tasa</th>
-        <th class="text-right">ICE</th>
-        <th class="actions"></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let d of paged">
-        <td class="text-center">{{ d.U_CodPerfil }}</td>
-        <td><strong>{{ d.U_TipDoc }}</strong></td>
-        <td class="text-center">{{ d.U_IdTipoDoc }}</td>
-        <td><span class="badge-calc" [class.grossing]="d.U_TipoCalc === 'G'">{{ tipoCalcLabel(d.U_TipoCalc) }}</span></td>
-        <td class="text-right num">{{ d.U_IVApercent | number:'1.2-2' }}</td>
-        <td class="col-mono">{{ d.U_IVAcuenta }}</td>
-        <td class="text-right num">{{ d.U_ITpercent | number:'1.2-2' }}</td>
-        <td class="col-mono">{{ d.U_ITcuenta }}</td>
-        <td class="text-right num">{{ d.U_IUEpercent | number:'1.2-2' }}</td>
-        <td class="col-mono">{{ d.U_IUEcuenta }}</td>
-        <td class="text-right num">{{ d.U_RCIVApercent | number:'1.2-2' }}</td>
-        <td class="col-mono">{{ d.U_RCIVAcuenta }}</td>
-        <td class="col-mono">{{ d.U_CTAEXENTO }}</td>
-        <td class="text-right num">{{ d.U_EXENTOpercent | number:'1.2-2' }}</td>
-        <td class="text-right num">{{ d.U_TASA | number:'1.2-2' }}</td>
-        <td class="text-right num">{{ d.U_ICE | number:'1.2-2' }}</td>
-        <td class="actions">
-          <button class="btn-action edit" title="Editar" (click)="openEdit(d)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="btn-action remove" title="Eliminar" (click)="confirmRemove(d)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+
+  <!-- Tabla — se oculta en mobile via CSS -->
+  <div class="table-scroll-outer hide-on-mobile">
+    <table class="data-table doc-table">
+      <thead>
+        <tr>
+          <th>Cód.</th>
+          <th>Tipo Documento</th>
+          <th class="col-hide-tablet">SAP</th>
+          <th class="col-hide-tablet">Cálculo</th>
+          <th class="tax-col">IVA</th>
+          <th class="tax-col col-hide-tablet">IT</th>
+          <th class="tax-col col-hide-tablet">IUE</th>
+          <th class="tax-col col-hide-tablet">RC-IVA</th>
+          <th class="tax-col col-hide-tablet">Exento</th>
+          <th class="tax-col col-hide-tablet">Tasa / ICE</th>
+          <th class="doc-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let d of paged">
+          <td class="text-center" data-label="Cód">{{ d.U_CodPerfil }}</td>
+          <td data-label="Tipo Doc."><strong>{{ d.U_TipDoc }}</strong></td>
+          <td class="col-hide-tablet" data-label="SAP"><span class="col-sap-label">{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</span></td>
+          <td class="col-hide-tablet" data-label="Cálculo">
+            <span class="badge-calc" [class.grossing-up]="isGrossingUp(d.U_TipoCalc)" [class.grossing-down]="isGrossingDown(d.U_TipoCalc)">{{ tipoCalcLabel(d.U_TipoCalc) }}</span>
+          </td>
+          <td class="tax-cell" data-label="IVA">
+            <span class="tax-pct">{{ fmtPct(d.U_IVApercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_IVApercent !== 0 && d.U_IVAcuenta">{{ d.U_IVAcuenta }}</span>
+          </td>
+          <td class="tax-cell col-hide-tablet" data-label="IT">
+            <span class="tax-pct">{{ fmtPct(d.U_ITpercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_ITpercent !== 0 && d.U_ITcuenta">{{ d.U_ITcuenta }}</span>
+          </td>
+          <td class="tax-cell col-hide-tablet" data-label="IUE">
+            <span class="tax-pct">{{ fmtPct(d.U_IUEpercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_IUEpercent !== 0 && d.U_IUEcuenta">{{ d.U_IUEcuenta }}</span>
+          </td>
+          <td class="tax-cell col-hide-tablet" data-label="RC-IVA">
+            <span class="tax-pct">{{ fmtPct(d.U_RCIVApercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_RCIVApercent !== 0 && d.U_RCIVAcuenta">{{ d.U_RCIVAcuenta }}</span>
+          </td>
+          <td class="tax-cell col-hide-tablet" data-label="Exento">
+            <span class="tax-pct">{{ fmtPct(d.U_EXENTOpercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_EXENTOpercent !== 0 && d.U_CTAEXENTO">{{ d.U_CTAEXENTO }}</span>
+          </td>
+          <td class="tax-cell tax-cell-dual col-hide-tablet" data-label="Tasa/ICE">
+            <span class="tax-dual-row">
+              <span class="tax-dual-label">Tasa</span>
+              <span class="tax-pct">{{ fmtPct(d.U_TASA) }}</span>
+            </span>
+            <span class="tax-dual-row">
+              <span class="tax-dual-label">ICE</span>
+              <span class="tax-pct">{{ fmtPct(d.U_ICE) }}</span>
+            </span>
+          </td>
+          <td class="doc-actions">
+            <button class="btn-action edit" title="Editar" (click)="openEdit(d)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="btn-action remove" title="Eliminar" (click)="confirmRemove(d)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Cards mobile — se muestra solo en mobile via CSS -->
+  <div class="doc-cards show-on-mobile">
+    <div class="doc-card" *ngFor="let d of paged">
+      <div class="doc-card-header">
+        <div class="doc-card-title">
+          <strong>{{ d.U_TipDoc }}</strong>
+          <span class="badge-calc" [class.grossing-up]="isGrossingUp(d.U_TipoCalc)" [class.grossing-down]="isGrossingDown(d.U_TipoCalc)">{{ tipoCalcLabel(d.U_TipoCalc) }}</span>
+        </div>
+        <div class="doc-card-meta">
+          <span class="doc-card-meta-item">Perfil <b>{{ d.U_CodPerfil }}</b></span>
+          <span class="doc-card-sep">·</span>
+          <span class="doc-card-meta-item">SAP <b>{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</b></span>
+        </div>
+      </div>
+
+      <div class="doc-card-taxes">
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">IVA</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_IVApercent) }}</span>
+          <span class="doc-card-tax-cta" *ngIf="d.U_IVApercent !== 0 && d.U_IVAcuenta">{{ d.U_IVAcuenta }}</span>
+        </div>
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">IT</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_ITpercent) }}</span>
+          <span class="doc-card-tax-cta" *ngIf="d.U_ITpercent !== 0 && d.U_ITcuenta">{{ d.U_ITcuenta }}</span>
+        </div>
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">IUE</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_IUEpercent) }}</span>
+          <span class="doc-card-tax-cta" *ngIf="d.U_IUEpercent !== 0 && d.U_IUEcuenta">{{ d.U_IUEcuenta }}</span>
+        </div>
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">RC-IVA</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_RCIVApercent) }}</span>
+          <span class="doc-card-tax-cta" *ngIf="d.U_RCIVApercent !== 0 && d.U_RCIVAcuenta">{{ d.U_RCIVAcuenta }}</span>
+        </div>
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">Exento</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_EXENTOpercent) }}</span>
+          <span class="doc-card-tax-cta" *ngIf="d.U_EXENTOpercent !== 0 && d.U_CTAEXENTO">{{ d.U_CTAEXENTO }}</span>
+        </div>
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">Tasa</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_TASA) }}</span>
+        </div>
+        <div class="doc-card-tax">
+          <span class="doc-card-tax-name">ICE</span>
+          <span class="doc-card-tax-pct">{{ fmtPct(d.U_ICE) }}</span>
+        </div>
+      </div>
+
+      <div class="doc-card-actions">
+        <button class="btn btn-ghost btn-sm" (click)="openEdit(d)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Editar
+        </button>
+        <button class="btn btn-danger-ghost btn-sm" (click)="confirmRemove(d)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <app-paginator
     [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"

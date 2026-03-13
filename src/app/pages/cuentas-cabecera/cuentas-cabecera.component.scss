@@ -1,3 +1,18 @@
+// ═══════════════════════════════════════════════════════════════
+// cuentas-cabecera.component.scss
+// Clases globales usadas (no se redefinen aquí):
+//   Modal    → .modal-backdrop, .modal-card, .modal-header,
+//              .modal-body, .modal-footer, .modal-close        (_modals.scss)
+//   Form     → .form-field, .label-muted, .required            (_forms.scss)
+//   Botones  → .btn, .btn-sm, .btn-primary, .btn-ghost,
+//              .btn-danger-soft                                  (_buttons.scss)
+//   Filtros  → .filter-bar, .filter-search, .filter-select,
+//              .filter-count, .search-input, .search-clear      (_lists.scss)
+//   Tabla    → .data-table, .table-wrapper, .actions,
+//              .empty-state, .text-center                       (_lists.scss)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Subtítulo de página ───────────────────────────────────────
 .page-subtitle {
   font-size:   0.85rem;
   color:       var(--color-primary);
@@ -5,60 +20,17 @@
   font-weight: 500;
 }
 
+// ── Modal — ancho específico para este formulario ─────────────
+// Extiende .modal-card de _modals.scss, solo sobreescribe el width
+// y desactiva overflow para que el dropdown de cuentas salga del modal
 .cabecera-modal {
-  background:     var(--bg-surface);
-  border:         1px solid var(--border-color);
-  border-radius:  var(--radius-lg);
-  width:          min(580px, 96vw);
-  display:        flex;
-  flex-direction: column;
-  overflow:       hidden;
-  box-shadow:     var(--shadow-modal);
-  animation:      _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+  width:    min(560px, 96vw);
+  overflow: visible;   // necesario para que el dropdown salga del modal-body
+
+  .modal-body { overflow: visible; }
 }
 
-@keyframes _modal-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-// ── Toggle Y/N — tokenizado para ambos modos ─────────────────
-.toggle-row {
-  display: flex;
-  gap:     8px;
-}
-
-.toggle-option {
-  display:       flex;
-  align-items:   center;
-  gap:           6px;
-  padding:       6px 16px;
-  border:        1px solid var(--border-color);
-  border-radius: var(--radius-md, 6px);
-  cursor:        pointer;
-  font-size:     0.9rem;
-  color:         var(--text-body);
-  background:    var(--bg-surface);
-  transition:    background 0.15s, border-color 0.15s, color 0.15s;
-
-  input[type="radio"] { display: none; }
-
-  &.active {
-    border-color: var(--color-primary);
-    background:   var(--color-primary-bg);
-    color:        var(--color-primary-text);
-    font-weight:  600;
-  }
-
-  &:hover:not(.active) {
-    border-color: var(--color-primary-border);
-    background:   var(--bg-subtle);
-  }
-}
-
-// ── Badge Cuenta Asociada — tokenizado para ambos modos ───────
-// "No" usa danger tokens — contraste OK en ambos modos
-// "Sí" usa status-closed (verde) tokens — contraste OK en ambos modos
+// ── Badge Cuenta Asociada ──────────────────────────────────────
 .badge-asociada {
   display:       inline-block;
   padding:       2px 10px;
@@ -76,77 +48,157 @@
   }
 }
 
-// ── Filtros ───────────────────────────────────────────────────
-.filter-bar {
-  display:       flex;
-  align-items:   flex-end;
-  gap:           16px;
-  flex-wrap:     wrap;
-  margin-bottom: 16px;
-  justify-content: space-between;
-}
-
-.filter-left {
-  display:     flex;
-  align-items: flex-end;
-  gap:         16px;
-  flex-wrap:   wrap;
-}
-
-.filter-field {
-  display:        flex;
-  flex-direction: column;
-  gap:            4px;
-
-  label {
-    font-size:      0.78rem;
-    font-weight:    600;
-    color:          var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-}
-
-.filter-select {
-  height:        38px;
-  min-width:     240px;
-  padding:       0 12px;
-  border:        1px solid var(--border-color);
-  border-radius: var(--radius-md, 6px);
-  // Token correcto: --text-body en lugar de --text-primary (no existe)
-  background:    var(--bg-surface);
-  color:         var(--text-body);
-  font-size:     0.9rem;
-  cursor:        pointer;
-  font-family:   inherit;
-
-  &:focus {
-    outline:      none;
-    border-color: var(--color-primary);
-    box-shadow:   var(--focus-ring);
-  }
-}
-
+// ── Columna código monoespaciado ───────────────────────────────
 .col-mono {
   font-family: var(--font-mono, monospace);
   font-size:   0.85rem;
 }
 
-.btn-remove {
-  display:         inline-flex;
-  align-items:     center;
-  justify-content: center;
-  width:           28px;
-  height:          28px;
-  border-radius:   50%;
-  border:          none;
-  background:      transparent;
-  color:           var(--color-danger);
-  cursor:          pointer;
-  transition:      background 0.15s, transform 0.1s;
-
-  &:hover  { background: var(--color-danger-soft); transform: scale(1.1); }
-  &:active { transform: scale(0.95); }
+// ── Account search widget (dentro del modal) ───────────────────
+.account-search-wrap {
+  position: relative;
 }
 
-.text-center { text-align: center; }
+// Contenedor del input — borde único, sin doble línea
+.account-search-input-row {
+  display:       flex;
+  align-items:   center;
+  gap:           0.4rem;
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-md, 6px);
+  padding:       0 0.6rem;
+  background:    var(--bg-surface);
+  transition:    border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow:   var(--focus-ring);
+  }
+
+  .search-icon {
+    font-size:   0.9rem;
+    opacity:     0.45;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  input.search-input {
+    flex:        1;
+    border:      none !important;
+    outline:     none !important;
+    box-shadow:  none !important;
+    background:  transparent !important;
+    padding:     0.5rem 0;
+    font-size:   0.875rem;
+    color:       var(--text-body);
+    font-family: inherit;
+    min-width:   0;
+  }
+
+  .search-clear {
+    border:      none;
+    background:  transparent;
+    color:       var(--text-muted);
+    cursor:      pointer;
+    padding:     0;
+    font-size:   0.9rem;
+    flex-shrink: 0;
+    line-height: 1;
+    &:hover { color: var(--color-danger); }
+  }
+}
+
+// Dropdown de resultados — sale por encima del modal-body overflow
+.account-dropdown {
+  position:      absolute;
+  top:           calc(100% + 3px);
+  left:          0;
+  right:         0;
+  z-index:       9999;
+  background:    var(--bg-surface);
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-md, 6px);
+  max-height:    220px;
+  overflow-y:    auto;
+  box-shadow:    0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.account-option {
+  display:     flex;
+  align-items: baseline;
+  gap:         0.75rem;
+  padding:     0.45rem 0.75rem;
+  cursor:      pointer;
+  transition:  background 0.1s;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child { border-bottom: none; }
+  &:hover      { background: var(--bg-subtle, rgba(0,0,0,.04)); }
+
+  .account-code {
+    font-family: var(--font-mono, monospace);
+    font-size:   0.78rem;
+    font-weight: 600;
+    color:       var(--color-primary);
+    flex-shrink: 0;
+    min-width:   90px;
+  }
+
+  .account-name {
+    font-size:     0.85rem;
+    color:         var(--text-body);
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Preview de la cuenta seleccionada
+.account-preview {
+  margin-top:    0.85rem;
+  border:        1px solid var(--color-primary);
+  border-radius: var(--radius-md, 6px);
+  background:    var(--color-primary-bg, rgba(59,130,246,.06));
+  padding:       0.65rem 1rem;
+}
+
+.preview-row {
+  display:     flex;
+  align-items: baseline;
+  gap:         1rem;
+  padding:     0.18rem 0;
+
+  .preview-label {
+    font-size:      0.72rem;
+    font-weight:    700;
+    color:          var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width:      110px;
+    flex-shrink:    0;
+  }
+
+  .preview-value {
+    font-size: 0.875rem;
+    color:     var(--text-body);
+
+    &.mono {
+      font-family: var(--font-mono, monospace);
+      font-size:   0.82rem;
+    }
+  }
+}
+
+.no-results-msg {
+  margin-top: 0.35rem;
+  font-size:  0.8rem;
+  color:      var(--text-muted);
+  font-style: italic;
+}
+
+.dim-loading {
+  padding:    2rem 1rem;
+  text-align: center;
+  color:      var(--text-muted);
+  font-size:  0.875rem;
+}

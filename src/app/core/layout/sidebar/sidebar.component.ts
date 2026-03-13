@@ -50,6 +50,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.searchQuery = value;
   }
 
+  clearSearch() {
+    this.searchQuery    = '';
+    this._searchCache   = '';
+    this._filteredItems = [];
+  }
+
   // Items de navegación para búsqueda
   navItems: { label: string; route: string; icon: string; section: string }[] = [
     { label: 'Dashboard',         route: '/dashboard',        icon: 'dashboard', section: 'General' },
@@ -133,11 +139,17 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private routerSub?: Subscription;
 
   ngOnInit() {
-    // Auto-cerrar sidebar al navegar (evita overlay permanente bloqueando scroll)
+    // Auto-cerrar sidebar y limpiar búsqueda al navegar
     this.routerSub = this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe(() => {
         if (this.mobileOpen) this.closeMobile();
+        // Limpiar el buscador para que isSearching vuelva a false
+        // y los componentes destino se rendericen correctamente
+        this.searchQuery     = '';
+        this._searchCache    = '';
+        this._filteredItems  = [];
+        this._groupedResults = {};
       });
   }
 

@@ -4,7 +4,7 @@ export interface Documento {
   U_TipDoc:        string;
   U_EXENTOpercent: number;
   U_IdTipoDoc:     number;
-  U_TipoCalc:      string;  // 'G' | 'N'
+  U_TipoCalc:      string | number;  // BD: 0 (GD) | 1 (GU) → se normaliza a 'N' | 'G' para el backend
   U_IVApercent:    number;
   U_IVAcuenta:     string;
   U_ITpercent:     number;
@@ -40,8 +40,23 @@ export interface CreateDocumentoPayload {
 
 export type UpdateDocumentoPayload = Partial<CreateDocumentoPayload>;
 
+// Tipos de documento SAP
+export const TIPO_DOC_SAP_OPTIONS = [
+  { value: 0,  label: 'SIN ASIGNAR' },
+  { value: 1,  label: 'COMPRA' },
+  { value: 2,  label: 'Boleto BSP' },
+  { value: 3,  label: 'Importación' },
+  { value: 4,  label: 'Recibo de alquiler' },
+  { value: 5,  label: 'Nota de débito proveedor' },
+  { value: 6,  label: 'Nota de crédito cliente' },
+  { value: 7,  label: 'VENTA' },
+  { value: 8,  label: 'Nota de débito cliente' },
+  { value: 9,  label: 'Nota de crédito proveedor' },
+  { value: 10, label: 'SIN ASIGNAR' },
+];
+
 // Tipos de cálculo
 export const TIPO_CALC_OPTIONS = [
-  { value: 'G', label: 'Grossing Up' },
-  { value: 'N', label: 'Normal' },
+  { value: '1', label: 'Grossing Up' },
+  { value: '0', label: 'Grossing Down' },
 ];

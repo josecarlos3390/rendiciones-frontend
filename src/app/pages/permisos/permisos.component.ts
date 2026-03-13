@@ -7,11 +7,12 @@ import { ToastService }    from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { Permiso, UsuarioSimple } from '../../models/permiso.model';
 import { Perfil } from '../../models/perfil.model';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
   selector: 'app-permisos',
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, AppSelectComponent],
   templateUrl: './permisos.component.html',
   styleUrls: ['./permisos.component.scss'],
 })
@@ -75,6 +76,23 @@ export class PermisosComponent implements OnInit {
     });
   }
 
+  get usuarioOptions(): SelectOption[] {
+    return this.usuarios.map(u => ({
+      value: u.U_IdU,
+      label: u.U_NomUser || u.U_Login,
+      hint:  u.U_Login,
+      icon:  '👤',
+    }));
+  }
+
+  get perfilDisponiblesOptions(): SelectOption[] {
+    return this.perfilesDisponibles.map(p => ({
+      value: p.U_CodPerfil,
+      label: p.U_NombrePerfil,
+      icon:  '🏷️',
+    }));
+  }
+
   onUsuarioChange(event: Event) {
     const val = (event.target as HTMLSelectElement).value;
     this.selectedUsuarioId = val ? Number(val) : null;
@@ -82,9 +100,19 @@ export class PermisosComponent implements OnInit {
     this.loadPermisos();
   }
 
+  onUsuarioSelect(value: number | null) {
+    this.selectedUsuarioId = value;
+    this.selectedPerfilId  = null;
+    this.loadPermisos();
+  }
+
   onPerfilChange(event: Event) {
     const val = (event.target as HTMLSelectElement).value;
     this.selectedPerfilId = val ? Number(val) : null;
+  }
+
+  onPerfilSelect(value: number | null) {
+    this.selectedPerfilId = value;
   }
 
   loadPermisos() {

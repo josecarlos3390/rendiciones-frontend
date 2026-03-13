@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -6,28 +6,33 @@ import { DocumentosService } from './documentos.service';
 import { ToastService }      from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
-import { Documento, TIPO_CALC_OPTIONS } from '../../models/documento.model';
+import { Documento, TIPO_CALC_OPTIONS, TIPO_DOC_SAP_OPTIONS } from '../../models/documento.model';
 import { Perfil } from '../../models/perfil.model';
+import { AppSelectComponent } from '../../shared/app-select/app-select.component';
+import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
+import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search.component';
+import { ChartOfAccount }         from '../../services/sap.service';
 
 @Component({
   standalone: true,
   selector: 'app-documentos',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent],
   templateUrl: './documentos.component.html',
   styleUrls: ['./documentos.component.scss'],
 })
 export class DocumentosComponent implements OnInit {
 
   // ── Datos ────────────────────────────────────────────────
-  perfiles:   Perfil[]     = [];
   documentos: Documento[]  = [];
   filtered:   Documento[]  = [];
   paged:      Documento[]  = [];
 
-  readonly tipoCalcOptions = TIPO_CALC_OPTIONS;
+  readonly tipoCalcOptions    = TIPO_CALC_OPTIONS;
+  readonly tipoDocSapOptions  = TIPO_DOC_SAP_OPTIONS;
 
   // ── Filtros ──────────────────────────────────────────────
   selectedPerfilId: number | null = null;
+  selectedPerfil:   Perfil | null = null;
   search  = '';
   loading = false;
 
@@ -52,18 +57,14 @@ export class DocumentosComponent implements OnInit {
     private toast:   ToastService,
     private fb:      FormBuilder,
     private cdr:     ChangeDetectorRef,
+    private zone:    NgZone,
   ) {}
 
   ngOnInit() {
     this.buildForm();
-    this.loadPerfiles();
   }
 
   get isEditing() { return this.editingId !== null; }
-  get selectedPerfil(): Perfil | null {
-    return this.perfiles.find(p => p.U_CodPerfil === this.selectedPerfilId) ?? null;
-  }
-
   // ── Form ─────────────────────────────────────────────────
 
   private buildForm() {
@@ -88,16 +89,8 @@ export class DocumentosComponent implements OnInit {
 
   // ── Carga ─────────────────────────────────────────────────
 
-  loadPerfiles() {
-    this.service.getPerfiles().subscribe({
-      next: (data) => { this.perfiles = [...data]; this.cdr.detectChanges(); },
-      error: (err: any) => this.toast.error(err?.error?.message || 'Error al cargar perfiles'),
-    });
-  }
-
-  onPerfilChange(event: Event) {
-    const val = (event.target as HTMLSelectElement).value;
-    this.selectedPerfilId = val ? Number(val) : null;
+  onPerfilSelect(value: number | null) {
+    this.selectedPerfilId = value;
     this.loadDocumentos();
   }
 
@@ -109,12 +102,14 @@ export class DocumentosComponent implements OnInit {
     this.loading = true;
     this.service.getByPerfil(this.selectedPerfilId).subscribe({
       next: (data) => {
-        this.documentos = data;
-        this.applyFilter();
-        this.loading = false;
-        this.cdr.detectChanges();
+        this.zone.run(() => {
+          this.documentos = data;
+          this.loading = false;
+          this.applyFilter();
+          this.cdr.detectChanges();
+        });
       },
-      error: () => { this.loading = false; },
+      error: () => { this.zone.run(() => { this.loading = false; this.cdr.detectChanges(); }); },
     });
   }
 
@@ -143,7 +138,7 @@ export class DocumentosComponent implements OnInit {
   openCreate() {
     if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
     this.editingId = null;
-    this.form.reset({ tipDoc: '', idTipoDoc: 0, tipoCalc: 'G',
+    this.form.reset({ tipDoc: '', idTipoDoc: 0, tipoCalc: '1',
       ivaPercent: 0, ivaCuenta: '', itPercent: 0, itCuenta: '',
       iuePercent: 0, iueCuenta: '', rcivaPercent: 0, rcivaCuenta: '',
       exentoPercent: 0, ctaExento: '', tasa: 0, ice: 0 });
@@ -155,7 +150,7 @@ export class DocumentosComponent implements OnInit {
     this.form.patchValue({
       tipDoc:        doc.U_TipDoc,
       idTipoDoc:     doc.U_IdTipoDoc,
-      tipoCalc:      doc.U_TipoCalc,
+      tipoCalc:      (doc.U_TipoCalc == 1 || doc.U_TipoCalc === '1' || doc.U_TipoCalc === 'G') ? '1' : '0',
       ivaPercent:    doc.U_IVApercent   ?? 0,
       ivaCuenta:     doc.U_IVAcuenta    ?? '',
       itPercent:     doc.U_ITpercent    ?? 0,
@@ -171,6 +166,9 @@ export class DocumentosComponent implements OnInit {
     });
     this.showForm = true;
   }
+
+  @HostListener('document:keydown.escape')
+  onEscape() { if (this.showForm) this.closeForm(); }
 
   closeForm() { this.showForm = false; this.editingId = null; this.form.reset(); }
 
@@ -248,7 +246,36 @@ export class DocumentosComponent implements OnInit {
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 
-  tipoCalcLabel(val: string) {
-    return this.tipoCalcOptions.find(o => o.value === val)?.label ?? val;
+  /**
+   * Handler genérico para los selectores de cuenta.
+   * Asigna el formatCode al campo correspondiente del formulario.
+   */
+  onCuentaChange(field: string, account: ChartOfAccount | null) {
+    this.form.get(field)?.setValue(account?.formatCode ?? '');
+  }
+
+  tipoDocSapLabel(val: number) {
+    return this.tipoDocSapOptions.find(o => o.value === Number(val))?.label ?? String(val);
+  }
+
+  tipoCalcLabel(val: string | number) {
+    return (val == 1 || val === '1' || val === 'G') ? 'GU' : 'GD';
+  }
+
+  isGrossingUp(val: string | number)   { return val == 1 || val === '1' || val === 'G'; }
+  isGrossingDown(val: string | number) { return val == 0 || val === '0' || val === 'N' || val === 'D'; }
+
+  /**
+   * Formatea un porcentaje para la tabla:
+   *  - 0      → '—'
+   *  - entero → '13%'
+   *  - decimal → '3.50%'
+   */
+  fmtPct(val: number | string | null | undefined): string {
+    if (val === null || val === undefined || val === '') return '—';
+    const n = Number(val);
+    if (isNaN(n) || n === 0) return '—';
+    const decimals = n % 1 === 0 ? 0 : 2;
+    return n.toFixed(decimals) + '%';
   }
 }

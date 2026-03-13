@@ -15,7 +15,7 @@
 
 <!-- ── Modal agregar cuenta ──────────────────────────────────── -->
 <div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
-  <div class="cuenta-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+  <div class="modal-card cuenta-lista-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
 
     <div class="modal-header">
       <h3>Agregar Cuenta — {{ selectedPerfil?.U_NombrePerfil }}</h3>
@@ -72,26 +72,17 @@
 
 <!-- ── Filtros ────────────────────────────────────────────────── -->
 <div class="filter-bar">
-  <div class="filter-left">
-    <div class="filter-field">
-      <label>Seleccione Perfil</label>
-      <select class="filter-select" (change)="onPerfilChange($event)">
-        <option value="">— Seleccione —</option>
-        <option *ngFor="let p of perfiles" [value]="p.U_CodPerfil">
-          {{ p.U_NombrePerfil }}
-        </option>
-      </select>
-    </div>
+  <app-perfil-select
+    placeholder="— Seleccione Perfil —"
+    (perfilChange)="onPerfilChange($event)"
+    (perfilObjChange)="selectedPerfil = $event">
+  </app-perfil-select>
 
-    <div class="filter-field" *ngIf="selectedPerfilId">
-      <label>Buscar cuenta</label>
-      <div class="filter-search">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="search-input" placeholder="Código o nombre..."
-          [(ngModel)]="search" (input)="applyFilter()" />
-        <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
-      </div>
-    </div>
+  <div class="filter-search" *ngIf="selectedPerfilId">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" placeholder="Buscar por código o nombre..."
+      [(ngModel)]="search" (input)="applyFilter()" />
+    <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
   </div>
 
   <span class="filter-count" *ngIf="selectedPerfilId && !loading">
@@ -104,7 +95,7 @@
   Seleccione un perfil para ver su lista de cuentas.
 </div>
 <div *ngIf="selectedPerfilId && loading" class="empty-state">
-  Cargando cuentas...
+  <span class="loading-spinner">⏳</span> Cargando cuentas...
 </div>
 <div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && !search" class="empty-state">
   No hay cuentas registradas en este perfil.
@@ -123,23 +114,17 @@
         <th>Código SYS</th>
         <th>Código Cuenta</th>
         <th>Nombre Cuenta</th>
-        <th class="actions">Eliminar</th>
+        <th class="actions"></th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let c of paged">
-        <td class="text-center">{{ c.U_IdPerfil }}</td>
-        <td class="col-mono">{{ c.U_CuentaSys }}</td>
-        <td class="col-mono">{{ c.U_Cuenta }}</td>
-        <td>{{ c.U_NombreCuenta }}</td>
+        <td class="text-center" data-label="Cod. Perfil">{{ c.U_IdPerfil }}</td>
+        <td class="col-mono" data-label="Código SYS">{{ c.U_CuentaSys }}</td>
+        <td class="col-mono" data-label="Código Cuenta">{{ c.U_Cuenta }}</td>
+        <td data-label="Nombre Cuenta">{{ c.U_NombreCuenta }}</td>
         <td class="actions">
-          <button class="btn-remove" title="Eliminar cuenta" (click)="confirmRemove(c)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-          </button>
+          <button class="btn btn-sm btn-danger-soft" (click)="confirmRemove(c)">Eliminar</button>
         </td>
       </tr>
     </tbody>

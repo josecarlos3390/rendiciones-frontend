@@ -1,31 +1,46 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 
 import { CuentasCabeceraService } from './cuentas-cabecera.service';
 import { ToastService }           from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent }     from '../../shared/paginator/paginator.component';
+import { PerfilSelectComponent }  from '../../shared/perfil-select/perfil-select.component';
+import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search.component';
 import { CuentaCabecera }         from '../../models/cuenta-cabecera.model';
 import { Perfil }                 from '../../models/perfil.model';
+import { ChartOfAccount }         from '../../services/sap.service';
 
 @Component({
   standalone: true,
   selector: 'app-cuentas-cabecera',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ConfirmDialogComponent,
+    PaginatorComponent,
+    PerfilSelectComponent,
+    CuentaSearchComponent,
+  ],
   templateUrl: './cuentas-cabecera.component.html',
   styleUrls: ['./cuentas-cabecera.component.scss'],
 })
 export class CuentasCabeceraComponent implements OnInit {
 
   // ── Datos ────────────────────────────────────────────────
-  perfiles:  Perfil[]          = [];
-  cuentas:   CuentaCabecera[]  = [];
-  filtered:  CuentaCabecera[]  = [];
-  paged:     CuentaCabecera[]  = [];
+  cuentas:  CuentaCabecera[] = [];
+  filtered: CuentaCabecera[] = [];
+  paged:    CuentaCabecera[] = [];
+
+  // ── Cuenta seleccionada en el modal ──────────────────────
+  selectedAccount: ChartOfAccount | null = null;
+
+  // ── Perfil seleccionado ───────────────────────────────────
+  selectedPerfilId: number | null = null;
+  selectedPerfil:   Perfil | null = null;   // asignable desde el template via (perfilObjChange)
 
   // ── Filtros ──────────────────────────────────────────────
-  selectedPerfilId: number | null = null;
   search  = '';
   loading = false;
 
@@ -34,10 +49,9 @@ export class CuentasCabeceraComponent implements OnInit {
   limit      = 5;
   totalPages = 1;
 
-  // ── Formulario ───────────────────────────────────────────
+  // ── Modal ────────────────────────────────────────────────
   showForm = false;
   isSaving = false;
-  form!: FormGroup;
 
   // ── Confirm dialog ───────────────────────────────────────
   showDialog    = false;
@@ -47,51 +61,27 @@ export class CuentasCabeceraComponent implements OnInit {
   constructor(
     private service: CuentasCabeceraService,
     private toast:   ToastService,
-    private fb:      FormBuilder,
     private cdr:     ChangeDetectorRef,
+    private zone:    NgZone,
   ) {}
 
-  ngOnInit() {
-    this.buildForm();
-    this.loadPerfiles();
-  }
+  ngOnInit() {}
 
-  get selectedPerfil(): Perfil | null {
-    return this.perfiles.find(p => p.U_CodPerfil === this.selectedPerfilId) ?? null;
-  }
+  // ── Callbacks de los componentes shared ──────────────────
 
-  // ── Form ─────────────────────────────────────────────────
-
-  private buildForm() {
-    this.form = this.fb.group({
-      cuentaSys:        ['', [Validators.required, Validators.maxLength(50)]],
-      cuentaFormatCode: ['', [Validators.required, Validators.maxLength(50)]],
-      cuentaNombre:     ['', [Validators.required, Validators.maxLength(150)]],
-      cuentaAsociada:   ['N', Validators.required],
-    });
-  }
-
-  // ── Carga de datos ────────────────────────────────────────
-
-  loadPerfiles() {
-    this.service.getPerfiles().subscribe({
-      next: (data) => {
-        this.perfiles = [...data];
-        this.cdr.detectChanges();
-      },
-      error: (err: any) => {
-        if (err?.status === 409 || err?.status === 422) {
-          this.toast.error(err?.error?.message || 'Error al cargar perfiles');
-        }
-      },
-    });
-  }
-
-  onPerfilChange(event: Event) {
-    const val = (event.target as HTMLSelectElement).value;
-    this.selectedPerfilId = val ? Number(val) : null;
+  /** Recibe el id del perfil desde <app-perfil-select> */
+  onPerfilChange(id: number | null) {
+    this.selectedPerfilId = id;
     this.loadCuentas();
   }
+
+  /** Recibe la cuenta seleccionada desde <app-cuenta-search> */
+  onAccountChange(account: ChartOfAccount | null) {
+    this.selectedAccount = account;
+    this.cdr.detectChanges();
+  }
+
+  // ── Carga de cuentas ─────────────────────────────────────
 
   loadCuentas() {
     if (!this.selectedPerfilId) {
@@ -101,16 +91,18 @@ export class CuentasCabeceraComponent implements OnInit {
     this.loading = true;
     this.service.getByPerfil(this.selectedPerfilId).subscribe({
       next: (data) => {
-        this.cuentas = data;
-        this.applyFilter();
-        this.loading = false;
-        this.cdr.detectChanges();
+        this.zone.run(() => {
+          this.cuentas = data;
+          this.loading = false;
+          this.applyFilter();
+          this.cdr.detectChanges();
+        });
       },
       error: () => { this.loading = false; },
     });
   }
 
-  // ── Filtro y paginación ───────────────────────────────────
+  // ── Filtro tabla ─────────────────────────────────────────
 
   applyFilter() {
     const q = this.search.toLowerCase();
@@ -123,7 +115,6 @@ export class CuentasCabeceraComponent implements OnInit {
     this.updatePaging();
   }
 
-
   updatePaging() {
     this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
     const start = (this.page - 1) * this.limit;
@@ -133,27 +124,30 @@ export class CuentasCabeceraComponent implements OnInit {
   onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
 
-  // ── Agregar ───────────────────────────────────────────────
+  // ── Modal ────────────────────────────────────────────────
 
   openForm() {
     if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
-    this.form.reset({ cuentaSys: '', cuentaFormatCode: '', cuentaNombre: '', cuentaAsociada: 'N' });
-    this.showForm = true;
+    this.selectedAccount = null;
+    this.showForm        = true;
   }
 
-  closeForm() { this.showForm = false; this.form.reset(); }
+  closeForm() {
+    this.showForm        = false;
+    this.selectedAccount = null;
+  }
 
   save() {
-    if (this.form.invalid || this.isSaving || !this.selectedPerfilId) return;
+    if (!this.selectedAccount || this.isSaving || !this.selectedPerfilId) return;
     this.isSaving = true;
-    const raw = this.form.getRawValue();
+    const a = this.selectedAccount;
 
     this.service.create({
       idPerfil:         this.selectedPerfilId,
-      cuentaSys:        raw.cuentaSys.trim(),
-      cuentaFormatCode: raw.cuentaFormatCode.trim(),
-      cuentaNombre:     raw.cuentaNombre.trim(),
-      cuentaAsociada:   raw.cuentaAsociada,
+      cuentaSys:        a.code,
+      cuentaFormatCode: a.formatCode,
+      cuentaNombre:     a.name,
+      cuentaAsociada:   a.lockManual === 'tYES' ? 'Y' : 'N',
     }).subscribe({
       next: () => {
         this.isSaving = false;

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -8,13 +8,14 @@ import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import {
   Perfil, CreatePerfilPayload,
-  MONEDA_OPTIONS, CARACTERISTICA_OPTIONS, LINEAS_OPTIONS,
+  MONEDA_OPTIONS, PRO_CAR_OPTIONS, CUE_CAR_OPTIONS, EMP_CAR_OPTIONS,
 } from '../../models/perfil.model';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
   selector: 'app-perfiles',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './perfiles.component.html',
   styleUrls: ['./perfiles.component.scss'],
 })
@@ -44,13 +45,20 @@ export class PerfilesComponent implements OnInit {
 
   // Opciones para selects
   readonly monedaOptions        = MONEDA_OPTIONS;
-  readonly caracteristicaOptions = CARACTERISTICA_OPTIONS;
-  readonly lineasOptions         = LINEAS_OPTIONS;
+  readonly proCarOptions = PRO_CAR_OPTIONS;
+  readonly cueCarOptions = CUE_CAR_OPTIONS;
+  readonly empCarOptions = EMP_CAR_OPTIONS;
+
+  readonly siNoOptions: SelectOption[] = [
+    { value: 0, label: 'NO', icon: '✗' },
+    { value: 1, label: 'SÍ', icon: '✓' },
+  ];
 
   constructor(
     private perfilesService: PerfilesService,
     private toast:           ToastService,
     private fb:              FormBuilder,
+    private cdr:             ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -61,7 +69,10 @@ export class PerfilesComponent implements OnInit {
   // ── Helpers ──────────────────────────────────────────────
 
   get isDirty(): boolean {
-    return true;
+    if (!this.editingPerfil) return true;
+    if (!this.initialValues) return false;
+    const curr = this.form.getRawValue();
+    return JSON.stringify(curr) !== JSON.stringify(this.initialValues);
   }
 
   monedaLabel(val: string): string {
@@ -81,12 +92,8 @@ export class PerfilesComponent implements OnInit {
       cueTexto:       ['', Validators.maxLength(30)],
       empCar:         ['EMPIEZA'],
       empTexto:       ['', Validators.maxLength(10)],
-      controlPartida: [0],
-      cntLineas:      [5, [Validators.required, Validators.min(1)]],
       bolivianos:     [0],
       sucursal:       [0],
-      rep1:           ['', Validators.maxLength(50)],
-      rep2:           ['', Validators.maxLength(50)],
     });
   }
 
@@ -98,8 +105,9 @@ export class PerfilesComponent implements OnInit {
     this.perfilesService.getAll().subscribe({
       next: (data) => {
         this.perfiles = data;
+        this.loading  = false;
         this.applyFilter();
-        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading   = false;
@@ -137,8 +145,7 @@ export class PerfilesComponent implements OnInit {
       proCar: 'TODOS', proTexto: '',
       cueCar: 'TODOS', cueTexto: '',
       empCar: 'EMPIEZA', empTexto: '',
-      controlPartida: 0, cntLineas: 5,
-      bolivianos: 0, sucursal: 0, rep1: '', rep2: '',
+      bolivianos: 0, sucursal: 0,
     });
     this.showForm = true;
   }
@@ -153,14 +160,10 @@ export class PerfilesComponent implements OnInit {
       proTexto:       p.U_PRO_Texto      ?? '',
       cueCar:         p.U_CUE_CAR        ?? 'TODOS',
       cueTexto:       p.U_CUE_Texto      ?? '',
-      empCar:         p.U_EMP_CAR        ?? 'TODOS',
+      empCar:         p.U_EMP_CAR        ?? 'EMPIEZA',
       empTexto:       p.U_EMP_TEXTO      ?? '',
-      controlPartida: p.U_ControlPartida ?? 0,
-      cntLineas:      p.U_CntLineas      ?? 5,
       bolivianos:     p.U_Bolivianos     ?? 0,
       sucursal:       p.U_SUCURSAL       ?? 0,
-      rep1:           p.U_REP1           ?? '',
-      rep2:           p.U_REP2           ?? '',
     });
     this.initialValues = this.form.getRawValue();
     this.showForm = true;
@@ -188,12 +191,8 @@ export class PerfilesComponent implements OnInit {
       cueTexto:       raw.cueTexto ?? '',
       empCar:         raw.empCar,
       empTexto:       raw.empTexto ?? '',
-      controlPartida: Number(raw.controlPartida),
-      cntLineas:      Number(raw.cntLineas),
       bolivianos:     Number(raw.bolivianos),
       sucursal:       Number(raw.sucursal),
-      rep1:           raw.rep1 ?? '',
-      rep2:           raw.rep2 ?? '',
     };
 
     if (this.editingPerfil) {

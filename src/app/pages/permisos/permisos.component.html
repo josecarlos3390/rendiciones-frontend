@@ -15,22 +15,28 @@
 
   <div class="toolbar-field">
     <label>Seleccione Usuario</label>
-    <select class="toolbar-select" (change)="onUsuarioChange($event)">
-      <option value="">— Seleccione —</option>
-      <option *ngFor="let u of usuarios" [value]="u.U_IdU">
-        {{ u.U_NomUser || u.U_Login }}
-      </option>
-    </select>
+    <app-select
+      label="Usuario"
+      placeholder="— Seleccione —"
+      icon="👤"
+      [options]="usuarioOptions"
+      [value]="selectedUsuarioId"
+      [clearable]="false"
+      (valueChange)="onUsuarioSelect($event)">
+    </app-select>
   </div>
 
   <div class="toolbar-field" *ngIf="selectedUsuarioId">
     <label>Seleccione Perfil</label>
-    <select class="toolbar-select" (change)="onPerfilChange($event)" [value]="selectedPerfilId ?? ''">
-      <option value="">— Seleccione —</option>
-      <option *ngFor="let p of perfilesDisponibles" [value]="p.U_CodPerfil">
-        {{ p.U_NombrePerfil }}
-      </option>
-    </select>
+    <app-select
+      label="Perfil"
+      placeholder="— Seleccione —"
+      icon="🏷️"
+      [options]="perfilDisponiblesOptions"
+      [value]="selectedPerfilId"
+      [clearable]="false"
+      (valueChange)="onPerfilSelect($event)">
+    </app-select>
   </div>
 
   <button class="btn btn-primary"
@@ -74,8 +80,8 @@
     </thead>
     <tbody>
       <tr *ngFor="let p of permisos">
-        <td class="text-center">{{ p.U_IDPERFIL }}</td>
-        <td>{{ p.U_NOMBREPERFIL }}</td>
+        <td class="text-center" data-label="Código Perfil">{{ p.U_IDPERFIL }}</td>
+        <td data-label="Nombre del Perfil">{{ p.U_NOMBREPERFIL }}</td>
         <td class="actions">
           <button class="btn-remove" title="Quitar permiso" (click)="confirmRemove(p)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

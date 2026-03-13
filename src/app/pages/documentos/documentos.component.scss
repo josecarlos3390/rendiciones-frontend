@@ -2,18 +2,25 @@
   font-size: 0.85rem; color: var(--color-primary); margin: -8px 0 16px; font-weight: 500;
 }
 
-// ── Modal grande ─────────────────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────
 .doc-modal {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  width: min(860px, 96vw);
-  max-height: 90vh;
+  width: min(960px, 96vw);
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow: var(--shadow-modal);
   animation: _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+
+  // Mobile: full height sheet desde abajo
+  @media (max-width: 480px) {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
 }
 
 @keyframes _modal-in {
@@ -21,10 +28,27 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.modal-body { overflow-y: auto; }
+// El <form> envuelve modal-body + modal-footer; debe ser flex para que el footer no se pierda
+form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 
-// ── Separador de sección del formulario ──────────────────────
-// Usa tokens tokenizados: color-primary ya responde al tema en dark mode
+.modal-body {
+  flex: 1;           // ocupa todo el espacio disponible entre header y footer
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;  // scroll suave en iOS
+  overscroll-behavior: contain;       // evita que el scroll se propague al backdrop
+  padding: 20px;
+
+  @media (max-width: 480px) {
+    padding: 16px;
+  }}
+
+// ── Separador de sección ──────────────────────────────────────
 .section-divider {
   font-size: 0.72rem;
   font-weight: 700;
@@ -33,7 +57,7 @@
   color: var(--color-primary);
   border-bottom: 1px solid var(--color-primary-border);
   padding-bottom: 4px;
-  margin: 16px 0 10px;
+  margin: 16px 0 12px;
 }
 
 .form-row {
@@ -51,6 +75,53 @@
   display: block;
 }
 
+// ── Grid de impuestos — cards agrupadas ───────────────────────
+// 3 por fila en desktop, 2 en tablet, 1 en mobile
+.tax-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tax-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-faint);
+}
+
+.tax-card-header {
+  padding: 6px 10px;
+  background: var(--color-primary-bg);
+  border-bottom: 1px solid var(--color-primary-border);
+}
+
+.tax-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-primary-text);
+}
+
+.tax-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.tax-pct-field { /* % field — más angosto */ }
+.tax-cta-field { /* Cuenta field — más ancho */ }
+
 // ── Filtros ───────────────────────────────────────────────────
 .filter-bar {
   display: flex; align-items: flex-end; gap: 16px;
@@ -59,52 +130,315 @@
 .filter-left { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .filter-field {
   display: flex; flex-direction: column; gap: 4px;
+  min-width: 240px;
   label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-}
-.filter-select {
-  height: 38px; min-width: 240px; padding: 0 12px;
-  border: 1px solid var(--border-color); border-radius: var(--radius-md, 6px);
-  // Token correcto: --text-body en lugar de --text-primary (no existe)
-  background: var(--bg-surface); color: var(--text-body); font-size: 0.9rem;
-  cursor: pointer; font-family: inherit;
-  &:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
 }
 
 // ── Tabla ─────────────────────────────────────────────────────
-.doc-table {
-  font-size: 0.82rem;
-  th, td { padding: 8px 10px; white-space: nowrap; }
+.table-scroll-outer {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+
+  &::-webkit-scrollbar { height: 5px; }
+  &::-webkit-scrollbar-track { background: var(--bg-subtle); border-radius: 0 0 var(--radius-md) var(--radius-md); }
+  &::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 }
 
-.col-mono { font-family: var(--font-mono, monospace); font-size: 0.8rem; }
-.num      { font-variant-numeric: tabular-nums; }
-.text-right  { text-align: right; }
-.text-center { text-align: center; }
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
 
-// ── Badge tipo cálculo — tokenizado para ambos modos ─────────
-// Normal: usa tokens status-closed (verde) — contraste OK en ambos modos
-// Grossing: usa tokens color-primary — contraste OK en ambos modos
-.badge-calc {
-  display: inline-block; padding: 2px 8px; border-radius: 999px;
-  font-size: 0.74rem; font-weight: 700;
-  background: var(--status-closed-bg);
-  color:      var(--status-closed-color);
-  border:     1px solid var(--status-closed-border);
+  th, td { padding: 8px 6px; white-space: nowrap; }
 
-  &.grossing {
-    background: var(--color-primary-bg);
-    color:      var(--color-primary-text);
-    border:     1px solid var(--color-primary-border);
+  thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-faint);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  tbody td {
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-body);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg-faint); }
+}
+
+// ── Columna combinada: % + Cuenta ─────────────────────────────
+.tax-col {
+  min-width: 90px;
+}
+
+.tax-cell {
+  vertical-align: middle;
+
+  // Stack: porcentaje arriba, cuenta debajo en gris mono
+  display: table-cell; // mantener como celda
+
+  .tax-pct {
+    display: block;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text-heading);
+    font-size: 0.82rem;
+  }
+
+  .tax-cta {
+    display: block;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 1px;
   }
 }
 
-// ── Botones acción ────────────────────────────────────────────
+// Celda dual (Tasa + ICE) — dos filas de fila+valor
+.tax-cell-dual {
+  .tax-dual-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1.5;
+  }
+  .tax-dual-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    min-width: 32px;
+  }
+}
+
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+
+// ── Badge tipo cálculo ─────────────────────────────────────────
+.badge-calc {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 0.74rem; font-weight: 700;
+  background: var(--bg-subtle);
+  color:      var(--text-muted);
+  border:     1px solid var(--border-color);
+
+  &.grossing-up {
+    background: var(--status-closed-bg);
+    color:      var(--status-closed-color);
+    border:     1px solid var(--status-closed-border);
+  }
+
+  &.grossing-down {
+    background: var(--color-danger-soft, rgba(239,68,68,0.1));
+    color:      var(--color-danger);
+    border:     1px solid var(--color-danger-border, rgba(239,68,68,0.3));
+  }
+}
+
+// ── Botones acción (tabla) ─────────────────────────────────────
 .btn-action {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 50%;
   border: none; background: transparent; cursor: pointer;
   transition: background 0.15s, transform 0.1s;
   &:active { transform: scale(0.9); }
-  &.edit   { color: var(--color-primary);     &:hover { background: var(--color-primary-bg); } }
-  &.remove { color: var(--color-danger);      &:hover { background: var(--color-danger-soft); } }
+  &.edit   { color: var(--color-primary);  &:hover { background: var(--color-primary-bg); } }
+  &.remove { color: var(--color-danger);   &:hover { background: var(--color-danger-soft); } }
+}
+
+// ── Responsive toggle: tabla vs cards ─────────────────────────
+.hide-on-mobile  { display: block; }
+.show-on-mobile  { display: none !important; }
+
+// ── Cards mobile ──────────────────────────────────────────────
+.doc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doc-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.doc-card-header {
+  margin-bottom: 10px;
+}
+
+.doc-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  strong {
+    font-size: 0.95rem;
+    color: var(--text-heading);
+  }
+}
+
+.doc-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.doc-card-meta-item b { color: var(--text-body); }
+.doc-card-sep { color: var(--text-faint); }
+
+// Taxes list en cards
+.doc-card-taxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  background: var(--bg-faint);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.doc-card-tax {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-card-tax-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-primary);
+  min-width: 52px;
+}
+
+.doc-card-tax-pct {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--text-heading);
+  min-width: 52px;
+}
+
+.doc-card-tax-cta {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.doc-card-actions {
+  display: flex;
+  gap: 8px;
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, color 0.15s;
+
+    &.btn-ghost {
+      border-color: var(--border-color);
+      background: transparent;
+      color: var(--text-body);
+      &:hover { background: var(--bg-faint); }
+    }
+
+    &.btn-danger-ghost {
+      border-color: var(--color-danger-border, #fca5a5);
+      background: transparent;
+      color: var(--color-danger);
+      &:hover { background: var(--color-danger-soft); }
+    }
+  }
+}
+
+// ── Breakpoints ───────────────────────────────────────────────
+@media (max-width: 640px) {
+  .hide-on-mobile { display: none !important; }
+  .show-on-mobile { display: flex !important; }
+  .col-hide-mobile { display: none !important; }
+}
+
+@media (max-width: 768px) {
+  .col-hide-tablet { display: none !important; }
+
+  // Form rows también se adaptan
+  .form-row.three-col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-row.three-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ── Selector de cuenta dentro de tax-card ─────────────────────
+// El trigger del app-cuenta-search hereda el ancho del contenedor
+.tax-cta-field app-cuenta-search {
+  display: block;
+  width: 100%;
+}
+
+// Lo sobreescribimos para que funcione como celda de tabla
+.doc-table td.actions {
+  display: table-cell;
+  white-space: nowrap;
+  text-align: right;
+  vertical-align: middle;
+  width: 64px;
+  padding: 4px 8px;
+}
+
+// El global _lists.scss pone display:flex en .actions
+// que colapsa los <td> de tabla. Forzamos con !important.
+.doc-table {
+  td.actions {
+    display: table-cell !important;
+    white-space: nowrap;
+    text-align: right;
+    vertical-align: middle;
+    width: 70px;
+    padding: 4px 10px;
+  }
+}
+
+// ── Celda de acciones (tabla) — clase propia para evitar conflicto con global ──
+th.doc-actions,
+td.doc-actions {
+  width: 70px;
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 4px 10px;
+}
+
+// ── Columna SAP — descripción más pequeña ─────────────────────
+.col-sap-label {
+  font-size: 13px;
+  color: var(--text-muted);
 }

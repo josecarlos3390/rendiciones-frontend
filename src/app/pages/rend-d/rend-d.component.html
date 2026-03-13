@@ -116,12 +116,15 @@
 
           <div class="form-field" [class.field-changed]="fieldChanged('tipoDoc')">
             <label>Tipo Documento <span class="required">*</span></label>
-            <select formControlName="tipoDoc">
-              <option value="FACTURA">Factura</option>
-              <option value="RECIBO">Recibo</option>
-              <option value="NOTA">Nota</option>
-              <option value="OTRO">Otro</option>
-            </select>
+            <app-select
+              label="Tipo Documento"
+              [required]="true"
+              [searchable]="false"
+              [options]="tipoDocOptions"
+              [value]="form.get('tipoDoc')?.value"
+              [invalid]="!!form.get('tipoDoc')?.invalid && !!form.get('tipoDoc')?.touched"
+              (valueChange)="form.get('tipoDoc')?.setValue($event)">
+            </app-select>
           </div>
 
           <div class="form-field" [class.field-changed]="fieldChanged('numDocumento')">
@@ -345,20 +348,20 @@
     </thead>
     <tbody>
       <tr *ngFor="let d of paged">
-        <td class="text-center col-id">{{ d.U_RD_IdRD }}</td>
-        <td class="col-cuenta">
+        <td class="text-center col-id" data-label="N°">{{ d.U_RD_IdRD }}</td>
+        <td class="col-cuenta" data-label="Cuenta">
           <span class="code-tag" *ngIf="d.U_RD_Cuenta">{{ d.U_RD_Cuenta }}</span>
           <span class="cuenta-nombre" *ngIf="d.U_RD_NombreCuenta">{{ d.U_RD_NombreCuenta }}</span>
           <span class="text-muted-cell" *ngIf="!d.U_RD_Cuenta">—</span>
         </td>
-        <td class="text-center">{{ formatDate(d.U_RD_Fecha) }}</td>
-        <td><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
-        <td class="mono-cell">{{ d.U_RD_NumDocumento || '—' }}</td>
-        <td class="col-concepto">{{ d.U_RD_Concepto }}</td>
-        <td class="text-right mono-cell">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell">{{ d.U_RD_Descuento | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell">{{ d.U_MontoIVA | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-center" data-label="Fecha">{{ formatDate(d.U_RD_Fecha) }}</td>
+        <td data-label="Tipo Doc."><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
+        <td class="mono-cell" data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
+        <td class="col-concepto" data-label="Concepto">{{ d.U_RD_Concepto }}</td>
+        <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell" data-label="Descuento">{{ d.U_RD_Descuento | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell" data-label="IVA">{{ d.U_MontoIVA | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
         <td class="actions">
           <button class="btn btn-sm btn-ghost" (click)="openEdit(d)">Editar</button>
           <button class="btn btn-sm btn-danger-soft"

@@ -156,7 +156,7 @@ export class PaginatorComponent implements OnChanges {
   @Output() pageChange  = new EventEmitter<number>();
   @Output() limitChange = new EventEmitter<number>();
 
-  pageSizes = [10, 20, 50, 100];
+  pageSizes = [5, 10, 20, 50, 100];
   pages: number[] = [];
 
   get rangeStart() { return Math.min(this.total, (this.page - 1) * this.limit + 1); }

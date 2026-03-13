@@ -1,5 +1,5 @@
 import { RouterModule } from '@angular/router';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule, ReactiveFormsModule,
@@ -11,6 +11,9 @@ import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { AuthService } from '../../auth/auth.service';
+import { PerfilesService } from '../perfiles/perfiles.service';
+import { Perfil } from '../../models/perfil.model';
+import { EmpleadoSearchComponent, Empleado } from '../../shared/empleado-search/empleado-search.component';
 import {
   RendM, CreateRendMPayload,
   ESTADO_LABEL, ESTADO_CLASS,
@@ -19,11 +22,13 @@ import {
 @Component({
   standalone: true,
   selector: 'app-rend-m',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent, EmpleadoSearchComponent],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
 })
 export class RendMComponent implements OnInit {
+
+  @ViewChild(EmpleadoSearchComponent) empleadoSearch?: EmpleadoSearchComponent;
 
   rendiciones:  RendM[] = [];
   filtered:     RendM[] = [];
@@ -41,6 +46,10 @@ export class RendMComponent implements OnInit {
   editingRend:   RendM | null = null;
   isSaving       = false;
   form!:         FormGroup;
+
+  // Perfiles y filtro empleado
+  perfiles:        Perfil[] = [];
+  filtroEmpleado   = '';
 
   private initialValues: any = null;
 
@@ -60,15 +69,24 @@ export class RendMComponent implements OnInit {
   }
 
   constructor(
-    private rendMService: RendMService,
-    private toast:        ToastService,
-    private fb:           FormBuilder,
-    private auth:         AuthService,
+    private rendMService:   RendMService,
+    private toast:          ToastService,
+    private fb:             FormBuilder,
+    private auth:           AuthService,
+    private cdr:            ChangeDetectorRef,
+    private perfilesService: PerfilesService,
   ) {}
 
   ngOnInit() {
     this.buildForm();
     this.load();
+    this.loadPerfiles();
+  }
+
+  private loadPerfiles() {
+    this.perfilesService.getAll().subscribe({
+      next: (data) => { this.perfiles = data; this.cdr.detectChanges(); },
+    });
   }
 
   // ── Form ─────────────────────────────────────────────────
@@ -101,8 +119,9 @@ export class RendMComponent implements OnInit {
     this.rendMService.getAll().subscribe({
       next: (data) => {
         this.rendiciones = data;
+        this.loading     = false;
         this.applyFilter();
-        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading   = false;
@@ -132,11 +151,30 @@ export class RendMComponent implements OnInit {
   onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
 
+  onPerfilChange(idPerfil: number | null) {
+    const perfil = this.perfiles.find(p => p.U_CodPerfil === Number(idPerfil));
+    const nuevoFiltro = perfil?.U_EMP_TEXTO ?? '';
+    if (nuevoFiltro !== this.filtroEmpleado) {
+      this.filtroEmpleado = nuevoFiltro;
+      // Resetear selección de empleado si cambió el perfil
+      this.empleadoSearch?.reset();
+      this.form.patchValue({ empleado: '', nombreEmpleado: '' });
+    }
+  }
+
+  onEmpleadoSelected(e: Empleado | null) {
+    this.form.patchValue({
+      empleado:       e?.cardCode    ?? '',
+      nombreEmpleado: e?.cardName    ?? '',
+    });
+  }
+
   // ── Modal ────────────────────────────────────────────────
 
   openNew() {
     this.editingRend   = null;
     this.initialValues = null;
+    this.filtroEmpleado = '';
     this.form.reset({
       idPerfil: null, cuenta: '', nombreCuenta: '',
       empleado: '', nombreEmpleado: '',
@@ -148,6 +186,9 @@ export class RendMComponent implements OnInit {
 
   openEdit(r: RendM) {
     this.editingRend = r;
+    // Leer filtro del perfil de esta rendición
+    const perfil = this.perfiles.find(p => p.U_CodPerfil === r.U_IdPerfil);
+    this.filtroEmpleado = perfil?.U_EMP_TEXTO ?? '';
     const values = {
       idPerfil:       r.U_IdPerfil,
       cuenta:         r.U_Cuenta,
@@ -198,11 +239,8 @@ export class RendMComponent implements OnInit {
           this.closeForm();
           this.load();
         },
-        error: (err: any) => {
+        error: () => {
           this.isSaving = false;
-          if (err?.status === 403) {
-            this.toast.error(err?.error?.message || 'No tienes permiso para editar esta rendición');
-          }
         },
       });
     } else {
@@ -213,11 +251,8 @@ export class RendMComponent implements OnInit {
           this.closeForm();
           this.load();
         },
-        error: (err: any) => {
+        error: () => {
           this.isSaving = false;
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al crear rendición');
-          }
         },
       });
     }
@@ -234,11 +269,7 @@ export class RendMComponent implements OnInit {
     }, () => {
       this.rendMService.remove(r.U_IdRendicion).subscribe({
         next:  () => { this.toast.success('Rendición eliminada'); this.load(); },
-        error: (err: any) => {
-          if (err?.status === 403) {
-            this.toast.error(err?.error?.message || 'No tienes permiso para eliminar esta rendición');
-          }
-        },
+        error: () => {},
       });
     });
   }

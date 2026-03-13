@@ -44,7 +44,7 @@
         (input)="onSearchInput($event)"
         autocomplete="off"
       />
-      <button *ngIf="searchQuery" class="search-clear" (click)="searchQuery = ''">
+      <button *ngIf="searchQuery" class="search-clear" (click)="clearSearch()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
         </svg>

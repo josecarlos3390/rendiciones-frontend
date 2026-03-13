@@ -39,42 +39,26 @@
         <div class="form-row">
           <div class="form-field">
             <label>Perfil Trabaja</label>
-            <select formControlName="trabaja">
-              <option *ngFor="let o of monedaOptions" [value]="o.value">{{ o.label }}</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label>Líneas por Página</label>
-            <select formControlName="cntLineas">
-              <option *ngFor="let n of lineasOptions" [ngValue]="n">{{ n }} Líneas por página</option>
-            </select>
+            <app-select
+              label="Perfil Trabaja"
+              [searchable]="false"
+              [options]="monedaOptions"
+              [value]="form.get('trabaja')?.value"
+              (valueChange)="form.get('trabaja')?.setValue($event)">
+            </app-select>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
             <label>Permitir Cuenta Vacía</label>
-            <select formControlName="perCtaBl">
-              <option [ngValue]="0">NO</option>
-              <option [ngValue]="1">SÍ</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label>Control Partida</label>
-            <input type="number" formControlName="controlPartida" min="0" />
-          </div>
-        </div>
-
-        <div class="form-section-label">Reportes</div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label>Reporte 1</label>
-            <input type="text" formControlName="rep1" maxlength="50" placeholder="Nombre reporte..." />
-          </div>
-          <div class="form-field">
-            <label>Reporte 2</label>
-            <input type="text" formControlName="rep2" maxlength="50" placeholder="Nombre reporte..." />
+            <app-select
+              label="Permitir Cuenta Vacía"
+              [searchable]="false"
+              [options]="siNoOptions"
+              [value]="form.get('perCtaBl')?.value"
+              (valueChange)="form.get('perCtaBl')?.setValue($event)">
+            </app-select>
           </div>
         </div>
 
@@ -88,9 +72,13 @@
         <div class="form-row">
           <div class="form-field">
             <label>Característica</label>
-            <select formControlName="proCar">
-              <option *ngFor="let o of caracteristicaOptions" [value]="o.value">{{ o.label }}</option>
-            </select>
+            <app-select
+              label="Característica"
+              [searchable]="false"
+              [options]="proCarOptions"
+              [value]="form.get('proCar')?.value"
+              (valueChange)="form.get('proCar')?.setValue($event)">
+            </app-select>
           </div>
           <div class="form-field">
             <label>Texto</label>
@@ -103,9 +91,13 @@
         <div class="form-row">
           <div class="form-field">
             <label>Característica</label>
-            <select formControlName="cueCar">
-              <option *ngFor="let o of caracteristicaOptions" [value]="o.value">{{ o.label }}</option>
-            </select>
+            <app-select
+              label="Característica"
+              [searchable]="false"
+              [options]="cueCarOptions"
+              [value]="form.get('cueCar')?.value"
+              (valueChange)="form.get('cueCar')?.setValue($event)">
+            </app-select>
           </div>
           <div class="form-field">
             <label>Texto</label>
@@ -118,9 +110,13 @@
         <div class="form-row">
           <div class="form-field">
             <label>Característica</label>
-            <select formControlName="empCar">
-              <option *ngFor="let o of caracteristicaOptions" [value]="o.value">{{ o.label }}</option>
-            </select>
+            <app-select
+              label="Característica"
+              [searchable]="false"
+              [options]="empCarOptions"
+              [value]="form.get('empCar')?.value"
+              (valueChange)="form.get('empCar')?.setValue($event)">
+            </app-select>
           </div>
           <div class="form-field">
             <label>Texto</label>
@@ -189,22 +185,22 @@
     </thead>
     <tbody>
       <tr *ngFor="let p of paged">
-        <td class="text-center">{{ p.U_CodPerfil }}</td>
-        <td class="col-nombre">{{ p.U_NombrePerfil }}</td>
-        <td>{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</td>
-        <td>
+        <td class="text-center" data-label="Cód.">{{ p.U_CodPerfil }}</td>
+        <td class="col-nombre" data-label="Nombre Perfil">{{ p.U_NombrePerfil }}</td>
+        <td data-label="Moneda">{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</td>
+        <td data-label="Proveedores">
           <span class="carac-badge">{{ p.U_PRO_CAR }}</span>
           <span class="carac-text" *ngIf="p.U_PRO_Texto"> {{ p.U_PRO_Texto }}</span>
         </td>
-        <td>
+        <td data-label="Cuentas">
           <span class="carac-badge">{{ p.U_CUE_CAR }}</span>
           <span class="carac-text" *ngIf="p.U_CUE_Texto"> {{ p.U_CUE_Texto }}</span>
         </td>
-        <td>
+        <td data-label="Empleados">
           <span class="carac-badge">{{ p.U_EMP_CAR }}</span>
           <span class="carac-text" *ngIf="p.U_EMP_TEXTO"> {{ p.U_EMP_TEXTO }}</span>
         </td>
-        <td class="text-center">{{ p.U_CntLineas }}</td>
+        <td class="text-center" data-label="Líneas">{{ p.U_CntLineas }}</td>
         <td class="actions">
           <button class="btn btn-sm btn-ghost" (click)="openEdit(p)">Editar</button>
           <button class="btn btn-sm btn-danger-soft" (click)="confirmDelete(p)">Eliminar</button>

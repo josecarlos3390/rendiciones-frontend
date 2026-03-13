@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
@@ -14,11 +14,12 @@ import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { AuthService }   from '../../auth/auth.service';
 import { RendM }         from '../../models/rend-m.model';
 import { RendD, CreateRendDPayload } from '../../models/rend-d.model';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
   selector: 'app-rend-d',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './rend-d.component.html',
   styleUrls: ['./rend-d.component.scss'],
 })
@@ -42,6 +43,13 @@ export class RendDComponent implements OnInit {
   showForm     = false;
   editingDoc:  RendD | null = null;
   isSaving     = false;
+
+  readonly tipoDocOptions: SelectOption[] = [
+    { value: 'FACTURA', label: 'Factura', icon: '🧾' },
+    { value: 'RECIBO',  label: 'Recibo',  icon: '📄' },
+    { value: 'NOTA',    label: 'Nota',    icon: '📝' },
+    { value: 'OTRO',    label: 'Otro',    icon: '📋' },
+  ];
   form!:       FormGroup;
 
   private initialValues: any = null;
@@ -76,6 +84,7 @@ export class RendDComponent implements OnInit {
     private toast:      ToastService,
     private fb:         FormBuilder,
     public  auth:       AuthService,
+    private cdr:        ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -138,7 +147,7 @@ export class RendDComponent implements OnInit {
   loadCabecera() {
     this.loadingCab = true;
     this.rendMSvc.getOne(this.idRendicion).subscribe({
-      next:  c  => { this.cabecera = c; this.loadingCab = false; },
+      next:  c  => { this.cabecera = c; this.loadingCab = false; this.cdr.detectChanges(); },
       error: () => { this.loadingCab = false; },
     });
   }
@@ -151,6 +160,7 @@ export class RendDComponent implements OnInit {
         this.documentos  = data;
         this.loadingDocs = false;
         this.updatePaging();
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loadingDocs = false;
@@ -278,9 +288,8 @@ export class RendDComponent implements OnInit {
           this.closeForm();
           this.loadDocs();
         },
-        error: (err: any) => {
+        error: () => {
           this.isSaving = false;
-          if (err?.status === 403) this.toast.error(err?.error?.message || 'Sin permiso para editar');
         },
       });
     } else {
@@ -291,9 +300,8 @@ export class RendDComponent implements OnInit {
           this.closeForm();
           this.loadDocs();
         },
-        error: (err: any) => {
+        error: () => {
           this.isSaving = false;
-          if (err?.status === 403) this.toast.error(err?.error?.message || 'Sin permiso');
         },
       });
     }
@@ -310,9 +318,7 @@ export class RendDComponent implements OnInit {
     }, () => {
       this.rendDSvc.remove(this.idRendicion, d.U_RD_IdRD).subscribe({
         next:  () => { this.toast.success('Documento eliminado'); this.loadDocs(); },
-        error: (err: any) => {
-          if (err?.status === 403) this.toast.error(err?.error?.message || 'Sin permiso para eliminar');
-        },
+        error: () => {},
       });
     });
   }

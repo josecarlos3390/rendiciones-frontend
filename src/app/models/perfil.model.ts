@@ -42,11 +42,24 @@ export const MONEDA_OPTIONS = [
   { value: '1', label: 'Dólares (USD)' },
 ];
 
-export const CARACTERISTICA_OPTIONS = [
-  { value: 'TODOS',    label: 'TODOS' },
-  { value: 'EMPIEZA',  label: 'Empieza con' },
-  { value: 'CONTIENE', label: 'Contiene' },
-  { value: 'IGUAL',    label: 'Igual a' },
+export const PRO_CAR_OPTIONS = [
+  { value: 'EMPIEZA', label: 'Empieza con' },
+  { value: 'TERMINA', label: 'Termina con' },
+  { value: 'TODOS',   label: 'TODOS' },
+];
+
+export const CUE_CAR_OPTIONS = [
+  { value: 'EMPIEZA',   label: 'Empieza con' },
+  { value: 'TERMINA',   label: 'Termina con' },
+  { value: 'TODOS',     label: 'Todo el Plan de Cuentas' },
+  { value: 'RANGO',     label: 'Cuentas que empiezan con y terminan en' },
+  { value: 'LISTA',     label: 'Especificar una lista' },
+];
+
+export const EMP_CAR_OPTIONS = [
+  { value: 'EMPIEZA', label: 'Empieza con' },
+  { value: 'TERMINA', label: 'Termina con' },
+  { value: 'NOTIENE', label: 'No tiene' },
 ];
 
 export const LINEAS_OPTIONS = [3, 5, 10, 15, 20, 25, 30, 50];

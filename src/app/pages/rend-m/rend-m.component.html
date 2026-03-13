@@ -28,8 +28,13 @@
 
         <div class="form-field" [class.field-changed]="fieldChanged('empleado')">
           <label>Código Empleado <span class="required">*</span></label>
-          <input type="text" formControlName="empleado"
-            placeholder="EL00005" maxlength="25" autocomplete="off" />
+          <app-empleado-search
+            [filtro]="filtroEmpleado"
+            [initialCode]="form.get('empleado')?.value"
+            [invalid]="!!form.get('empleado')?.invalid && !!form.get('empleado')?.touched"
+            [placeholder_text]="filtroEmpleado ? '— Buscar y seleccionar empleado —' : 'Seleccione un perfil primero'"
+            (empleadoChange)="onEmpleadoSelected($event)">
+          </app-empleado-search>
           <span class="field-error"
             *ngIf="form.get('empleado')?.invalid && form.get('empleado')?.touched">
             Obligatorio
@@ -37,13 +42,10 @@
         </div>
 
         <div class="form-field" [class.field-changed]="fieldChanged('nombreEmpleado')">
-          <label>Nombre Empleado <span class="required">*</span></label>
+          <label>Nombre Empleado</label>
           <input type="text" formControlName="nombreEmpleado"
-            placeholder="NINO QUEVEDO" maxlength="250" autocomplete="off" />
-          <span class="field-error"
-            *ngIf="form.get('nombreEmpleado')?.invalid && form.get('nombreEmpleado')?.touched">
-            Obligatorio
-          </span>
+            placeholder="Se completa automáticamente" maxlength="250" readonly
+            style="background: var(--bg-faint); color: var(--text-muted);" />
         </div>
 
         <div class="form-section-label">Período</div>
@@ -79,8 +81,14 @@
         <div class="form-section-label">Cuenta y Perfil</div>
 
         <div class="form-field" [class.field-changed]="fieldChanged('idPerfil')">
-          <label>ID Perfil <span class="required">*</span></label>
-          <input type="number" formControlName="idPerfil" min="1" placeholder="1" />
+          <label>Perfil <span class="required">*</span></label>
+          <select formControlName="idPerfil"
+            (change)="onPerfilChange(form.get('idPerfil')?.value)">
+            <option value="" disabled selected>— Seleccione un perfil —</option>
+            <option *ngFor="let p of perfiles" [value]="p.U_CodPerfil">
+              {{ p.U_NombrePerfil }}
+            </option>
+          </select>
           <span class="field-error"
             *ngIf="form.get('idPerfil')?.invalid && form.get('idPerfil')?.touched">
             Obligatorio
@@ -199,18 +207,18 @@
     </thead>
     <tbody>
       <tr *ngFor="let r of paged">
-        <td class="text-center col-id">{{ r.U_IdRendicion }}</td>
-        <td class="col-perfil">{{ r.U_NombrePerfil }}</td>
-        <td class="col-objetivo">{{ r.U_Objetivo }}</td>
-        <td class="col-cuenta">
+        <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
+        <td class="col-perfil" data-label="Perfil">{{ r.U_NombrePerfil }}</td>
+        <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
+        <td class="col-cuenta" data-label="Cuenta">
           <span class="code-tag">{{ r.U_Cuenta }}</span>
           <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
         </td>
-        <td class="col-empleado">{{ r.U_NombreEmpleado }}</td>
-        <td class="text-center">{{ formatDate(r.U_FechaIni) }}</td>
-        <td class="text-center">{{ formatDate(r.U_FechaFinal) }}</td>
-        <td class="text-right col-monto">{{ r.U_Monto | number:'1.2-2' }}</td>
-        <td class="text-center">
+        <td class="col-empleado" data-label="Empleado">{{ r.U_NombreEmpleado }}</td>
+        <td class="text-center" data-label="Fecha Inicio">{{ formatDate(r.U_FechaIni) }}</td>
+        <td class="text-center" data-label="Fecha Fin">{{ formatDate(r.U_FechaFinal) }}</td>
+        <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
+        <td class="text-center" data-label="Estado">
           <span [class]="estadoCss(r.U_Estado)">
             {{ estadoTexto(r.U_Estado) }}
           </span>
