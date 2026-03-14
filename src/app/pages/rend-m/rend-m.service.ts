@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { RendM, CreateRendMPayload, UpdateRendMPayload } from '../../models/rend-m.model';
 import { environment } from '../../../environments/environment';
 
@@ -8,8 +8,11 @@ export class RendMService {
   private http = inject(HttpClient);
   private api  = `${environment.apiUrl}/rend-m`;
 
-  getAll() {
-    return this.http.get<RendM[]>(this.api);
+  getAll(idPerfil?: number) {
+    const params = idPerfil !== undefined
+      ? new HttpParams().set('idPerfil', idPerfil)
+      : undefined;
+    return this.http.get<RendM[]>(this.api, { params });
   }
 
   getOne(id: number) {

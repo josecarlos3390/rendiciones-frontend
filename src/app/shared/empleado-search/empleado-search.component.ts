@@ -329,7 +329,7 @@ export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
           e.cardName.toLowerCase().includes(q)
         )
       : this.all.slice();
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   select(e: Empleado) {

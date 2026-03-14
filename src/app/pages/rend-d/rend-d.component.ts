@@ -15,11 +15,12 @@ import { AuthService }   from '../../auth/auth.service';
 import { RendM }         from '../../models/rend-m.model';
 import { RendD, CreateRendDPayload } from '../../models/rend-d.model';
 import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
 
 @Component({
   standalone: true,
   selector: 'app-rend-d',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, DdmmyyyyPipe],
   templateUrl: './rend-d.component.html',
   styleUrls: ['./rend-d.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -149,7 +150,7 @@ export class RendDComponent implements OnInit {
     this.loadingCab = true;
     this.rendMSvc.getOne(this.idRendicion).subscribe({
       next:  c  => { this.cabecera = c; this.loadingCab = false; this.cdr.markForCheck(); },
-      error: () => { this.loadingCab = false; },
+      error: () => { this.loadingCab = false; this.cdr.markForCheck(); },
     });
   }
 
@@ -166,6 +167,7 @@ export class RendDComponent implements OnInit {
       error: () => {
         this.loadingDocs = false;
         this.loadError   = true;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -291,6 +293,7 @@ export class RendDComponent implements OnInit {
         },
         error: () => {
           this.isSaving = false;
+          this.cdr.markForCheck();
         },
       });
     } else {
@@ -303,6 +306,7 @@ export class RendDComponent implements OnInit {
         },
         error: () => {
           this.isSaving = false;
+          this.cdr.markForCheck();
         },
       });
     }
@@ -319,7 +323,7 @@ export class RendDComponent implements OnInit {
     }, () => {
       this.rendDSvc.remove(this.idRendicion, d.U_RD_IdRD).subscribe({
         next:  () => { this.toast.success('Documento eliminado'); this.loadDocs(); },
-        error: () => {},
+        error: () => { this.cdr.markForCheck(); },
       });
     });
   }
@@ -335,8 +339,6 @@ export class RendDComponent implements OnInit {
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 
   // ── Helpers ──────────────────────────────────────────────
-
-  formatDate(ts: string): string { return ts?.substring(0, 10) ?? ''; }
 
   goBack() { this.router.navigate(['/rend-m']); }
 }

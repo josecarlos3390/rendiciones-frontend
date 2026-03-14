@@ -62,11 +62,11 @@
     </div>
     <div class="maestro-item">
       <span class="maestro-label">Fecha Inicio</span>
-      <span class="maestro-value">{{ formatDate(cabecera.U_FechaIni) }}</span>
+      <span class="maestro-value">{{ cabecera.U_FechaIni | ddmmyyyy }}</span>
     </div>
     <div class="maestro-item">
       <span class="maestro-label">Fecha Final</span>
-      <span class="maestro-value">{{ formatDate(cabecera.U_FechaFinal) }}</span>
+      <span class="maestro-value">{{ cabecera.U_FechaFinal | ddmmyyyy }}</span>
     </div>
     <div class="maestro-item">
       <span class="maestro-label">Monto Inicial</span>
@@ -354,7 +354,7 @@
           <span class="cuenta-nombre" *ngIf="d.U_RD_NombreCuenta">{{ d.U_RD_NombreCuenta }}</span>
           <span class="text-muted-cell" *ngIf="!d.U_RD_Cuenta">—</span>
         </td>
-        <td class="text-center" data-label="Fecha">{{ formatDate(d.U_RD_Fecha) }}</td>
+        <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
         <td data-label="Tipo Doc."><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
         <td class="mono-cell" data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
         <td class="col-concepto" data-label="Concepto">{{ d.U_RD_Concepto }}</td>

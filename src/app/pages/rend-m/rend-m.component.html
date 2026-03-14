@@ -127,9 +127,20 @@
           <input type="text" [value]="permisoActivo?.U_NOMBREPERFIL ?? editingPerfilNombre" readonly />
         </div>
 
-        <div class="form-field field-locked">
-          <label>Código de Cuenta</label>
-          <input type="text" formControlName="cuenta" readonly placeholder="CA-11105003" />
+        <div class="form-field" [class.field-locked]="!tieneMultiplesCuentas">
+          <label>Código de Cuenta <span class="required" *ngIf="tieneMultiplesCuentas">*</span></label>
+
+          <!-- Selector modal cuando el perfil tiene más de una cuenta -->
+          <app-cuenta-cabecera-select
+            *ngIf="tieneMultiplesCuentas"
+            [cuentas]="cuentasCabeceraActivas"
+            [initialCode]="form.get('cuenta')?.value"
+            (cuentaChange)="onCuentaChange($event)">
+          </app-cuenta-cabecera-select>
+
+          <!-- Campo bloqueado cuando solo hay una cuenta -->
+          <input *ngIf="!tieneMultiplesCuentas"
+                 type="text" formControlName="cuenta" readonly placeholder="CA-11105003" />
         </div>
 
         <div class="form-field field-locked">
@@ -275,8 +286,8 @@
             <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
           </td>
           <td class="col-empleado" data-label="Empleado">{{ r.U_NombreEmpleado }}</td>
-          <td class="text-center" data-label="Fecha Inicio">{{ formatDate(r.U_FechaIni) }}</td>
-          <td class="text-center" data-label="Fecha Fin">{{ formatDate(r.U_FechaFinal) }}</td>
+          <td class="text-center" data-label="Fecha Inicio">{{ r.U_FechaIni | ddmmyyyy }}</td>
+          <td class="text-center" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
           <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
           <td class="text-center" data-label="Estado">
             <span [class]="estadoCss(r.U_Estado)">{{ estadoTexto(r.U_Estado) }}</span>

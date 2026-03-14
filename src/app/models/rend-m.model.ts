@@ -25,8 +25,9 @@ export interface CreateRendMPayload {
   idPerfil:       number;
   cuenta:         string;
   nombreCuenta:   string;
-  empleado:       string;
-  nombreEmpleado: string;
+  cuentaAsociada: string;   // 'Y' = asociada a empleado, 'N' = no asociada
+  empleado?:      string;
+  nombreEmpleado?: string;
   objetivo:       string;
   fechaIni:       string;
   fechaFinal:     string;
