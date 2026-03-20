@@ -316,10 +316,15 @@
 }
 
 .col-cuenta {
-  max-width:      200px;
-  display:        flex;
-  flex-direction: column;
-  gap:            2px;
+  max-width: 200px;
+
+  // El flex va en un wrapper interno, nunca directamente en el td
+  .cuenta-inner {
+    display:        flex;
+    flex-direction: column;
+    gap:            3px;
+    align-items:    flex-start;
+  }
 }
 
 .code-tag {

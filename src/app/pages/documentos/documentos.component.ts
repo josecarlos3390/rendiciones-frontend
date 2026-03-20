@@ -94,7 +94,7 @@ export class DocumentosComponent implements OnInit {
     this.loadDocumentos();
   }
 
-  loadDocumentos() {
+  loadDocumentos(onComplete?: () => void) {
     if (!this.selectedPerfilId) {
       this.documentos = []; this.filtered = []; this.paged = [];
       return;
@@ -106,8 +106,10 @@ export class DocumentosComponent implements OnInit {
         this.loading = false;
         this.applyFilter();
         this.cdr.markForCheck();
+        onComplete?.();
       },
-      error: () => { this.loading = false; this.cdr.markForCheck(); },
+      error: () => { this.loading = false; this.cdr.markForCheck();
+      onComplete?.(); },
     });
   }
 
@@ -136,11 +138,12 @@ export class DocumentosComponent implements OnInit {
   openCreate() {
     if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
     this.editingId = null;
-    this.form.reset({ tipDoc: '', idTipoDoc: 0, tipoCalc: '1',
+    this.form.reset({ tipDoc: '', idTipoDoc: 0, tipoCalc: '0',
       ivaPercent: 0, ivaCuenta: '', itPercent: 0, itCuenta: '',
       iuePercent: 0, iueCuenta: '', rcivaPercent: 0, rcivaCuenta: '',
       exentoPercent: 0, ctaExento: '', tasa: 0, ice: 0 });
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   openEdit(doc: Documento) {
@@ -163,12 +166,13 @@ export class DocumentosComponent implements OnInit {
       ice:           doc.U_ICE          ?? 0,
     });
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   @HostListener('document:keydown.escape')
   onEscape() { if (this.showForm) this.closeForm(); }
 
-  closeForm() { this.showForm = false; this.editingId = null; this.form.reset(); }
+  closeForm() { this.showForm = false; this.editingId = null; this.form.reset(); this.cdr.markForCheck(); }
 
   save() {
     if (this.form.invalid || this.isSaving || !this.selectedPerfilId) return;
@@ -201,15 +205,19 @@ export class DocumentosComponent implements OnInit {
     req$.subscribe({
       next: () => {
         this.isSaving = false;
-        this.toast.success(this.isEditing ? 'Documento actualizado' : 'Documento creado');
-        this.closeForm();
-        this.loadDocumentos();
+        const msg = this.isEditing ? 'Documento actualizado' : 'Documento creado';
+        this.loadDocumentos(() => {
+          this.toast.success(msg);
+          this.closeForm();
+        });
+        this.cdr.markForCheck();
       },
       error: (err: any) => {
         this.isSaving = false;
         if (err?.status === 409 || err?.status === 422) {
           this.toast.error(err?.error?.message || 'Error al guardar');
         }
+        this.cdr.markForCheck();
       },
     });
   }
@@ -224,11 +232,12 @@ export class DocumentosComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(doc.U_IdDocumento).subscribe({
-        next:  () => { this.toast.success('Documento eliminado'); this.loadDocumentos(); },
+        next:  () => { this.toast.success('Documento eliminado'); this.loadDocumentos(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');
           }
+          this.cdr.markForCheck();
         },
       });
     });
@@ -257,7 +266,7 @@ export class DocumentosComponent implements OnInit {
   }
 
   tipoCalcLabel(val: string | number) {
-    return (val == 1 || val === '1' || val === 'G') ? 'GU' : 'GD';
+    return (val == 1 || val === '1' || val === 'G') ? 'GD' : 'GU';
   }
 
   isGrossingUp(val: string | number)   { return val == 1 || val === '1' || val === 'G'; }

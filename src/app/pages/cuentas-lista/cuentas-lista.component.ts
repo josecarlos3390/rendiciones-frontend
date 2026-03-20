@@ -75,7 +75,7 @@ export class CuentasListaComponent implements OnInit {
 
   // ── Carga de datos ───────────────────────────────────────
 
-  loadCuentas() {
+  loadCuentas(onComplete?: () => void) {
     if (!this.selectedPerfilId) {
       this.cuentas = []; this.filtered = []; this.paged = [];
       return;
@@ -87,8 +87,10 @@ export class CuentasListaComponent implements OnInit {
         this.loading = false;
         this.applyFilter();
         this.cdr.markForCheck();
+        onComplete?.();
       },
-      error: () => { this.loading = false; },
+      error: () => { this.loading = false; this.cdr.markForCheck();
+      onComplete?.(); },
     });
   }
 
@@ -121,12 +123,14 @@ export class CuentasListaComponent implements OnInit {
     this.selectedCuenta = null;
     this.cuentaTouched  = false;
     this.showForm       = true;
+    this.cdr.markForCheck();
   }
 
   closeForm() {
     this.showForm       = false;
     this.selectedCuenta = null;
     this.cuentaTouched  = false;
+    this.cdr.markForCheck();
   }
 
   onCuentaSelected(account: ChartOfAccount | null) {
@@ -148,9 +152,10 @@ export class CuentasListaComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.isSaving = false;
-        this.toast.success('Cuenta agregada');
-        this.closeForm();
-        this.loadCuentas();
+        this.loadCuentas(() => {
+          this.toast.success('Cuenta agregada');
+          this.closeForm();
+        });
         this.cdr.markForCheck();
       },
       error: (err: any) => {
@@ -171,8 +176,8 @@ export class CuentasListaComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.cuentasService.remove(c.U_IdPerfil, c.U_CuentaSys).subscribe({
-        next:  () => { this.toast.success('Cuenta eliminada'); this.loadCuentas(); },
-        error: (err: any) => this.toast.error(err?.error?.message || 'Error al eliminar'),
+        next:  () => { this.toast.success('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
+        error: (err: any) => { this.toast.error(err?.error?.message || 'Error al eliminar'); this.cdr.markForCheck(); },
       });
     });
   }

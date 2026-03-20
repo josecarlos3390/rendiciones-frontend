@@ -1,17 +1,19 @@
-import { Component, EventEmitter, OnInit, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, OnInit, OnDestroy, Output, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../auth/auth.service';
 import { ThemeService } from '../../theme/theme.service';
+import { AppConfigService } from '../../../services/app-config.service';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.scss']
+  styleUrls: ['./sidebar.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnInit, OnDestroy {
   collapsed  = false;
@@ -25,7 +27,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
     public auth: AuthService,
     private router: Router,
     private themeService: ThemeService,
+    private cdr: ChangeDetectorRef,
+    public appConfig: AppConfigService,
   ) {}
+
+  // ── Modo offline ──────────────────────────────────────
+  get isOffline(): boolean {
+    return this.appConfig.isOffline;
+  }
 
   // ── Datos del usuario ────────────────────────────────
   get userName(): string {
@@ -56,17 +65,31 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this._filteredItems = [];
   }
 
-  // Items de navegación para búsqueda
-  navItems: { label: string; route: string; icon: string; section: string }[] = [
-    { label: 'Dashboard',         route: '/dashboard',        icon: 'dashboard', section: 'General' },
-    { label: 'Nueva Rendición',   route: '/rend-m',           icon: 'rend',      section: 'Rendiciones' },
-    { label: 'Usuarios',          route: '/users',            icon: 'admin',     section: 'Administración' },
-    { label: 'Perfiles',          route: '/perfiles',         icon: 'admin',     section: 'Administración' },
-    { label: 'Documentos',        route: '/documentos',       icon: 'admin',     section: 'Administración' },
-    { label: 'Usuario/Perfil',    route: '/permisos',         icon: 'admin',     section: 'Administración' },
-    { label: 'Cuentas Cabecera',  route: '/cuentas-cabecera', icon: 'admin',     section: 'Administración' },
-    { label: 'Lista de Cuentas',  route: '/cuentas-lista',    icon: 'admin',     section: 'Administración' },
-  ];
+  get navItems(): { label: string; route: string; icon: string; section: string }[] {
+    const base = [
+      { label: 'Dashboard',        route: '/dashboard',        icon: 'dashboard', section: 'General' },
+      { label: 'Nueva Rendición',  route: '/rend-m',           icon: 'rend',      section: 'Rendiciones' },
+      { label: 'Usuarios',         route: '/users',            icon: 'admin',     section: 'Administración' },
+      { label: 'Perfiles',         route: '/perfiles',         icon: 'admin',     section: 'Administración' },
+      { label: 'Documentos',       route: '/documentos',       icon: 'admin',     section: 'Administración' },
+      { label: 'Usuario/Perfil',   route: '/permisos',         icon: 'admin',     section: 'Administración' },
+      { label: 'Cuentas Cabecera', route: '/cuentas-cabecera', icon: 'admin',     section: 'Administración' },
+      { label: 'Lista de Cuentas', route: '/cuentas-lista',    icon: 'admin',     section: 'Administración' },
+    ];
+
+    if (this.isOffline) {
+      base.push(
+        { label: 'Cuentas Contables', route: '/offline/cuentas',     icon: 'offline', section: 'Datos Offline' },
+        { label: 'Dimensiones',       route: '/offline/dimensiones',  icon: 'offline', section: 'Datos Offline' },
+        { label: 'Normas de Reparto', route: '/offline/normas',       icon: 'offline', section: 'Datos Offline' },
+        { label: 'Proveedores',       route: '/offline/proveedores',  icon: 'offline', section: 'Datos Offline' },
+        { label: 'Clientes',          route: '/offline/clientes',     icon: 'offline', section: 'Datos Offline' },
+        { label: 'Empleados',         route: '/offline/empleados',    icon: 'offline', section: 'Datos Offline' },
+      );
+    }
+
+    return base;
+  }
 
   private _filteredItems: { label: string; route: string; icon: string; section: string }[] = [];
   private _groupedResults: { [key: string]: { label: string; route: string; icon: string; section: string }[] } = {};
@@ -74,53 +97,37 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   get filteredItems() {
     const query = (this.searchQuery || '').toLowerCase().trim();
-    if (query === this._searchCache) {
-      return this._filteredItems;
-    }
-    this._searchCache = query;
+    if (query === this._searchCache) return this._filteredItems;
+    this._searchCache   = query;
     if (!query) {
-      this._filteredItems = [];
+      this._filteredItems  = [];
       this._groupedResults = {};
       return [];
     }
-    this._filteredItems = this.navItems.filter(item => 
-      item.label.toLowerCase().includes(query)
+    this._filteredItems = this.navItems.filter(item =>
+      item.label.toLowerCase().includes(query),
     );
-    
     this._groupedResults = {};
     this._filteredItems.forEach(item => {
-      if (!this._groupedResults[item.section]) {
-        this._groupedResults[item.section] = [];
-      }
+      if (!this._groupedResults[item.section]) this._groupedResults[item.section] = [];
       this._groupedResults[item.section].push(item);
     });
     return this._filteredItems;
   }
 
   get groupedSearchResults() {
-    // Fuerza la evaluación de filteredItems para asegurar cache
     this.filteredItems;
     return this._groupedResults;
   }
 
   // ── Tema ─────────────────────────────────────────────
-  get isDark(): boolean {
-    return this.themeService.isDark;
-  }
-
-  toggleTheme() {
-    this.themeService.toggle();
-  }
+  get isDark(): boolean { return this.themeService.isDark; }
+  toggleTheme() { this.themeService.toggle(); }
 
   // ── Controles ────────────────────────────────────────
-  get isMobile(): boolean {
-    return window.innerWidth <= 768;
-  }
+  get isMobile(): boolean { return window.innerWidth <= 768; }
 
-  // En móvil collapsed no debe bloquear la apertura de submenús
-  get menuCollapsed(): boolean {
-    return this.isMobile ? false : this.collapsed;
-  }
+  get menuCollapsed(): boolean { return this.isMobile ? false : this.collapsed; }
 
   toggleSidebar() {
     if (this.isMobile) return;
@@ -129,7 +136,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.toggle.emit(this.collapsed);
   }
 
-  // Método público para togglear desde el layout
   toggleCollapse() {
     this.collapsed = !this.collapsed;
     if (this.collapsed) this.openMenu = null;
@@ -139,17 +145,15 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private routerSub?: Subscription;
 
   ngOnInit() {
-    // Auto-cerrar sidebar y limpiar búsqueda al navegar
     this.routerSub = this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe(() => {
         if (this.mobileOpen) this.closeMobile();
-        // Limpiar el buscador para que isSearching vuelva a false
-        // y los componentes destino se rendericen correctamente
         this.searchQuery     = '';
         this._searchCache    = '';
         this._filteredItems  = [];
         this._groupedResults = {};
+        this.cdr.markForCheck();
       });
   }
 
@@ -168,7 +172,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.setBodyScroll(true);
   }
 
-  /** Bloquea/desbloquea el scroll del body cuando el drawer móvil está abierto */
   private setBodyScroll(enabled: boolean) {
     document.body.style.overflow = enabled ? '' : 'hidden';
   }

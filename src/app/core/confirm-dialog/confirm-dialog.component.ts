@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface ConfirmDialogConfig {
@@ -13,6 +13,7 @@ export interface ConfirmDialogConfig {
   selector: 'app-confirm-dialog',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible) {
       <div class="dialog-backdrop" (click)="onCancel()">

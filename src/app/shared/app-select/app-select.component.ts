@@ -74,7 +74,7 @@ export interface SelectOption<T = string | number> {
   selector: 'app-select',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     /* ── Host ── */
     :host { display: block; }

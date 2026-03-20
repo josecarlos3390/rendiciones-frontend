@@ -19,6 +19,10 @@ interface JwtPayload {
   appRend:    string;
   appConf:    string;
   fijarSaldo: string;   // '1' = debe ingresar monto obligatorio, '0' = opcional
+  fijarNr:    string;   // '1' = normas preconfiguradas fijas
+  nr1:        string;   // norma reparto 1 preconfigurada
+  nr2:        string;   // norma reparto 2 preconfigurada
+  nr3:        string;   // norma reparto 3 preconfigurada
   exp:        number;
   iat:        number;
 }
@@ -128,4 +132,8 @@ export class AuthService {
   get canAccessRend(): boolean { return this.user?.appRend === 'Y'; }
   get canAccessConf(): boolean { return this.isAdmin || this.user?.appConf === 'Y'; }
   get fijarSaldo():    boolean { return this.user?.fijarSaldo === '1'; }
+  get fijarNr():       boolean { return this.user?.fijarNr === '1'; }
+  get nr1():           string  { return this.user?.nr1 ?? ''; }
+  get nr2():           string  { return this.user?.nr2 ?? ''; }
+  get nr3():           string  { return this.user?.nr3 ?? ''; }
 }

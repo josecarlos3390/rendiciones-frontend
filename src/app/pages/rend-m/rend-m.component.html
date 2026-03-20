@@ -58,7 +58,7 @@
 </div>
 
 <!-- ════ Modal: Formulario nueva / editar rendición ════ -->
-<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
+<div class="modal-backdrop" *ngIf="showForm">
   <div class="user-modal rend-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
@@ -282,8 +282,10 @@
           <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
           <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
           <td class="col-cuenta" data-label="Cuenta">
-            <span class="code-tag">{{ r.U_Cuenta }}</span>
-            <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
+            <div class="cuenta-inner">
+              <span class="code-tag">{{ r.U_Cuenta }}</span>
+              <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
+            </div>
           </td>
           <td class="col-empleado" data-label="Empleado">{{ r.U_NombreEmpleado }}</td>
           <td class="text-center" data-label="Fecha Inicio">{{ r.U_FechaIni | ddmmyyyy }}</td>

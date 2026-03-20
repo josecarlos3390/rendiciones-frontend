@@ -83,7 +83,7 @@ export class CuentasCabeceraComponent implements OnInit {
 
   // ── Carga de cuentas ─────────────────────────────────────
 
-  loadCuentas() {
+  loadCuentas(onComplete?: () => void) {
     if (!this.selectedPerfilId) {
       this.cuentas = []; this.filtered = []; this.paged = [];
       return;
@@ -95,8 +95,10 @@ export class CuentasCabeceraComponent implements OnInit {
         this.loading = false;
         this.applyFilter();
         this.cdr.markForCheck();
+        onComplete?.();
       },
-      error: () => { this.loading = false; this.cdr.markForCheck(); },
+      error: () => { this.loading = false; this.cdr.markForCheck();
+      onComplete?.(); },
     });
   }
 
@@ -128,11 +130,13 @@ export class CuentasCabeceraComponent implements OnInit {
     if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
     this.selectedAccount = null;
     this.showForm        = true;
+    this.cdr.markForCheck();
   }
 
   closeForm() {
     this.showForm        = false;
     this.selectedAccount = null;
+    this.cdr.markForCheck();
   }
 
   save() {
@@ -149,15 +153,18 @@ export class CuentasCabeceraComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.isSaving = false;
-        this.toast.success('Cuenta agregada');
-        this.closeForm();
-        this.loadCuentas();
+        this.loadCuentas(() => {
+          this.toast.success('Cuenta agregada');
+          this.closeForm();
+        });
+        this.cdr.markForCheck();
       },
       error: (err: any) => {
         this.isSaving = false;
         if (err?.status === 409 || err?.status === 422) {
           this.toast.error(err?.error?.message || 'Error al agregar cuenta');
         }
+        this.cdr.markForCheck();
       },
     });
   }
@@ -172,11 +179,12 @@ export class CuentasCabeceraComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(c.U_IdPerfil, c.U_CuentaSys).subscribe({
-        next:  () => { this.toast.success('Cuenta eliminada'); this.loadCuentas(); },
+        next:  () => { this.toast.success('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');
           }
+          this.cdr.markForCheck();
         },
       });
     });

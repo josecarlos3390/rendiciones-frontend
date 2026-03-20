@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,6 +10,7 @@ import { AuthService } from '../auth/auth.service';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
   form!: FormGroup;
@@ -19,7 +20,8 @@ export class LoginComponent {
   constructor(
     private fb:   FormBuilder,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
   ) {
     this.form = this.fb.group({
       username: ['', Validators.required],   // U_Login de REND_U
@@ -37,6 +39,7 @@ export class LoginComponent {
     this.auth.login(username!, password!).subscribe({
       next: () => {
         this.loading = false;
+        this.cdr.markForCheck();
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
@@ -45,6 +48,7 @@ export class LoginComponent {
           err?.error ||
           'Error al iniciar sesion';
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }

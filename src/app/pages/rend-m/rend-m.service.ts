@@ -3,16 +3,29 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { RendM, CreateRendMPayload, UpdateRendMPayload } from '../../models/rend-m.model';
 import { environment } from '../../../environments/environment';
 
+export interface PaginatedResult<T> {
+  data:       T[];
+  total:      number;
+  page:       number;
+  limit:      number;
+  totalPages: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RendMService {
   private http = inject(HttpClient);
   private api  = `${environment.apiUrl}/rend-m`;
 
-  getAll(idPerfil?: number) {
-    const params = idPerfil !== undefined
-      ? new HttpParams().set('idPerfil', idPerfil)
-      : undefined;
-    return this.http.get<RendM[]>(this.api, { params });
+  getAll(options: {
+    idPerfil?: number;
+    page?:     number;
+    limit?:    number;
+  } = {}) {
+    let params = new HttpParams();
+    if (options.idPerfil !== undefined) params = params.set('idPerfil', options.idPerfil);
+    if (options.page     !== undefined) params = params.set('page',     options.page);
+    if (options.limit    !== undefined) params = params.set('limit',    options.limit);
+    return this.http.get<PaginatedResult<RendM>>(this.api, { params });
   }
 
   getOne(id: number) {

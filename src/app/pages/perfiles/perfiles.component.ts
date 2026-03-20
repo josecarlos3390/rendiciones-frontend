@@ -73,8 +73,10 @@ export class PerfilesComponent implements OnInit {
 
   ngOnInit() {
     this.buildForm();
-    this.load();
-    this.reloadMonedaOptions();
+    Promise.resolve().then(() => {
+      this.load();
+      this.reloadMonedaOptions();
+    });
   }
 
   // ── Helpers ──────────────────────────────────────────────
@@ -110,7 +112,7 @@ export class PerfilesComponent implements OnInit {
 
   // ── CRUD ─────────────────────────────────────────────────
 
-  load() {
+  load(onComplete?: () => void) {
     this.loading   = true;
     this.loadError = false;
     this.perfilesService.getAll().subscribe({
@@ -119,10 +121,13 @@ export class PerfilesComponent implements OnInit {
         this.loading  = false;
         this.applyFilter();
         this.cdr.markForCheck();
+        onComplete?.();
       },
       error: () => {
         this.loading   = false;
         this.loadError = true;
+        this.cdr.markForCheck();
+      onComplete?.();
       },
     });
   }
@@ -161,6 +166,7 @@ export class PerfilesComponent implements OnInit {
       bolivianos: 0, sucursal: 0,
     });
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   openEdit(p: Perfil) {
@@ -181,6 +187,7 @@ export class PerfilesComponent implements OnInit {
     });
     this.initialValues = this.form.getRawValue();
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   closeForm() {
@@ -188,6 +195,7 @@ export class PerfilesComponent implements OnInit {
     this.editingPerfil = null;
     this.initialValues = null;
     this.form.reset();
+    this.cdr.markForCheck();
   }
 
   save() {
@@ -213,30 +221,36 @@ export class PerfilesComponent implements OnInit {
       this.perfilesService.update(this.editingPerfil.U_CodPerfil, payload).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Perfil actualizado');
-          this.closeForm();
-          this.load();
+          this.load(() => {
+            this.toast.success('Perfil actualizado');
+            this.closeForm();
+          });
+          this.cdr.markForCheck();
         },
         error: (err: any) => {
           this.isSaving = false;
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al actualizar perfil');
           }
+          this.cdr.markForCheck();
         },
       });
     } else {
       this.perfilesService.create(payload).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Perfil creado');
-          this.closeForm();
-          this.load();
+          this.load(() => {
+            this.toast.success('Perfil creado');
+            this.closeForm();
+          });
+          this.cdr.markForCheck();
         },
         error: (err: any) => {
           this.isSaving = false;
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al crear perfil');
           }
+          this.cdr.markForCheck();
         },
       });
     }
@@ -252,11 +266,12 @@ export class PerfilesComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.perfilesService.remove(p.U_CodPerfil).subscribe({
-        next:  () => { this.toast.success('Perfil eliminado'); this.load(); },
+        next:  () => { this.toast.success('Perfil eliminado'); this.load(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar perfil');
           }
+          this.cdr.markForCheck();
         },
       });
     });

@@ -81,6 +81,53 @@ export const routes: Routes = [
           import('./pages/rend-d/rend-d.component')
             .then(m => m.RendDComponent)
       },
+
+      // ── Datos Offline (solo visibles cuando APP_MODE=OFFLINE) ────────────
+      {
+        path: 'offline/cuentas',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/offline/cuentas/offline-cuentas.component')
+            .then(m => m.OfflineCuentasComponent)
+      },
+      {
+        path: 'offline/dimensiones',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/offline/dimensiones/offline-dimensiones.component')
+            .then(m => m.OfflineDimensionesComponent)
+      },
+      {
+        path: 'offline/normas',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/offline/normas/offline-normas.component')
+            .then(m => m.OfflineNormasComponent)
+      },
+      {
+        path: 'offline/proveedores',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/offline/entidades/offline-entidades.component')
+            .then(m => m.OfflineEntidadesComponent),
+        data: { tipo: 'PL', titulo: 'Proveedores' }
+      },
+      {
+        path: 'offline/clientes',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/offline/entidades/offline-entidades.component')
+            .then(m => m.OfflineEntidadesComponent),
+        data: { tipo: 'CL', titulo: 'Clientes' }
+      },
+      {
+        path: 'offline/empleados',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/offline/entidades/offline-entidades.component')
+            .then(m => m.OfflineEntidadesComponent),
+        data: { tipo: 'EL', titulo: 'Empleados' }
+      },
     ]
   },
   {

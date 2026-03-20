@@ -1,4 +1,4 @@
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -105,6 +105,7 @@ export class RendMComponent implements OnInit {
     private fb:                     FormBuilder,
     private auth:                   AuthService,
     private cdr:                    ChangeDetectorRef,
+    private router:                 Router,
     private perfilesService:        PerfilesService,
     private permisosService:        PermisosService,
     private cuentasCabeceraService: CuentasCabeceraService,
@@ -112,8 +113,9 @@ export class RendMComponent implements OnInit {
 
   ngOnInit() {
     this.buildForm();
-    this.load();
-    this.cargarPerfilesPaso1();
+    Promise.resolve().then(() => {
+      this.cargarPerfilesPaso1();
+    });
   }
 
   /**
@@ -133,6 +135,8 @@ export class RendMComponent implements OnInit {
         this.loadingPerfilesPaso1 = false;
         if (permisos.length === 1) {
           this.seleccionarPerfilDirecto(permisos[0]);
+          // Recargar con el perfil ya activo
+          this.load();
         }
         this.cdr.markForCheck();
       },
@@ -167,35 +171,44 @@ export class RendMComponent implements OnInit {
     return this.form.get(name)?.value !== this.initialValues[name];
   }
 
-  load() {
+  load(onComplete?: () => void) {
     this.loading   = true;
     this.loadError = false;
-    const idPerfil = this.perfilActivo?.U_CodPerfil;
-    this.rendMService.getAll(idPerfil).subscribe({
-      next: (data) => {
-        this.rendiciones = data;
+
+    this.rendMService.getAll({
+      idPerfil: this.perfilActivo?.U_CodPerfil,
+      page:     this.page,
+      limit:    this.limit,
+    }).subscribe({
+      next: (result) => {
+        // El backend ya pagina — guardamos data y metadatos
+        this.rendiciones = result.data;
+        this.filtered    = result.data;
+        this.paged       = result.data;
+        this.totalPages  = result.totalPages;
         this.loading     = false;
-        this.applyFilter();
+        this.applyLocalFilter();
         this.cdr.markForCheck();
+        onComplete?.();
       },
       error: () => {
         this.loading   = false;
         this.loadError = true;
         this.cdr.markForCheck();
+      onComplete?.();
       },
     });
   }
 
-  applyFilter() {
+  /**
+   * Filtro local — solo aplica búsqueda de texto y estado sobre
+   * los datos ya paginados que devolvió el backend.
+   * El filtro por perfil y usuario lo hace el backend.
+   */
+  applyLocalFilter() {
     const q = this.search.toLowerCase();
 
-    let base = this.perfilActivo
-      ? this.rendiciones.filter(r => r.U_IdPerfil === this.perfilActivo!.U_CodPerfil)
-      : this.rendiciones;
-
-    if (!this.isAdmin) {
-      base = base.filter(r => r.U_IdUsuario === String(this.auth.user?.sub));
-    }
+    let base = this.rendiciones;
 
     if (this.estadoFiltro === 'abiertas') {
       base = base.filter(r => r.U_Estado === 1);
@@ -209,23 +222,28 @@ export class RendMComponent implements OnInit {
       (r.U_NombreCuenta   ?? '').toLowerCase().includes(q) ||
       (r.U_NombrePerfil   ?? '').toLowerCase().includes(q),
     );
+    this.paged = this.filtered;
+  }
+
+  applyFilter() {
     this.page = 1;
-    this.updatePaging();
+    this.load();
   }
 
   setEstadoFiltro(valor: 'abiertas' | 'enviadas' | 'todas') {
     this.estadoFiltro = valor;
-    this.applyFilter();
+    this.applyLocalFilter();
+    this.cdr.markForCheck();
   }
 
   updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged  = this.filtered.slice(start, start + this.limit);
+    // La paginación ahora la controla el backend — este método
+    // se mantiene por compatibilidad con el PaginatorComponent
+    this.paged = this.filtered;
   }
 
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
+  onPageChange(p: number)  { this.page = p; this.load(); }
+  onLimitChange(l: number) { this.limit = l; this.page = 1; this.load(); }
 
   openPerfilPicker() {
     this.perfilPickerSelId  = this.perfilActivo?.U_CodPerfil ?? null;
@@ -254,6 +272,7 @@ export class RendMComponent implements OnInit {
   cancelPerfilPicker() {
     this.showPerfilPicker  = false;
     this.perfilPickerSelId = null;
+    this.cdr.markForCheck();
   }
 
   seleccionarPerfilDirecto(permiso: Permiso) {
@@ -276,7 +295,7 @@ export class RendMComponent implements OnInit {
     this.showPerfilPicker  = false;
     this.estadoFiltro      = 'abiertas';
     this.search            = '';
-    this.applyFilter();
+    this.load();
     this.cdr.markForCheck();
   }
 
@@ -350,6 +369,7 @@ export class RendMComponent implements OnInit {
     }
 
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   private aplicarBloqueoEmpleado() {
@@ -458,6 +478,7 @@ export class RendMComponent implements OnInit {
     });
 
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   closeForm() {
@@ -475,6 +496,7 @@ export class RendMComponent implements OnInit {
     this.filtroEmpleado    = this.perfilActivo?.U_EMP_TEXTO ?? '';
     this.filtroEmpleadoCar = this.perfilActivo?.U_EMP_CAR   ?? 'EMPIEZA';
     this.form.reset();
+    this.cdr.markForCheck();
   }
 
   save() {
@@ -500,9 +522,11 @@ export class RendMComponent implements OnInit {
       this.rendMService.update(this.editingRend.U_IdRendicion, payload).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Rendición actualizada');
-          this.closeForm();
-          this.load();
+          this.load(() => {
+            this.toast.success('Rendición actualizada');
+            this.closeForm();
+          });
+          this.cdr.markForCheck();
         },
         error: () => {
           this.isSaving = false;
@@ -511,11 +535,13 @@ export class RendMComponent implements OnInit {
       });
     } else {
       this.rendMService.create(payload).subscribe({
-        next: () => {
+        next: (rendicion) => {
           this.isSaving = false;
           this.toast.success('Rendición creada');
           this.closeForm();
-          this.load();
+          // Navegar directamente al detalle para empezar a agregar líneas
+          this.router.navigate(['/rend-m', rendicion.U_IdRendicion, 'detalle']);
+          this.cdr.markForCheck();
         },
         error: () => {
           this.isSaving = false;

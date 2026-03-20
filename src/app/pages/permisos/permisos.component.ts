@@ -46,8 +46,10 @@ export class PermisosComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadUsuarios();
-    this.loadPerfiles();
+    Promise.resolve().then(() => {
+      this.loadUsuarios();
+      this.loadPerfiles();
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────
@@ -70,14 +72,14 @@ export class PermisosComponent implements OnInit {
   loadUsuarios() {
     this.service.getUsuarios().subscribe({
       next: (data) => { this.usuarios = [...data]; this.rebuildUsuarioOptions(); this.cdr.markForCheck(); },
-      error: () => { this.toast.error('Error al cargar usuarios'); },
+      error: () => { this.toast.error('Error al cargar usuarios'); this.cdr.markForCheck(); },
     });
   }
 
   loadPerfiles() {
     this.service.getPerfiles().subscribe({
       next: (data) => { this.perfiles = [...data]; this.rebuildPerfilOptions(); this.cdr.markForCheck(); },
-      error: () => { this.toast.error('Error al cargar perfiles'); },
+      error: () => { this.toast.error('Error al cargar perfiles'); this.cdr.markForCheck(); },
     });
   }
 
@@ -131,7 +133,7 @@ export class PermisosComponent implements OnInit {
         this.rebuildPerfilOptions();
         this.cdr.markForCheck();
       },
-      error: () => { this.loading = false; },
+      error: () => { this.loading = false; this.cdr.markForCheck(); },
     });
   }
 
@@ -147,12 +149,14 @@ export class PermisosComponent implements OnInit {
           this.selectedPerfilId = null;
           this.toast.success('Permiso asignado correctamente');
           this.loadPermisos();
+          this.cdr.markForCheck();
         },
         error: (err: any) => {
           this.isSaving = false;
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al asignar permiso');
           }
+          this.cdr.markForCheck();
         },
       });
   }
@@ -167,11 +171,12 @@ export class PermisosComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(p.U_IDUSUARIO, p.U_IDPERFIL).subscribe({
-        next:  () => { this.toast.success('Permiso eliminado'); this.loadPermisos(); },
+        next:  () => { this.toast.success('Permiso eliminado'); this.loadPermisos(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');
           }
+          this.cdr.markForCheck();
         },
       });
     });

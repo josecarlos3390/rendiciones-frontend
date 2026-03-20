@@ -84,8 +84,10 @@ export class UsersComponent implements OnInit {
 
   ngOnInit() {
     this.buildForm();
-    this.load();
-    this.loadDimensions();
+    Promise.resolve().then(() => {
+      this.load();
+      this.loadDimensions();
+    });
   }
 
   // ── Dimensiones SAP ───────────────────────────────────────
@@ -101,6 +103,7 @@ export class UsersComponent implements OnInit {
       error: () => {
         // Si SAP no está disponible, los campos NR quedan como texto libre
         this.loadingDims = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -181,7 +184,7 @@ export class UsersComponent implements OnInit {
   }
 
   // ── CRUD ─────────────────────────────────────────────────
-  load() {
+  load(onComplete?: () => void) {
     this.loading   = true;
     this.loadError = false;
     this.usersService.getAll().subscribe({
@@ -190,10 +193,13 @@ export class UsersComponent implements OnInit {
         this.loading = false;
         this.applyFilter();
         this.cdr.markForCheck();
+        onComplete?.();
       },
       error: () => {
         this.loading   = false;
         this.loadError = true;
+        this.cdr.markForCheck();
+      onComplete?.();
       },
     });
   }
@@ -243,6 +249,7 @@ export class UsersComponent implements OnInit {
     this.form.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
     this.form.get('password')?.updateValueAndValidity();
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   openEdit(user: User) {
@@ -278,6 +285,7 @@ export class UsersComponent implements OnInit {
     this.initialValues = this.form.getRawValue();
     this.initialValues['password'] = '';
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   closeForm() {
@@ -286,6 +294,7 @@ export class UsersComponent implements OnInit {
     this.initialValues = null;
     this.form.get('login')?.enable();
     this.form.reset();
+    this.cdr.markForCheck();
   }
 
   save() {
@@ -318,9 +327,11 @@ export class UsersComponent implements OnInit {
       this.usersService.updateByAdmin(this.editingUser.U_IdU, payload).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Usuario actualizado');
-          this.closeForm();
-          this.load();
+          this.load(() => {
+            this.toast.success('Usuario actualizado');
+            this.closeForm();
+          });
+          this.cdr.markForCheck();
         },
         error: (err: any) => {
           this.isSaving = false;
@@ -328,21 +339,25 @@ export class UsersComponent implements OnInit {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al actualizar usuario');
           }
+          this.cdr.markForCheck();
         },
       });
     } else {
       this.usersService.create({ login: raw.login, password: raw.password, ...payload }).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Usuario creado');
-          this.closeForm();
-          this.load();
+          this.load(() => {
+            this.toast.success('Usuario creado');
+            this.closeForm();
+          });
+          this.cdr.markForCheck();
         },
         error: (err: any) => {
           this.isSaving = false;
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al crear usuario');
           }
+          this.cdr.markForCheck();
         },
       });
     }
@@ -378,11 +393,12 @@ export class UsersComponent implements OnInit {
       type:         isActive ? 'warning' : 'primary',
     }, () => {
       this.usersService.toggleStatus(u.U_IdU, isActive ? '0' : '1', u).subscribe({
-        next:  () => { this.toast.success(isActive ? 'Usuario inactivado' : 'Usuario activado'); this.load(); },
+        next:  () => { this.toast.success(isActive ? 'Usuario inactivado' : 'Usuario activado'); this.load(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al cambiar estado');
           }
+          this.cdr.markForCheck();
         },
       });
     });

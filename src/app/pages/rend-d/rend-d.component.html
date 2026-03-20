@@ -1,31 +1,28 @@
-<!-- ── Confirm dialog ── -->
 <app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
 
-<!-- ── Cabecera de página ── -->
+<!-- ── Cabecera ── -->
 <div class="page-header">
   <div class="page-title-group">
-    <button class="back-btn" (click)="goBack()">
-      ← Volver
-    </button>
+    <button class="back-btn" (click)="goBack()">← Volver</button>
     <div class="title-block">
-      <h2>Detalle de Rendición
+      <h2>
+        Detalle de Rendición
         <span class="rend-id-badge" *ngIf="cabecera">N° {{ cabecera.U_IdRendicion }}</span>
       </h2>
       <p class="page-subtitle" *ngIf="cabecera">
-        {{ cabecera.U_NombrePerfil }} · {{ cabecera.U_Objetivo }} · {{ cabecera.U_NombreEmpleado }}
+        {{ cabecera.U_NombrePerfil }} · {{ cabecera.U_Objetivo }}
+        <span *ngIf="cabecera.U_NombreEmpleado"> · {{ cabecera.U_NombreEmpleado }}</span>
       </p>
     </div>
   </div>
-  <button class="btn btn-primary btn-sm"
-    *ngIf="!isReadonly"
-    (click)="openNew()">
+  <button class="btn btn-primary btn-sm" *ngIf="!isReadonly" (click)="openNew()">
     + Adicionar Documento
   </button>
 </div>
 
-<!-- ── Panel de datos maestros ── -->
+<!-- ── Panel datos maestros ── -->
 <div class="maestros-panel" *ngIf="cabecera">
   <div class="maestro-grid">
     <div class="maestro-item">
@@ -45,16 +42,8 @@
       <span class="maestro-value mono">{{ cabecera.U_Cuenta }}</span>
     </div>
     <div class="maestro-item">
-      <span class="maestro-label">Nombre Cuenta</span>
-      <span class="maestro-value">{{ cabecera.U_NombreCuenta }}</span>
-    </div>
-    <div class="maestro-item">
       <span class="maestro-label">Empleado</span>
-      <span class="maestro-value mono">{{ cabecera.U_Empleado }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Nombre Empleado</span>
-      <span class="maestro-value">{{ cabecera.U_NombreEmpleado }}</span>
+      <span class="maestro-value mono">{{ cabecera.U_Empleado || '—' }}</span>
     </div>
     <div class="maestro-item">
       <span class="maestro-label">Objetivo</span>
@@ -72,262 +61,607 @@
       <span class="maestro-label">Monto Inicial</span>
       <span class="maestro-value mono">{{ cabecera.U_Monto | number:'1.2-2' }}</span>
     </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Preliminar</span>
-      <span class="maestro-value mono">{{ cabecera.U_Preliminar || '—' }}</span>
-    </div>
   </div>
-
   <div class="maestros-banner readonly-banner" *ngIf="isReadonly">
-    ⚠ Esta rendición está en estado <strong>{{ cabecera.U_Estado === 1 ? 'CERRADO' : 'CONTABILIZADO' }}</strong> — solo lectura.
+    ⚠ Esta rendición está en estado
+    <strong>{{ cabecera!.U_Estado === 2 ? 'CERRADO' : 'ENVIADO' }}</strong> — solo lectura.
   </div>
 </div>
 
-<!-- ── Modal de documento ── -->
-<div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
-  <div class="user-modal doc-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+<!-- ══ MODAL SELECTOR DE MODO ══ -->
+<div class="modal-backdrop" *ngIf="showModeSelector">
+  <div class="mode-modal" role="dialog" aria-modal="true">
 
     <div class="modal-header">
-      <h3>
-        {{ editingDoc ? 'Editar Documento N° ' + editingDoc.U_RD_IdRD : 'Nuevo Documento' }}
-        <span class="dirty-badge" *ngIf="editingDoc && isDirty">● cambios sin guardar</span>
-      </h3>
+      <h3>📄 Agregar Documento</h3>
+      <button class="modal-close" type="button" (click)="closeModeSelector()">✕</button>
+    </div>
+
+    <div class="mode-body">
+      <p class="mode-subtitle">¿Cómo querés registrar el documento?</p>
+      <div class="mode-options">
+
+        <button class="mode-card" type="button" (click)="elegirQR()">
+          <span class="mode-icon">📷</span>
+          <span class="mode-label">Registrar por QR</span>
+          <span class="mode-desc">Escaneá el código QR de la factura con la cámara</span>
+        </button>
+
+        <button class="mode-card" type="button" (click)="elegirManual()">
+          <span class="mode-icon">✏️</span>
+          <span class="mode-label">Registro Manual</span>
+          <span class="mode-desc">Completá los datos del documento manualmente</span>
+        </button>
+
+        <button class="mode-card" type="button" (click)="elegirUrl()">
+          <span class="mode-icon">🔗</span>
+          <span class="mode-label">Registrar por URL</span>
+          <span class="mode-desc">Pegá el enlace de la factura electrónica</span>
+        </button>
+
+        <button class="mode-card" type="button" (click)="elegirPdf()">
+          <span class="mode-icon">📄</span>
+          <span class="mode-label">Registrar por PDF</span>
+          <span class="mode-desc">Subí el archivo PDF de tu factura</span>
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL URL ══ -->
+<div class="modal-backdrop" *ngIf="showUrlModal">
+  <div class="mode-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h3>🔗 Registrar por URL</h3>
+      <button class="modal-close" type="button" (click)="closeUrlModal()">✕</button>
+    </div>
+    <div class="mode-body">
+      <p class="mode-subtitle">Pegá el enlace de la factura electrónica</p>
+      <div class="url-input-wrap">
+        <input
+          class="url-input"
+          type="url"
+          placeholder="https://..."
+          [(ngModel)]="urlInput"
+          autocomplete="off" />
+      </div>
+      <div class="mode-footer-actions">
+        <button class="btn btn-ghost" type="button" (click)="closeUrlModal()">Cancelar</button>
+        <button class="btn btn-primary" type="button" [disabled]="!urlInput.trim()" (click)="confirmarUrl()">Continuar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PDF ══ -->
+<div class="modal-backdrop" *ngIf="showPdfModal">
+  <div class="mode-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h3>📄 Registrar por PDF</h3>
+      <button class="modal-close" type="button" (click)="closePdfModal()">✕</button>
+    </div>
+    <div class="mode-body">
+      <p class="mode-subtitle">Subí el archivo PDF de tu factura</p>
+      <label class="pdf-drop-zone" [class.has-file]="!!pdfFile">
+        <input type="file" accept="application/pdf" (change)="onPdfSelected($event)" style="display:none" />
+        <span class="pdf-drop-icon">{{ pdfFile ? '✅' : '📁' }}</span>
+        <span class="pdf-drop-label">{{ pdfFileName || 'Hacer clic para seleccionar PDF' }}</span>
+        <span class="pdf-drop-hint" *ngIf="!pdfFile">Solo archivos .pdf</span>
+      </label>
+      <div class="mode-footer-actions">
+        <button class="btn btn-ghost" type="button" (click)="closePdfModal()">Cancelar</button>
+        <button class="btn btn-primary" type="button" [disabled]="!pdfFile" (click)="confirmarPdf()">Continuar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ESCÁNER QR ══ -->
+<div class="modal-backdrop" *ngIf="showQrScanner">
+  <div class="qr-modal" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <h3>📷 Escanear QR</h3>
+      <button class="modal-close" type="button" (click)="cerrarQrScanner()">✕</button>
+    </div>
+
+    <div class="qr-body">
+
+      <!-- Error de permisos -->
+      <div class="qr-error" *ngIf="qrError">
+        <span class="qr-error-icon">⚠️</span>
+        <p>{{ qrError }}</p>
+        <button class="btn btn-ghost btn-sm" type="button" (click)="cerrarQrScanner()">Cerrar</button>
+      </div>
+
+      <!-- Visor de cámara -->
+      <div class="qr-viewport" *ngIf="!qrError">
+        <video id="qr-video" class="qr-video" autoplay playsinline muted></video>
+        <div class="qr-overlay">
+          <div class="qr-frame">
+            <span class="qr-corner tl"></span>
+            <span class="qr-corner tr"></span>
+            <span class="qr-corner bl"></span>
+            <span class="qr-corner br"></span>
+            <div class="qr-scanline"></div>
+          </div>
+        </div>
+        <p class="qr-hint">Apuntá la cámara al código QR de la factura</p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-backdrop" *ngIf="showForm">
+  <div class="doc-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="modal-header modal-header--doc">
+      <div class="doc-modal-title">
+        <h3>
+          {{ editingDoc ? 'Editar Documento' : 'Nuevo Documento' }}
+          <span class="dirty-badge" *ngIf="editingDoc && isDirty">● sin guardar</span>
+        </h3>
+        <div class="doc-modal-meta">
+          <span class="doc-meta-item">
+            <span class="doc-meta-label">Rendición</span>
+            <span class="doc-meta-value">N° {{ cabecera?.U_IdRendicion }}</span>
+          </span>
+          <span class="doc-meta-sep">·</span>
+          <span class="doc-meta-item">
+            <span class="doc-meta-label">Perfil</span>
+            <span class="doc-meta-value">{{ cabecera?.U_NombrePerfil }}</span>
+          </span>
+        </div>
+      </div>
       <button class="modal-close" type="button" (click)="closeForm()">✕</button>
     </div>
 
+    <!-- Tabs -->
+    <div class="modal-tabs">
+      <button class="modal-tab" [class.active]="activeTab === 'doc'"
+        (click)="setTab('doc')" type="button">
+        Identificación
+      </button>
+      <button class="modal-tab" [class.active]="activeTab === 'montos'"
+        (click)="setTab('montos')" type="button">
+        Montos y Normas
+      </button>
+      <button class="modal-tab" [class.active]="activeTab === 'impuestos'"
+        (click)="setTab('impuestos')" type="button">
+        Cálculo Impuestos
+      </button>
+    </div>
+
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-      <div class="modal-body doc-form-body">
+      <div class="modal-body">
 
-        <!-- ══ Sección: Documento ══ -->
-        <div class="form-section-label">Documento</div>
-        <div class="doc-form-grid">
+        <!-- ══ PESTAÑA 1: IDENTIFICACIÓN ══ -->
+        <div class="tab-panel" [class.active]="activeTab === 'doc'">
+          <div class="doc-grid">
 
-          <div class="form-field col-span-2" [class.field-changed]="fieldChanged('concepto')">
-            <label>Concepto <span class="required">*</span></label>
-            <input type="text" formControlName="concepto" maxlength="200" placeholder="Descripción del gasto" autocomplete="off" />
-            <span class="field-error" *ngIf="form.get('concepto')?.invalid && form.get('concepto')?.touched">Obligatorio</span>
+            <div class="form-field cuenta-field" [class.field-changed]="fieldChanged('cuenta')">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [cueCar]="cueCar"
+                [cueTexto]="cueTexto"
+                [listaCuentas]="listaCuentas"
+                [initialCode]="form.get('cuenta')?.value"
+                placeholder="— Buscar cuenta —"
+                (cuentaChange)="onCuentaSelected($event)">
+              </app-cuenta-search>
+            </div>
+
+            <div class="form-field" [class.field-changed]="fieldChanged('fecha')">
+              <label>Fecha <span class="required">*</span></label>
+              <input type="date" formControlName="fecha" />
+              <span class="field-error" *ngIf="form.get('fecha')?.invalid && form.get('fecha')?.touched">Obligatoria</span>
+            </div>
+
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('tipoDoc')">
+              <label>Tipo Documento <span class="required">*</span></label>
+              <app-select
+                label="Tipo"
+                [searchable]="false"
+                [options]="tipoDocOptions"
+                [value]="form.get('tipoDoc')?.value"
+                (valueChange)="form.get('tipoDoc')?.setValue($event); onTipoDocChange($event)">
+              </app-select>
+            </div>
+
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('numDocumento')">
+              <label>Nro Documento</label>
+              <input type="text" formControlName="numDocumento" maxlength="20" placeholder="0" autocomplete="off" />
+            </div>
+
+            <!-- Toggle Facturación en Línea — ocupa col completa alineado a la derecha -->
+            <div class="form-field col-span-2 toggle-field">
+              <label class="toggle-label">
+                <span class="toggle-label-text">Facturación en Línea</span>
+                <button type="button" class="toggle-btn" [class.active]="facturaLinea"
+                  (click)="toggleFacturaLinea()">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+            </div>
+
+            <!-- CUF — solo activo en Facturación en Línea -->
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('cuf')"
+              [class.field-disabled]="!facturaLinea">
+              <label>CUF</label>
+              <input type="text" formControlName="cuf" maxlength="250"
+                placeholder="Factura electrónica" autocomplete="off" />
+            </div>
+
+            <!-- Proveedor + botón nuevo proveedor eventual -->
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('prov')">
+              <label>Proveedor</label>
+              <div class="prov-row">
+                <app-proveedor-search
+                  [proCar]="proCar"
+                  [proTexto]="proTexto"
+                  [initialCode]="form.get('codProv')?.value"
+                  [selected]="proveedorSeleccionado"
+                  placeholder="— Buscar proveedor —"
+                  (proveedorChange)="onProveedorSelected($event)">
+                </app-proveedor-search>
+                <button type="button" class="btn-nuevo-prov" title="Registrar proveedor eventual"
+                  (click)="abrirNuevoProv()">+</button>
+              </div>
+            </div>
+
+            <!-- Nro Autorización — solo activo en modo manual -->
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('nroAutor')"
+              [class.field-disabled]="facturaLinea">
+              <label>Nro Autorización</label>
+              <input type="text" formControlName="nroAutor" maxlength="250" placeholder="0" autocomplete="off" />
+            </div>
+
+            <!-- Código de Control — solo activo en modo manual -->
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('ctrl')"
+              [class.field-disabled]="facturaLinea">
+              <label>Código de Control</label>
+              <input type="text" formControlName="ctrl" maxlength="25" placeholder="0" autocomplete="off" />
+            </div>
+
+            <div class="form-field col-span-4" [class.field-changed]="fieldChanged('concepto')">
+              <label>Concepto <span class="required">*</span></label>
+              <input type="text" formControlName="concepto" maxlength="200" placeholder="Descripción del gasto" autocomplete="off" />
+              <span class="field-error" *ngIf="form.get('concepto')?.invalid && form.get('concepto')?.touched">Obligatorio</span>
+            </div>
+
           </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('fecha')">
-            <label>Fecha <span class="required">*</span></label>
-            <input type="date" formControlName="fecha" />
-            <span class="field-error" *ngIf="form.get('fecha')?.invalid && form.get('fecha')?.touched">Obligatoria</span>
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('tipoDoc')">
-            <label>Tipo Documento <span class="required">*</span></label>
-            <app-select
-              label="Tipo Documento"
-              [required]="true"
-              [searchable]="false"
-              [options]="tipoDocOptions"
-              [value]="form.get('tipoDoc')?.value"
-              [invalid]="!!form.get('tipoDoc')?.invalid && !!form.get('tipoDoc')?.touched"
-              (valueChange)="form.get('tipoDoc')?.setValue($event)">
-            </app-select>
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('numDocumento')">
-            <label>N° Documento</label>
-            <input type="text" formControlName="numDocumento" maxlength="20" placeholder="0" autocomplete="off" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('nroAutor')">
-            <label>N° Autorización</label>
-            <input type="text" formControlName="nroAutor" maxlength="250" placeholder="0" autocomplete="off" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('ctrl')">
-            <label>Código de Control</label>
-            <input type="text" formControlName="ctrl" maxlength="25" placeholder="0" autocomplete="off" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('cuf')">
-            <label>CUF</label>
-            <input type="text" formControlName="cuf" maxlength="250" placeholder="CUF factura electrónica" autocomplete="off" />
-          </div>
-
         </div>
 
-        <!-- ══ Sección: Proveedor ══ -->
-        <div class="form-section-label">Proveedor</div>
-        <div class="doc-form-grid">
+        <!-- ══ PESTAÑA 2: MONTOS Y NORMAS ══ -->
+        <div class="tab-panel" [class.active]="activeTab === 'montos'">
+          <div class="doc-grid">
+            <div class="form-field" [class.field-changed]="fieldChanged('importe')">
+              <label>Importe <span class="required">*</span></label>
+              <input type="number" formControlName="importe" min="0" step="0.01"
+                placeholder="0.00" />
+            </div>
 
-          <div class="form-field" [class.field-changed]="fieldChanged('nit')">
-            <label>NIT <span class="required">*</span></label>
-            <input type="text" formControlName="nit" maxlength="50" placeholder="0" autocomplete="off" />
-            <span class="field-error" *ngIf="form.get('nit')?.invalid && form.get('nit')?.touched">Obligatorio</span>
+            <div class="form-field" [class.field-changed]="fieldChanged('descuento')">
+              <label class="label-with-toggle">
+                Descuento
+                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="descuentoActivo"
+                  (click)="toggleDescuento()">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+              <input *ngIf="descuentoActivo" type="number" formControlName="descuento" min="0" step="0.01" />
+              <div *ngIf="!descuentoActivo" class="calc-display calc-zero-display">—</div>
+            </div>
+
+            <div class="form-field"
+
+              [class.field-changed]="fieldChanged('exento')"
+              [class.field-disabled]="exentoEsFijo">
+              <label>
+                Exento
+                <span *ngIf="exentoEsFijo" class="label-pct">
+                  {{ configDocActivo?.U_EXENTOpercent }}%
+                </span>
+              </label>
+              <!-- Variable (-1): input editable directo, sin toggle -->
+              <input *ngIf="exentoEsVariable"
+                type="number" formControlName="exento" min="0" step="0.01" />
+              <!-- Sin config o 0: siempre dash -->
+              <div *ngIf="!exentoEsVariable && !exentoEsFijo" class="calc-display calc-zero-display">—</div>
+              <!-- % fijo (> 0): valor calculado automático, solo lectura -->
+              <div *ngIf="exentoEsFijo" class="calc-display">
+                {{ +form.get('exento')?.value !== 0 ? (form.get('exento')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field"
+              [class.field-changed]="fieldChanged('tasa')"
+              [class.field-disabled]="tasaEsFijo">
+              <label>
+                Tasas
+                <span *ngIf="tasaEsFijo && configDocActivo?.U_TASA !== 0" class="label-pct">
+                  {{ configDocActivo?.U_TASA }}
+                </span>
+              </label>
+              <input *ngIf="tasaEsVariable || !configDocActivo"
+                type="number" formControlName="tasa" min="0" step="0.01" />
+              <div *ngIf="tasaEsFijo" class="calc-display">
+                {{ +form.get('tasa')?.value !== 0 ? (form.get('tasa')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field" [class.field-changed]="fieldChanged('giftCard')">
+              <label class="label-with-toggle">
+                GIFTCARD
+                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="giftCardActivo"
+                  (click)="toggleGiftCard()">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+              <input *ngIf="giftCardActivo" type="number" formControlName="giftCard" min="0" step="0.01" />
+              <div *ngIf="!giftCardActivo" class="calc-display calc-zero-display">—</div>
+            </div>
+
+            <div class="form-field" [class.field-changed]="fieldChanged('tasaCero')">
+              <label class="label-with-toggle">
+                Tasa Cero
+                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="tasaCeroActivo"
+                  (click)="toggleTasaCero()">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+              <input *ngIf="tasaCeroActivo" type="number" formControlName="tasaCero" min="0" step="0.01" />
+              <div *ngIf="!tasaCeroActivo" class="calc-display calc-zero-display">—</div>
+            </div>
+
+            <div class="form-field col-span-2"
+              [class.field-changed]="fieldChanged('ice')"
+              [class.field-disabled]="iceEsFijo">
+              <label>
+                ICE
+                <span *ngIf="iceEsFijo && configDocActivo?.U_ICE !== 0" class="label-pct">
+                  {{ configDocActivo?.U_ICE }}
+                </span>
+              </label>
+              <input *ngIf="iceEsVariable || !configDocActivo"
+                type="number" formControlName="ice" min="0" step="0.01" />
+              <div *ngIf="iceEsFijo" class="calc-display">
+                {{ +form.get('ice')?.value !== 0 ? (form.get('ice')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('proyecto')">
+              <label class="label-with-toggle">
+                Proyecto
+                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="proyectoActivo"
+                  (click)="toggleProyecto()">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+              <input *ngIf="proyectoActivo" type="text" formControlName="proyecto" maxlength="100" autocomplete="off" />
+              <div *ngIf="!proyectoActivo" class="calc-display calc-zero-display">—</div>
+            </div>
+
+            <!-- Normas de Reparto dinámicas (máx 3) -->
+            <ng-container *ngFor="let norma of normasActivas">
+              <div class="form-field col-span-2" [class.field-changed]="fieldChanged('n' + norma.slot)">
+                <label>Norma Reparto {{ norma.slot }}
+                  <span class="label-dim">{{ norma.dimension.dimensionName }}</span>
+                </label>
+                <app-select
+                  [label]="norma.dimension.dimensionName"
+                  [searchable]="true"
+                  [options]="norma.rules"
+                  [value]="form.get('n' + norma.slot)?.value"
+                  (valueChange)="form.get('n' + norma.slot)?.setValue($event)">
+                </app-select>
+              </div>
+            </ng-container>
+
           </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('codProv')">
-            <label>Código Proveedor</label>
-            <input type="text" formControlName="codProv" maxlength="25" autocomplete="off" />
-          </div>
-
-          <div class="form-field col-span-2" [class.field-changed]="fieldChanged('prov')">
-            <label>Nombre Proveedor</label>
-            <input type="text" formControlName="prov" maxlength="200" autocomplete="off" />
-          </div>
-
         </div>
 
-        <!-- ══ Sección: Cuenta ══ -->
-        <div class="form-section-label">Cuenta</div>
-        <div class="doc-form-grid">
+        <!-- ══ PESTAÑA 3: CÁLCULO IMPUESTOS ══ -->
+        <div class="tab-panel" [class.active]="activeTab === 'impuestos'">
+          <div class="doc-grid">
 
-          <div class="form-field" [class.field-changed]="fieldChanged('cuenta')">
-            <label>Código Cuenta</label>
-            <input type="text" formControlName="cuenta" maxlength="25" autocomplete="off" />
+            <!-- ── Bloque impuestos calculados ── -->
+            <div class="calc-group col-span-4">
+              <span class="calc-group-label">Impuestos retenidos</span>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoIVA')?.value === 0">
+              <label>IVA</label>
+              <div class="calc-display">
+                {{ +form.get('montoIVA')?.value !== 0 ? (form.get('montoIVA')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoIT')?.value === 0">
+              <label>IT</label>
+              <div class="calc-display">
+                {{ +form.get('montoIT')?.value !== 0 ? (form.get('montoIT')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoIUE')?.value === 0">
+              <label>IUE</label>
+              <div class="calc-display">
+                {{ +form.get('montoIUE')?.value !== 0 ? (form.get('montoIUE')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoRCIVA')?.value === 0">
+              <label>RCIVA</label>
+              <div class="calc-display">
+                {{ +form.get('montoRCIVA')?.value !== 0 ? (form.get('montoRCIVA')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <!-- ── Totales ── -->
+            <div class="calc-group col-span-4">
+              <span class="calc-group-label">Totales</span>
+            </div>
+
+            <div class="form-field calc-field calc-highlight" [class.calc-zero]="+form.get('impRet')?.value === 0">
+              <label>Imp/Ret</label>
+              <div class="calc-display">
+                {{ +form.get('impRet')?.value !== 0 ? (form.get('impRet')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field calc-highlight calc-total" [class.calc-zero]="+form.get('total')?.value === 0">
+              <label>Monto Total</label>
+              <div class="calc-display">
+                {{ +form.get('total')?.value !== 0 ? (form.get('total')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field col-span-2" [class.calc-zero]="+form.get('descuento')?.value === 0">
+              <label>Descuento</label>
+              <div class="calc-display">
+                {{ +form.get('descuento')?.value !== 0 ? (form.get('descuento')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <!-- ── Deducciones de base imponible ── -->
+            <div class="calc-group col-span-4">
+              <span class="calc-group-label">Deducciones de base imponible</span>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('tasa')?.value === 0">
+              <label>Tasas</label>
+              <div class="calc-display">
+                {{ +form.get('tasa')?.value !== 0 ? (form.get('tasa')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('tasaCero')?.value === 0">
+              <label>Tasa Cero</label>
+              <div class="calc-display">
+                {{ +form.get('tasaCero')?.value !== 0 ? (form.get('tasaCero')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('giftCard')?.value === 0">
+              <label>GIFTCARD</label>
+              <div class="calc-display">
+                {{ +form.get('giftCard')?.value !== 0 ? (form.get('giftCard')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('exento')?.value === 0">
+              <label>Exento</label>
+              <div class="calc-display">
+                {{ +form.get('exento')?.value !== 0 ? (form.get('exento')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
+            <div class="form-field calc-field" [class.calc-zero]="+form.get('ice')?.value === 0">
+              <label>ICE</label>
+              <div class="calc-display">
+                {{ +form.get('ice')?.value !== 0 ? (form.get('ice')?.value | number:'1.2-2') : '—' }}
+              </div>
+            </div>
+
           </div>
-
-          <div class="form-field col-span-3" [class.field-changed]="fieldChanged('nombreCuenta')">
-            <label>Nombre Cuenta</label>
-            <input type="text" formControlName="nombreCuenta" maxlength="250" autocomplete="off" />
-          </div>
-
-        </div>
-
-        <!-- ══ Sección: Montos ══ -->
-        <div class="form-section-label">Montos</div>
-        <div class="doc-form-grid">
-
-          <div class="form-field" [class.field-changed]="fieldChanged('importe')">
-            <label>Importe <span class="required">*</span></label>
-            <input type="number" formControlName="importe" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('descuento')">
-            <label>Descuento</label>
-            <input type="number" formControlName="descuento" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('exento')">
-            <label>Exento</label>
-            <input type="number" formControlName="exento" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('tasaCero')">
-            <label>Tasa Cero</label>
-            <input type="number" formControlName="tasaCero" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('impRet')">
-            <label>Imp. Retenido</label>
-            <input type="number" formControlName="impRet" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('total')">
-            <label>Total</label>
-            <input type="number" formControlName="total" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('tasa')">
-            <label>Tasa Cambio</label>
-            <input type="number" formControlName="tasa" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('giftCard')">
-            <label>Gift Card</label>
-            <input type="number" formControlName="giftCard" min="0" step="0.01" />
-          </div>
-
-        </div>
-
-        <!-- ══ Sección: Impuestos ══ -->
-        <div class="form-section-label">Impuestos</div>
-        <div class="doc-form-grid">
-
-          <div class="form-field" [class.field-changed]="fieldChanged('montoIVA')">
-            <label>IVA <span class="required">*</span></label>
-            <input type="number" formControlName="montoIVA" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('montoIT')">
-            <label>IT <span class="required">*</span></label>
-            <input type="number" formControlName="montoIT" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('montoIUE')">
-            <label>IUE <span class="required">*</span></label>
-            <input type="number" formControlName="montoIUE" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('montoRCIVA')">
-            <label>RC-IVA <span class="required">*</span></label>
-            <input type="number" formControlName="montoRCIVA" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('ice')">
-            <label>ICE <span class="required">*</span></label>
-            <input type="number" formControlName="ice" min="0" step="0.01" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('ctaExento')">
-            <label>Cta. Exento <span class="required">*</span></label>
-            <input type="text" formControlName="ctaExento" maxlength="25" autocomplete="off" />
-            <span class="field-error" *ngIf="form.get('ctaExento')?.invalid && form.get('ctaExento')?.touched">Obligatorio</span>
-          </div>
-
-        </div>
-
-        <!-- ══ Sección: Otros ══ -->
-        <div class="form-section-label">Otros</div>
-        <div class="doc-form-grid">
-
-          <div class="form-field" [class.field-changed]="fieldChanged('proyecto')">
-            <label>Proyecto</label>
-            <input type="text" formControlName="proyecto" maxlength="100" autocomplete="off" />
-          </div>
-
-          <div class="form-field" [class.field-changed]="fieldChanged('partida')">
-            <label>Partida</label>
-            <input type="text" formControlName="partida" maxlength="50" autocomplete="off" />
-          </div>
-
-          <div class="form-field col-span-2" [class.field-changed]="fieldChanged('nroOT')">
-            <label>N° OT</label>
-            <input type="text" formControlName="nroOT" maxlength="250" autocomplete="off" />
-          </div>
-
         </div>
 
       </div><!-- /modal-body -->
 
       <!-- Footer -->
       <div class="modal-footer">
-        <ng-container *ngIf="isDirty; else noChanges">
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-          <button type="submit"
-            [class]="editingDoc ? 'btn btn-save-changes' : 'btn btn-primary'"
-            [disabled]="form.invalid || isSaving">
-            <span *ngIf="isSaving">Guardando...</span>
-            <span *ngIf="!isSaving">{{ editingDoc ? '💾 Guardar cambios' : '➕ Agregar Documento' }}</span>
-          </button>
-        </ng-container>
-        <ng-template #noChanges>
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
-        </ng-template>
+        <div class="footer-nav">
+          <button type="button" class="btn btn-ghost btn-sm"
+            [disabled]="activeTab === 'doc'"
+            (click)="prevTab()">← Anterior</button>
+          <button type="button" class="btn btn-ghost btn-sm"
+            [disabled]="activeTab === 'impuestos'"
+            (click)="nextTab()">Siguiente →</button>
+        </div>
+        <div class="footer-actions">
+          <ng-container *ngIf="isDirty; else noChanges">
+            <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+            <button type="submit"
+              [class]="editingDoc ? 'btn btn-save-changes' : 'btn btn-primary'"
+              [disabled]="form.invalid || isSaving">
+              <span *ngIf="isSaving">Guardando...</span>
+              <span *ngIf="!isSaving">{{ editingDoc ? '💾 Guardar cambios' : '➕ Agregar' }}</span>
+            </button>
+          </ng-container>
+          <ng-template #noChanges>
+            <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+          </ng-template>
+        </div>
       </div>
 
     </form>
   </div>
 </div>
 
-<!-- ── Estado de carga / error ── -->
+<!-- ══ MODAL NUEVO PROVEEDOR EVENTUAL ══ -->
+<div class="modal-backdrop" *ngIf="showNuevoProv">
+  <div class="prov-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>🏢 Registrar Proveedor Eventual</h3>
+      <button class="modal-close" type="button" (click)="cerrarNuevoProv()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="doc-grid">
+
+        <div class="form-field col-span-2">
+          <label>NIT <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="nuevoProvNit" maxlength="255"
+            placeholder="Número de identificación tributaria" autocomplete="off" />
+        </div>
+
+        <div class="form-field col-span-2">
+          <label>Razón Social <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="nuevoProvNombre" maxlength="255"
+            placeholder="Nombre o razón social del proveedor" autocomplete="off" />
+        </div>
+
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div></div>
+      <div class="footer-actions">
+        <button type="button" class="btn btn-ghost" (click)="cerrarNuevoProv()">Cancelar</button>
+        <button type="button" class="btn btn-primary"
+          [disabled]="!nuevoProvNit.trim() || !nuevoProvNombre.trim() || guardandoProv"
+          (click)="guardarNuevoProv()">
+          <span *ngIf="guardandoProv">Guardando...</span>
+          <span *ngIf="!guardandoProv">➕ Registrar</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
 <div *ngIf="loadingDocs" class="empty-state">Cargando documentos...</div>
 <div *ngIf="!loadingDocs && loadError" class="empty-state">
   No se pudo cargar los documentos.
   <a (click)="loadDocs()">Reintentar</a>
 </div>
 
-<!-- ── Tabla de documentos ── -->
+<!-- ── Tabla ── -->
 <div class="table-wrapper" *ngIf="!loadingDocs && !loadError">
 
   <div *ngIf="documentos.length === 0" class="empty-state">
     No hay documentos registrados.
-    <ng-container *ngIf="!isReadonly">
-      <a (click)="openNew()">Agregar el primero</a>
-    </ng-container>
+    <a *ngIf="!isReadonly" (click)="openNew()">Agregar el primero</a>
   </div>
 
   <table class="data-table" *ngIf="documentos.length > 0">
@@ -341,39 +675,38 @@
         <th>Concepto</th>
         <th class="text-right">Importe</th>
         <th class="text-right">Descuento</th>
-        <th class="text-right">IVA</th>
+        <th class="text-right">ICE</th>
         <th class="text-right">Total</th>
         <th class="actions">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let d of paged">
-        <td class="text-center col-id" data-label="N°">{{ d.U_RD_IdRD }}</td>
-        <td class="col-cuenta" data-label="Cuenta">
-          <span class="code-tag" *ngIf="d.U_RD_Cuenta">{{ d.U_RD_Cuenta }}</span>
-          <span class="cuenta-nombre" *ngIf="d.U_RD_NombreCuenta">{{ d.U_RD_NombreCuenta }}</span>
-          <span class="text-muted-cell" *ngIf="!d.U_RD_Cuenta">—</span>
+        <td class="text-center col-id"        data-label="N°">{{ d.U_RD_IdRD }}</td>
+        <td class="col-cuenta"                data-label="Cuenta">
+          <div class="cuenta-inner">
+            <span class="code-tag" *ngIf="d.U_RD_Cuenta">{{ d.U_RD_Cuenta }}</span>
+            <span class="text-muted-cell" *ngIf="!d.U_RD_Cuenta">—</span>
+          </div>
         </td>
-        <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
-        <td data-label="Tipo Doc."><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
-        <td class="mono-cell" data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
-        <td class="col-concepto" data-label="Concepto">{{ d.U_RD_Concepto }}</td>
-        <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell" data-label="Descuento">{{ d.U_RD_Descuento | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell" data-label="IVA">{{ d.U_MontoIVA | number:'1.2-2' }}</td>
+        <td class="text-center"               data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
+        <td                                   data-label="Tipo"><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
+        <td class="mono-cell"                 data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
+        <td class="col-concepto"              data-label="Concepto">{{ d.U_RD_Concepto }}</td>
+        <td class="text-right mono-cell"      data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell"      data-label="Descuento">{{ d.U_RD_Descuento | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell"      data-label="ICE">{{ d.U_ICE | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
         <td class="actions">
           <button class="btn btn-sm btn-ghost" (click)="openEdit(d)">Editar</button>
-          <button class="btn btn-sm btn-danger-soft"
-            *ngIf="!isReadonly" (click)="confirmDelete(d)">Eliminar</button>
+          <button class="btn btn-sm btn-danger-soft" *ngIf="!isReadonly" (click)="confirmDelete(d)">Eliminar</button>
         </td>
       </tr>
     </tbody>
-    <!-- Fila de totales -->
     <tfoot>
       <tr class="totals-row">
         <td colspan="6" class="totals-label">Totales</td>
-        <td class="text-right mono-cell total-cell">{{ totalImporte  | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ totalImporte   | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell">{{ totalDescuento | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell">{{ totalIVA       | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell">{{ totalGeneral   | number:'1.2-2' }}</td>
@@ -382,18 +715,13 @@
     </tfoot>
   </table>
 
-  <!-- Resumen de totales solo visible en móvil (≤640px) — reemplaza el tfoot -->
   <div class="totals-mobile" *ngIf="documentos.length > 0">
     <div class="totals-mobile-row">
       <span class="totals-mobile-label">Importe</span>
       <span class="totals-mobile-value">{{ totalImporte | number:'1.2-2' }}</span>
     </div>
     <div class="totals-mobile-row">
-      <span class="totals-mobile-label">Descuento</span>
-      <span class="totals-mobile-value">{{ totalDescuento | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">IVA</span>
+      <span class="totals-mobile-label">ICE</span>
       <span class="totals-mobile-value">{{ totalIVA | number:'1.2-2' }}</span>
     </div>
     <div class="totals-mobile-divider"></div>
@@ -404,10 +732,8 @@
   </div>
 
   <app-paginator *ngIf="documentos.length > 0"
-    [page]="page"
-    [limit]="limit"
-    [total]="documentos.length"
-    [totalPages]="totalPages"
+    [page]="page" [limit]="limit"
+    [total]="documentos.length" [totalPages]="totalPages"
     (pageChange)="onPageChange($event)"
     (limitChange)="onLimitChange($event)">
   </app-paginator>
