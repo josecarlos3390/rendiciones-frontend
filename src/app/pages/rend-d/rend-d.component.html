@@ -17,9 +17,50 @@
       </p>
     </div>
   </div>
-  <button class="btn btn-primary btn-sm" *ngIf="!isReadonly" (click)="openNew()">
-    + Adicionar Documento
-  </button>
+  <div class="header-actions">
+    <!-- Importar (solo si no es readonly) -->
+    <div class="import-btn-wrap" *ngIf="!isReadonly">
+      <label class="btn btn-ghost btn-sm" title="Importar desde Excel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17,8 12,3 7,8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span *ngIf="!importando">Importar</span>
+        <span *ngIf="importando">Importando...</span>
+        <input type="file" accept=".xlsx,.xls" style="display:none"
+          (change)="onImportarFile($event)" [disabled]="importando" />
+      </label>
+      <button class="btn btn-ghost btn-sm" (click)="descargarFormato()" title="Descargar formato Excel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+        </svg>
+        Formato
+      </button>
+    </div>
+
+    <!-- Exportar (siempre visible si hay documentos) -->
+    <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
+      (click)="exportarExcel()" title="Exportar tabla a Excel">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7,10 12,15 17,10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Exportar
+    </button>
+
+    <button class="btn btn-primary btn-sm" *ngIf="!isReadonly" (click)="openNew()">
+      + Adicionar Documento
+    </button>
+  </div>
+</div>
+
+<!-- Error de importación -->
+<div class="import-error-banner" *ngIf="importError">
+  <span>⚠ {{ importError }}</span>
+  <button type="button" class="btn btn-ghost btn-sm" (click)="importError = null">✕</button>
 </div>
 
 <!-- ── Panel datos maestros ── -->
@@ -66,6 +107,41 @@
   <div class="maestros-banner readonly-banner" *ngIf="isReadonly">
     ⚠ Esta rendición está en estado
     <strong>{{ cabecera!.U_Estado === 2 ? 'CERRADO' : 'ENVIADO' }}</strong> — solo lectura.
+  </div>
+</div>
+
+<!-- ── Panel de control de saldo ── -->
+<div class="saldo-panel" *ngIf="cabecera && montoInicial > 0">
+  <div class="saldo-row">
+    <div class="saldo-item">
+      <span class="saldo-label">Monto Inicial</span>
+      <span class="saldo-value mono">{{ montoInicial | number:'1.2-2' }}</span>
+    </div>
+    <div class="saldo-item">
+      <span class="saldo-label">Total Rendido</span>
+      <span class="saldo-value mono">{{ totalRendido | number:'1.2-2' }}</span>
+    </div>
+    <div class="saldo-item" [class.saldo-ok]="!estaExcedido && !estaExacto"
+                            [class.saldo-exacto]="estaExacto"
+                            [class.saldo-excedido]="estaExcedido">
+      <span class="saldo-label">{{ estaExcedido ? 'Excedido en' : estaExacto ? 'Saldo' : 'Falta rendir' }}</span>
+      <span class="saldo-value mono">
+        {{ estaExcedido ? '-' : '' }}{{ (estaExcedido ? (totalRendido - montoInicial) : saldoRestante) | number:'1.2-2' }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Barra de progreso -->
+  <div class="saldo-bar-wrap">
+    <div class="saldo-bar">
+      <div class="saldo-bar-fill"
+        [class.saldo-bar-ok]="!estaExcedido && !estaExacto"
+        [class.saldo-bar-exacto]="estaExacto"
+        [class.saldo-bar-excedido]="estaExcedido"
+        [style.width.%]="porcentajeRendido">
+      </div>
+    </div>
+    <span class="saldo-pct">{{ porcentajeRendido | number:'1.0-0' }}%</span>
   </div>
 </div>
 
@@ -120,19 +196,42 @@
       <button class="modal-close" type="button" (click)="closeUrlModal()">✕</button>
     </div>
     <div class="mode-body">
-      <p class="mode-subtitle">Pegá el enlace de la factura electrónica</p>
-      <div class="url-input-wrap">
-        <input
-          class="url-input"
-          type="url"
-          placeholder="https://..."
-          [(ngModel)]="urlInput"
-          autocomplete="off" />
+
+      <!-- Cargando SIAT -->
+      <div class="qr-loading" *ngIf="urlLoadingFactura">
+        <div class="qr-loading-spinner"></div>
+        <p class="qr-loading-text">Consultando SIAT...</p>
+        <p class="qr-loading-sub">Obteniendo datos de la factura</p>
       </div>
-      <div class="mode-footer-actions">
-        <button class="btn btn-ghost" type="button" (click)="closeUrlModal()">Cancelar</button>
-        <button class="btn btn-primary" type="button" [disabled]="!urlInput.trim()" (click)="confirmarUrl()">Continuar</button>
-      </div>
+
+      <!-- Formulario -->
+      <ng-container *ngIf="!urlLoadingFactura">
+        <p class="mode-subtitle">Pegá el enlace de la factura electrónica del SIAT</p>
+
+        <div class="qr-error" *ngIf="urlError" style="margin-bottom:12px">
+          <span class="qr-error-icon">⚠️</span>
+          <p>{{ urlError }}</p>
+        </div>
+
+        <div class="url-input-wrap">
+          <input
+            class="url-input"
+            type="url"
+            placeholder="https://siat.impuestos.gob.bo/consulta/QR?nit=..."
+            [(ngModel)]="urlInput"
+            autocomplete="off"
+            (keydown.enter)="confirmarUrl()" />
+        </div>
+        <div class="mode-footer-actions">
+          <button class="btn btn-ghost" type="button" (click)="closeUrlModal()">Cancelar</button>
+          <button class="btn btn-primary" type="button"
+            [disabled]="!urlInput.trim()"
+            (click)="confirmarUrl()">
+            Obtener datos
+          </button>
+        </div>
+      </ng-container>
+
     </div>
   </div>
 </div>
@@ -145,17 +244,40 @@
       <button class="modal-close" type="button" (click)="closePdfModal()">✕</button>
     </div>
     <div class="mode-body">
-      <p class="mode-subtitle">Subí el archivo PDF de tu factura</p>
-      <label class="pdf-drop-zone" [class.has-file]="!!pdfFile">
-        <input type="file" accept="application/pdf" (change)="onPdfSelected($event)" style="display:none" />
-        <span class="pdf-drop-icon">{{ pdfFile ? '✅' : '📁' }}</span>
-        <span class="pdf-drop-label">{{ pdfFileName || 'Hacer clic para seleccionar PDF' }}</span>
-        <span class="pdf-drop-hint" *ngIf="!pdfFile">Solo archivos .pdf</span>
-      </label>
-      <div class="mode-footer-actions">
-        <button class="btn btn-ghost" type="button" (click)="closePdfModal()">Cancelar</button>
-        <button class="btn btn-primary" type="button" [disabled]="!pdfFile" (click)="confirmarPdf()">Continuar</button>
+
+      <!-- Procesando PDF -->
+      <div class="qr-loading" *ngIf="pdfLoadingFactura">
+        <div class="qr-loading-spinner"></div>
+        <p class="qr-loading-text">Leyendo QR del PDF...</p>
+        <p class="qr-loading-sub">Consultando datos en el SIAT</p>
       </div>
+
+      <!-- Formulario -->
+      <ng-container *ngIf="!pdfLoadingFactura">
+        <p class="mode-subtitle">Subí el PDF de la factura — se leerá el código QR automáticamente</p>
+
+        <div class="qr-error" *ngIf="pdfError" style="margin-bottom:12px">
+          <span class="qr-error-icon">⚠️</span>
+          <p>{{ pdfError }}</p>
+        </div>
+
+        <label class="pdf-drop-zone" [class.has-file]="!!pdfFile">
+          <input type="file" accept="application/pdf" (change)="onPdfSelected($event)" style="display:none" />
+          <span class="pdf-drop-icon">{{ pdfFile ? '✅' : '📁' }}</span>
+          <span class="pdf-drop-label">{{ pdfFileName || 'Tocar para seleccionar PDF' }}</span>
+          <span class="pdf-drop-hint" *ngIf="!pdfFile">Solo archivos .pdf — se extraerá el QR</span>
+        </label>
+
+        <div class="mode-footer-actions">
+          <button class="btn btn-ghost" type="button" (click)="closePdfModal()">Cancelar</button>
+          <button class="btn btn-primary" type="button"
+            [disabled]="!pdfFile"
+            (click)="confirmarPdf()">
+            Leer QR del PDF
+          </button>
+        </div>
+      </ng-container>
+
     </div>
   </div>
 </div>
@@ -675,7 +797,9 @@
 </div>
 
 
-<div *ngIf="loadingDocs" class="empty-state">Cargando documentos...</div>
+<app-skeleton-loader *ngIf="loadingDocs" variant="table" [rows]="6"
+  [columns]="['30%','10%','12%','10%','10%','10%','8%','10%']">
+</app-skeleton-loader>
 <div *ngIf="!loadingDocs && loadError" class="empty-state">
   No se pudo cargar los documentos.
   <a (click)="loadDocs()">Reintentar</a>

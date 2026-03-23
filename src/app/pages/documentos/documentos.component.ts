@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, ApplicationRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -7,6 +7,7 @@ import { ToastService }      from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { Documento, TIPO_CALC_OPTIONS, TIPO_DOC_SAP_OPTIONS } from '../../models/documento.model';
+import { TipoDocSapSelectComponent, TipoDocSapItem } from '../../shared/tipo-doc-sap-select/tipo-doc-sap-select.component';
 import { Perfil } from '../../models/perfil.model';
 import { AppSelectComponent } from '../../shared/app-select/app-select.component';
 import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
@@ -16,10 +17,10 @@ import { ChartOfAccount }         from '../../services/sap.service';
 @Component({
   standalone: true,
   selector: 'app-documentos',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent],
+  imports: [CommonModule, TipoDocSapSelectComponent, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent],
   templateUrl: './documentos.component.html',
   styleUrls: ['./documentos.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class DocumentosComponent implements OnInit {
 
@@ -58,10 +59,12 @@ export class DocumentosComponent implements OnInit {
     private toast:   ToastService,
     private fb:      FormBuilder,
     private cdr:     ChangeDetectorRef,
+    private appRef:   ApplicationRef,
   ) {}
 
   ngOnInit() {
     this.buildForm();
+    this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
   }
 
   get isEditing() { return this.editingId !== null; }
@@ -91,7 +94,7 @@ export class DocumentosComponent implements OnInit {
 
   onPerfilSelect(value: number | null) {
     this.selectedPerfilId = value;
-    this.loadDocumentos();
+    setTimeout(() => this.loadDocumentos(), 0);
   }
 
   loadDocumentos(onComplete?: () => void) {
@@ -106,6 +109,7 @@ export class DocumentosComponent implements OnInit {
         this.loading = false;
         this.applyFilter();
         this.cdr.markForCheck();
+        this.appRef.tick();
         onComplete?.();
       },
       error: () => { this.loading = false; this.cdr.markForCheck();
@@ -259,6 +263,11 @@ export class DocumentosComponent implements OnInit {
    */
   onCuentaChange(field: string, account: ChartOfAccount | null) {
     this.form.get(field)?.setValue(account?.formatCode ?? '');
+  }
+
+  onTipoDocSapSelected(item: TipoDocSapItem | null) {
+    this.form.get('idTipoDoc')?.setValue(item?.U_IdTipo ?? null);
+    this.cdr.markForCheck();
   }
 
   tipoDocSapLabel(val: number) {

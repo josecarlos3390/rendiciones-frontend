@@ -23,6 +23,8 @@ interface JwtPayload {
   nr1:        string;   // norma reparto 1 preconfigurada
   nr2:        string;   // norma reparto 2 preconfigurada
   nr3:        string;   // norma reparto 3 preconfigurada
+  genDocPre?: string;   // '1'=puede generar preliminar
+  nomSup?:    string;   // login del aprobador (vacío = nivel final)
   exp:        number;
   iat:        number;
 }
@@ -129,11 +131,20 @@ export class AuthService {
     return this.role === 'ADMIN';
   }
 
-  get canAccessRend(): boolean { return this.user?.appRend === 'Y'; }
-  get canAccessConf(): boolean { return this.isAdmin || this.user?.appConf === 'Y'; }
+
   get fijarSaldo():    boolean { return this.user?.fijarSaldo === '1'; }
   get fijarNr():       boolean { return this.user?.fijarNr === '1'; }
   get nr1():           string  { return this.user?.nr1 ?? ''; }
   get nr2():           string  { return this.user?.nr2 ?? ''; }
   get nr3():           string  { return this.user?.nr3 ?? ''; }
+  /** Login del aprobador inmediato — vacío = usuario es nivel final */
+  get nomSup():         string  { return this.user?.nomSup ?? ''; }
+  /** true si el usuario NO tiene aprobador configurado (es nivel final) */
+  get esNivelFinal():   boolean { return !(this.user?.nomSup?.trim()); }
+  /** true si puede generar documentos preliminares */
+  get puedeGenerarPre(): boolean { return this.user?.genDocPre === '1'; }
+  /** Puede ver módulo rendiciones */
+  get canAccessRend():  boolean { return this.isAdmin || this.user?.appRend === 'Y'; }
+  /** Puede ver módulo configuración */
+  get canAccessConf():  boolean { return this.isAdmin || this.user?.appConf === 'Y'; }
 }

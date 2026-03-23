@@ -7,6 +7,7 @@ import {
 } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
+import { AprobacionesService } from '../../services/aprobaciones.service';
 import { RendMService } from './rend-m.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
@@ -21,6 +22,7 @@ import { Permiso } from '../../models/permiso.model';
 import { EmpleadoSearchComponent, Empleado } from '../../shared/empleado-search/empleado-search.component';
 import { CuentaCabeceraSelectComponent } from '../../shared/cuenta-cabecera-select/cuenta-cabecera-select.component';
 import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
+import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
 import {
   RendM, CreateRendMPayload,
   ESTADO_LABEL, ESTADO_CLASS,
@@ -31,7 +33,7 @@ import {
   selector: 'app-rend-m',
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
             ConfirmDialogComponent, PaginatorComponent, EmpleadoSearchComponent,
-            CuentaCabeceraSelectComponent, DdmmyyyyPipe],
+            CuentaCabeceraSelectComponent, DdmmyyyyPipe, SkeletonLoaderComponent],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -103,27 +105,23 @@ export class RendMComponent implements OnInit {
     private rendMService:           RendMService,
     private toast:                  ToastService,
     private fb:                     FormBuilder,
-    private auth:                   AuthService,
+    public  auth:                   AuthService,
     private cdr:                    ChangeDetectorRef,
     private router:                 Router,
     private perfilesService:        PerfilesService,
     private permisosService:        PermisosService,
     private cuentasCabeceraService: CuentasCabeceraService,
+    private aprobSvc:           AprobacionesService,
   ) {}
 
   ngOnInit() {
     this.buildForm();
+    this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
     Promise.resolve().then(() => {
       this.cargarPerfilesPaso1();
     });
   }
 
-
-  /**
-   * Carga en paralelo perfiles completos y permisos del usuario con forkJoin.
-   * Garantiza que this.perfiles esté poblado antes de intentar auto-seleccionar,
-   * eliminando la race condition que impedía mostrar los perfiles en el paso 1.
-   */
   private cargarPerfilesPaso1() {
     this.loadingPerfilesPaso1 = true;
     forkJoin({
@@ -134,24 +132,21 @@ export class RendMComponent implements OnInit {
         this.perfiles             = perfiles;
         this.misPermisosPaso1     = permisos;
         this.loadingPerfilesPaso1 = false;
-        // Si viene de rend-d (botón Volver), sessionStorage tiene el perfil guardado
         const perfilGuardado = sessionStorage.getItem('rendiciones_perfil_activo');
         if (perfilGuardado) {
-          sessionStorage.removeItem('rendiciones_perfil_activo'); // limpiar
+          sessionStorage.removeItem('rendiciones_perfil_activo');
           const idPerfil = Number(perfilGuardado);
           const permiso = permisos.find(p => p.U_IDPERFIL === idPerfil);
           if (permiso) {
-            this.misPermisos = permisos; // poblar picker también
+            this.misPermisos = permisos;
             this.seleccionarPerfilDirecto(permiso);
             this.load();
             this.cdr.markForCheck();
             return;
           }
         }
-        // Si solo tiene un perfil, seleccionarlo directamente
         if (permisos.length === 1) {
           this.seleccionarPerfilDirecto(permisos[0]);
-          // Recargar con el perfil ya activo
           this.load();
         }
         this.cdr.markForCheck();
@@ -197,7 +192,6 @@ export class RendMComponent implements OnInit {
       limit:    this.limit,
     }).subscribe({
       next: (result) => {
-        // El backend ya pagina — guardamos data y metadatos
         this.rendiciones = result.data;
         this.filtered    = result.data;
         this.paged       = result.data;
@@ -211,27 +205,19 @@ export class RendMComponent implements OnInit {
         this.loading   = false;
         this.loadError = true;
         this.cdr.markForCheck();
-      onComplete?.();
+        onComplete?.();
       },
     });
   }
 
-  /**
-   * Filtro local — solo aplica búsqueda de texto y estado sobre
-   * los datos ya paginados que devolvió el backend.
-   * El filtro por perfil y usuario lo hace el backend.
-   */
   applyLocalFilter() {
     const q = this.search.toLowerCase();
-
     let base = this.rendiciones;
-
     if (this.estadoFiltro === 'abiertas') {
       base = base.filter(r => r.U_Estado === 1);
     } else if (this.estadoFiltro === 'enviadas') {
       base = base.filter(r => r.U_Estado === 4);
     }
-
     this.filtered = base.filter(r =>
       (r.U_Objetivo       ?? '').toLowerCase().includes(q) ||
       (r.U_NombreEmpleado ?? '').toLowerCase().includes(q) ||
@@ -253,8 +239,6 @@ export class RendMComponent implements OnInit {
   }
 
   updatePaging() {
-    // La paginación ahora la controla el backend — este método
-    // se mantiene por compatibilidad con el PaginatorComponent
     this.paged = this.filtered;
   }
 
@@ -344,7 +328,7 @@ export class RendMComponent implements OnInit {
           const cuenta           = cuentas.length > 0 ? cuentas[0] : null;
           const prefijo          = cuenta?.U_CuentaAsociada === 'Y' ? 'CA' : 'CN';
           const nombreCuentaFull = cuenta
-            ? `${prefijo}-${cuenta.U_CuentaFormatCode}${cuenta.U_CuentaNombre}`
+            ? `${prefijo}-${cuenta.U_CuentaFormatCode || cuenta.U_CuentaSys}${cuenta.U_CuentaNombre}`
             : '';
 
           if (cuentas.length > 1) {
@@ -356,7 +340,7 @@ export class RendMComponent implements OnInit {
           this.aplicarBloqueoEmpleado();
 
           this.form.reset({
-            idPerfil, cuenta: cuenta?.U_CuentaFormatCode ?? '',
+            idPerfil, cuenta: (cuenta?.U_CuentaFormatCode || cuenta?.U_CuentaSys) ?? '',
             nombreCuenta: nombreCuentaFull,
             empleado: '', nombreEmpleado: '', objetivo: '',
             fechaIni: hoy, fechaFinal: hoy, monto: 0, preliminar: '',
@@ -425,10 +409,10 @@ export class RendMComponent implements OnInit {
   onCuentaChange(cuenta: CuentaCabecera | null) {
     if (!cuenta) return;
     const prefijo          = cuenta.U_CuentaAsociada === 'Y' ? 'CA' : 'CN';
-    const nombreCuentaFull = `${prefijo}-${cuenta.U_CuentaFormatCode}${cuenta.U_CuentaNombre}`;
+    const nombreCuentaFull = `${prefijo}-${cuenta.U_CuentaFormatCode || cuenta.U_CuentaSys}${cuenta.U_CuentaNombre}`;
     this.cuentaEsAsociada  = cuenta.U_CuentaAsociada;
     this.form.patchValue({
-      cuenta:         cuenta.U_CuentaFormatCode,
+      cuenta:         cuenta.U_CuentaFormatCode || cuenta.U_CuentaSys,
       nombreCuenta:   nombreCuentaFull,
       empleado:       '',
       nombreEmpleado: '',
@@ -555,7 +539,6 @@ export class RendMComponent implements OnInit {
           this.isSaving = false;
           this.toast.success('Rendición creada');
           this.closeForm();
-          // Navegar directamente al detalle para empezar a agregar líneas
           this.router.navigate(['/rend-m', rendicion.U_IdRendicion, 'detalle']);
           this.cdr.markForCheck();
         },
@@ -591,6 +574,41 @@ export class RendMComponent implements OnInit {
 
   estadoTexto(estado: number): string { return this.estadoLabel[estado] ?? `Estado ${estado}`; }
   estadoCss(estado: number): string   { return this.estadoClass[estado] ?? 'badge-secondary'; }
+
+  enviarAprobacion(r: RendM) {
+    this.openDialog({
+      title:        '¿Enviar para aprobación?',
+      message:      `La rendición N° ${r.U_IdRendicion} — "${r.U_Objetivo}" será enviada a los aprobadores configurados.`,
+      confirmLabel: 'Sí, enviar',
+      type:         'primary',
+    }, () => {
+      this.aprobSvc.enviar(r.U_IdRendicion).subscribe({
+        next: (res) => {
+          this.toast.success(res.message ?? 'Rendición enviada para aprobación');
+          this.load();
+        },
+        error: (err) => this.toast.error(err?.error?.message ?? 'Error al enviar'),
+      });
+    });
+  }
+
+  generarPreliminar(r: RendM) {
+    this.openDialog({
+      title:        '¿Generar documento preliminar?',
+      message:      `Se generará el preliminar para la rendición N° ${r.U_IdRendicion} — "${r.U_Objetivo}" y quedará aprobada.`,
+      confirmLabel: 'Sí, generar',
+      type:         'primary',
+    }, () => {
+      // Al ser nivel final, enviar = aprobación automática
+      this.aprobSvc.enviar(r.U_IdRendicion).subscribe({
+        next: (res) => {
+          this.toast.success(res.message ?? 'Preliminar generado — rendición aprobada');
+          this.load();
+        },
+        error: (err) => this.toast.error(err?.error?.message ?? 'Error al generar preliminar'),
+      });
+    });
+  }
 
   canEdit(r: RendM): boolean {
     if (this.isAdmin) return true;

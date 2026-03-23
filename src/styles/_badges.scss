@@ -95,3 +95,15 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+.status-sync-ok {
+  background: var(--status-closed-bg);
+  color:       var(--status-closed-color);
+  border:      1px solid var(--status-closed-border);
+}
+
+.status-sync-error {
+  background: var(--color-danger-soft);
+  color:      var(--color-danger-text);
+  border:     1px solid var(--color-danger-border);
+}

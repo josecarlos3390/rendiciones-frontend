@@ -18,18 +18,23 @@ import { CuentaSearchComponent } from '../../shared/cuenta-search/cuenta-search.
 import { ProveedorSearchComponent } from '../../shared/proveedor-search/proveedor-search.component';
 import { ProvService, ProvEventual } from '../../services/prov.service';
 import { DdmmyyyyPipe }       from '../../shared/ddmmyyyy.pipe';
+import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
 import { AuthService }        from '../../auth/auth.service';
 import { FacturaService, FacturaSiat } from '../../services/factura.service';
+import QrScanner from 'qr-scanner';
+import * as XLSX from 'xlsx';
 import { RendM }              from '../../models/rend-m.model';
 import { RendD, CreateRendDPayload } from '../../models/rend-d.model';
 import { Documento }          from '../../models/documento.model';
 import { Perfil }             from '../../models/perfil.model';
+
 
 interface NormaActiva {
   slot:      number;
   dimension: DimensionWithRules;
   rules:     SelectOption[];
 }
+
 
 @Component({
   standalone: true,
@@ -38,6 +43,7 @@ interface NormaActiva {
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     ConfirmDialogComponent, PaginatorComponent, AppSelectComponent,
     CuentaSearchComponent, ProveedorSearchComponent, DdmmyyyyPipe,
+    SkeletonLoaderComponent,
   ],
   templateUrl: './rend-d.component.html',
   styleUrls:   ['./rend-d.component.scss'],
@@ -86,8 +92,14 @@ export class RendDComponent implements OnInit {
   showModeSelector = false;
 
   // Modal URL
-  showUrlModal  = false;
-  urlInput      = '';
+  showUrlModal      = false;
+  urlInput          = '';
+  urlLoadingFactura = false;
+  urlError:         string | null = null;
+  pdfLoadingFactura = false;
+  pdfError:         string | null = null;
+  importando        = false;
+  importError:      string | null = null;
 
   // Modal PDF
   showPdfModal  = false;
@@ -160,6 +172,30 @@ export class RendDComponent implements OnInit {
   get totalRCIVA():     number { return this.documentos.reduce((s, d) => s + (d.U_MontoRCIVA   ?? 0), 0); }
   get totalBaseImp():   number { return this.documentos.reduce((s, d) => s + ((d.U_RD_Importe ?? 0) - (d.U_RD_Exento ?? 0) - (d.U_ICE ?? 0) - (d.U_TASA ?? 0) - (d.U_RD_TasaCero ?? 0) - (d.U_GIFTCARD ?? 0)), 0); }
   get totalGeneral():   number { return this.documentos.reduce((s, d) => s + (d.U_RD_Total     ?? 0), 0); }
+
+  // ── Control de saldo ─────────────────────────────────────────
+  /** Monto inicial recibido (cabecera) */
+  get montoInicial(): number { return Number(this.cabecera?.U_Monto ?? 0); }
+
+  /** Total rendido = suma de todos los importes de documentos */
+  get totalRendido(): number { return this.totalImporte; }
+
+  /** Saldo restante: positivo = falta rendir, negativo = excedido */
+  get saldoRestante(): number {
+    return this._round(this.montoInicial - this.totalRendido);
+  }
+
+  /** Porcentaje rendido sobre el monto inicial */
+  get porcentajeRendido(): number {
+    if (this.montoInicial === 0) return 0;
+    return Math.min(100, this._round((this.totalRendido / this.montoInicial) * 100));
+  }
+
+  /** true cuando se excedió el monto inicial */
+  get estaExcedido(): boolean { return this.totalRendido > this.montoInicial; }
+
+  /** true cuando está exactamente al límite */
+  get estaExacto(): boolean   { return this.saldoRestante === 0 && this.montoInicial > 0; }
 
   /** Número de línea del documento dentro de esta rendición (1, 2, 3...) */
   get lineaActual(): number {
@@ -696,17 +732,35 @@ export class RendDComponent implements OnInit {
   }
 
   closeUrlModal() {
-    this.showUrlModal = false;
-    this.urlInput = '';
+    this.showUrlModal      = false;
+    this.urlInput          = '';
+    this.urlLoadingFactura = false;
+    this.urlError          = null;
     this.cdr.markForCheck();
   }
 
   confirmarUrl() {
-    if (!this.urlInput.trim()) return;
-    this.showUrlModal = false;
-    // Abre el formulario manual pre-listo; el campo URL se puede extender al modelo después
-    this._openNewForm();
+    const url = this.urlInput.trim();
+    if (!url) return;
+
+    this.urlLoadingFactura = true;
+    this.urlError          = null;
     this.cdr.markForCheck();
+
+    this.facturaSvc.getFromSiat(url).subscribe({
+      next: (factura) => {
+        this.urlLoadingFactura = false;
+        this.showUrlModal      = false;
+        this.urlInput          = '';
+        this._prefillFromFactura(factura);
+      },
+      error: (err) => {
+        this.urlLoadingFactura = false;
+        this.urlError = err?.error?.message
+          ?? 'No se pudo obtener la factura. Verificá que la URL sea del SIAT boliviano.';
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   elegirPdf() {
@@ -718,9 +772,11 @@ export class RendDComponent implements OnInit {
   }
 
   closePdfModal() {
-    this.showPdfModal = false;
-    this.pdfFile = null;
-    this.pdfFileName = '';
+    this.showPdfModal     = false;
+    this.pdfFile          = null;
+    this.pdfFileName      = '';
+    this.pdfLoadingFactura = false;
+    this.pdfError         = null;
     this.cdr.markForCheck();
   }
 
@@ -732,12 +788,83 @@ export class RendDComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  confirmarPdf() {
+  async confirmarPdf() {
     if (!this.pdfFile) return;
-    this.showPdfModal = false;
-    // Abre el formulario manual; integración de extracción PDF se puede conectar al servicio después
-    this._openNewForm();
+
+    this.pdfLoadingFactura = true;
+    this.pdfError          = null;
     this.cdr.markForCheck();
+
+    try {
+      // 1. Cargar pdf.js desde CDN
+      const pdfjsLib = await this._loadPdfJs();
+
+      // 2. Leer el PDF como ArrayBuffer
+      const arrayBuffer = await this.pdfFile.arrayBuffer();
+
+      // 3. Renderizar la primera página como canvas
+      const pdf      = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page     = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2.0 }); // escala 2x para mejor detección
+
+      const canvas  = document.createElement('canvas');
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
+
+      // 4. Escanear QR en el canvas con QrScanner
+      const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+      const url    = result?.data;
+
+      if (!url) throw new Error('No se encontró ningún código QR en el PDF');
+
+      // 5. Mismo flujo que URL/QR
+      this.facturaSvc.getFromSiat(url).subscribe({
+        next: (factura) => {
+          this.pdfLoadingFactura = false;
+          this.showPdfModal      = false;
+          this.pdfFile           = null;
+          this.pdfFileName       = '';
+          this._prefillFromFactura(factura);
+        },
+        error: (err) => {
+          this.pdfLoadingFactura = false;
+          this.pdfError = err?.error?.message
+            ?? 'Se encontró el QR pero no se pudo consultar el SIAT.';
+          this.cdr.markForCheck();
+        },
+      });
+
+    } catch (err: any) {
+      this.pdfLoadingFactura = false;
+      this.pdfError = err?.message?.includes('No QR code found')
+        ? 'No se encontró ningún código QR en el PDF. Verificá que sea una factura electrónica.'
+        : (err?.message ?? 'Error al procesar el PDF');
+      this.cdr.markForCheck();
+    }
+  }
+
+  /** Carga pdf.js UMD desde CDN — expone window.pdfjsLib */
+  private _loadPdfJs(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if ((window as any).pdfjsLib) {
+        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve((window as any).pdfjsLib);
+        return;
+      }
+      const script   = document.createElement('script');
+      script.src     = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload  = () => {
+        const lib = (window as any).pdfjsLib;
+        if (!lib) { reject(new Error('pdfjsLib no disponible')); return; }
+        lib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve(lib);
+      };
+      script.onerror = () => reject(new Error('No se pudo cargar pdf.js'));
+      document.head.appendChild(script);
+    });
   }
 
   private _openNewForm() {
@@ -787,13 +914,13 @@ export class RendDComponent implements OnInit {
 
   // ── Escáner QR ────────────────────────────────────────────────
 
-  private qrScannerInstance: any = null;
+  private qrScannerInstance: QrScanner | null = null;
 
   async abrirQrScanner() {
-    this.qrError         = null;
-    this.qrScanning      = true;
+    this.qrError          = null;
+    this.qrScanning       = true;
     this.qrLoadingFactura = false;
-    this.showQrScanner   = true;
+    this.showQrScanner    = true;
     this.cdr.markForCheck();
 
     // Esperar al siguiente frame para que el <video> esté en el DOM
@@ -803,17 +930,14 @@ export class RendDComponent implements OnInit {
       const videoEl = document.getElementById('qr-video') as HTMLVideoElement;
       if (!videoEl) throw new Error('Elemento video no encontrado');
 
-      // Cargar QrScanner desde assets dinámicamente
-      const QrScanner = await this._loadQrScanner();
-
       this.qrScannerInstance = new QrScanner(
         videoEl,
-        (result: any) => {
-          const url = typeof result === 'string' ? result : result?.data;
+        (result: QrScanner.ScanResult) => {
+          const url = result?.data;
           if (url) this.onQrCaptured(url);
         },
         {
-          preferredCamera:    'environment',
+          preferredCamera:     'environment',
           highlightScanRegion: true,
           highlightCodeOutline: true,
         }
@@ -829,27 +953,180 @@ export class RendDComponent implements OnInit {
     }
   }
 
-  /** Carga la librería QrScanner desde assets/ dinámicamente */
-  private _loadQrScanner(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if ((window as any).QrScanner) {
-        resolve((window as any).QrScanner);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = '/assets/qr-scanner.min.js';
-      script.onload = () => {
-        const QrScanner = (window as any).QrScanner;
-        if (QrScanner) {
-          // Indicar la ruta del worker
-          QrScanner.WORKER_PATH = '/assets/qr-scanner-worker.min.js';
-          resolve(QrScanner);
-        } else {
-          reject(new Error('QrScanner no disponible'));
+  // ── Exportar / Importar ──────────────────────────────────────
+
+  exportarExcel() {
+    const rows = this.documentos.map(d => ({
+      'N°':           d.U_RD_IdRD,
+      'Fecha':        d.U_RD_Fecha ?? '',
+      'Tipo Doc':     d.U_RD_TipoDoc ?? '',
+      'N° Documento': d.U_RD_NumDocumento ?? '',
+      'NIT':          d.U_RD_NIT ?? '',
+      'Proveedor':    d.U_RD_Prov ?? '',
+      'Concepto':     d.U_RD_Concepto ?? '',
+      'Cuenta':       d.U_RD_Cuenta ?? '',
+      'Nombre Cuenta': d.U_RD_NombreCuenta ?? '',
+      'Importe':      d.U_RD_Importe ?? 0,
+      'Exento':       d.U_RD_Exento ?? 0,
+      'ICE':          d.U_ICE ?? 0,
+      'Tasas':        d.U_TASA ?? 0,
+      'Tasa Cero':    d.U_RD_TasaCero ?? 0,
+      'Gift Card':    d.U_GIFTCARD ?? 0,
+      'Imp/Ret':      d.U_RD_ImpRet ?? 0,
+      'Total':        d.U_RD_Total ?? 0,
+      'CUF':          d.U_CUF ?? '',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Ancho de columnas
+    ws['!cols'] = [
+      {wch:6},{wch:12},{wch:18},{wch:16},{wch:14},{wch:28},
+      {wch:35},{wch:14},{wch:28},{wch:12},{wch:10},{wch:10},
+      {wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:32},
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Documentos');
+
+    const nombreArchivo = `Rendicion_${this.cabecera?.U_IdRendicion ?? 0}_Documentos.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
+    this.toast.success(`Exportado: ${nombreArchivo}`);
+  }
+
+  descargarFormato() {
+    const ejemplo = [{
+      'Fecha':        '2026-03-23',
+      'Tipo Doc':     'FACTURA',
+      'N° Documento': '1234',
+      'NIT':          '1234567890',
+      'Proveedor':    'Empresa S.R.L.',
+      'Concepto':     'Descripción del gasto',
+      'Cuenta':       '51105001',
+      'Importe':      100.00,
+      'Exento':       0,
+      'ICE':          0,
+      'Tasas':        0,
+      'Tasa Cero':    0,
+      'Gift Card':    0,
+      'CUF':          '',
+    }];
+
+    const ws = XLSX.utils.json_to_sheet(ejemplo);
+    ws['!cols'] = [
+      {wch:12},{wch:18},{wch:16},{wch:14},{wch:28},
+      {wch:35},{wch:14},{wch:12},{wch:10},{wch:10},
+      {wch:10},{wch:10},{wch:10},{wch:32},
+    ];
+
+    // Fila de instrucciones
+    XLSX.utils.sheet_add_aoa(ws, [
+      ['INSTRUCCIONES: Complete los campos y elimine esta fila antes de importar.'],
+    ], { origin: 'A3' });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Importar');
+    XLSX.writeFile(wb, 'Formato_Importacion_Documentos.xlsx');
+    this.toast.success('Formato descargado');
+  }
+
+  onImportarFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.importando  = true;
+    this.importError = null;
+    this.cdr.markForCheck();
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer);
+        const wb   = XLSX.read(data, { type: 'array', cellDates: true });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (!rows.length) {
+          this.importError = 'El archivo está vacío o no tiene filas de datos';
+          this.importando  = false;
+          this.cdr.markForCheck();
+          return;
         }
-      };
-      script.onerror = () => reject(new Error('No se pudo cargar qr-scanner.min.js'));
-      document.head.appendChild(script);
+
+        // Filtrar filas de instrucciones
+        const datos = rows.filter(r =>
+          r['Fecha'] && r['Importe'] !== '' && !String(r['Fecha']).startsWith('INSTRUCCIONES')
+        );
+
+        if (!datos.length) {
+          this.importError = 'No se encontraron filas válidas. Verificá el formato del archivo.';
+          this.importando  = false;
+          this.cdr.markForCheck();
+          return;
+        }
+
+        // Buscar tipo de documento activo para el primer tipo encontrado
+        const primerTipo = this.tiposDocs[0];
+
+        // Importar secuencialmente
+        this._importarFila(datos, 0, 0, primerTipo);
+
+      } catch (err: any) {
+        this.importError = `Error al leer el archivo: ${err?.message ?? 'formato inválido'}`;
+        this.importando  = false;
+        this.cdr.markForCheck();
+      }
+    };
+    reader.readAsArrayBuffer(file);
+
+    // Limpiar input para permitir reimportar el mismo archivo
+    input.value = '';
+  }
+
+  private _importarFila(rows: any[], idx: number, ok: number, tipoDoc: any) {
+    if (idx >= rows.length) {
+      this.importando = false;
+      this.toast.success(`${ok} documento${ok !== 1 ? 's' : ''} importado${ok !== 1 ? 's' : ''} correctamente`);
+      this.loadDocs();
+      return;
+    }
+
+    const r = rows[idx];
+    const fecha = r['Fecha'] instanceof Date
+      ? r['Fecha'].toISOString().substring(0, 10)
+      : String(r['Fecha'] ?? '').substring(0, 10);
+
+    const payload = {
+      idRendicion:  this.idRendicion,
+      fecha,
+      tipoDoc:      r['Tipo Doc']     || tipoDoc?.U_TipDoc || '',
+      idTipoDoc:    tipoDoc?.U_IdTipoDoc ?? 1,
+      numDocumento: String(r['N° Documento'] ?? ''),
+      nit:          String(r['NIT']          ?? ''),
+      prov:         r['Proveedor']    || '',
+      concepto:     r['Concepto']     || '',
+      cuenta:       String(r['Cuenta'] ?? ''),
+      nombreCuenta: '',
+      importe:      Number(r['Importe'])   || 0,
+      exento:       Number(r['Exento'])    || 0,
+      ice:          Number(r['ICE'])       || 0,
+      tasa:         Number(r['Tasas'])     || 0,
+      tasaCero:     Number(r['Tasa Cero']) || 0,
+      giftCard:     Number(r['Gift Card']) || 0,
+      cuf:          String(r['CUF'] ?? ''),
+      // impuestos calculados — se recalcularán en backend
+      iva:   0, it: 0, iue: 0, rciiva: 0, impRet: 0, total: 0,
+    };
+
+    this.rendDSvc.create(this.idRendicion, payload as any).subscribe({
+      next: () => this._importarFila(rows, idx + 1, ok + 1, tipoDoc),
+      error: (err: any) => {
+        this.importError = `Error en fila ${idx + 1}: ${err?.error?.message ?? 'error desconocido'}`;
+        this.importando  = false;
+        this.loadDocs();
+        this.cdr.markForCheck();
+      },
     });
   }
 
@@ -895,26 +1172,15 @@ export class RendDComponent implements OnInit {
   private _prefillFromFactura(factura: FacturaSiat) {
     this._openNewForm();
 
-    // Pre-seleccionar proveedor si hay NIT
-    if (factura.nit && factura.companyName) {
-      this.proveedorSeleccionado = {
-        CardCode: factura.nit,
-        CardName: factura.companyName,
-        FederalTaxID: factura.nit,
-      } as any;
-    }
-
-    // Parsear fecha del SIAT (formato ISO o similar)
+    // Parsear fecha del SIAT
     let fecha = this.hoy;
     if (factura.datetime) {
-      try {
-        fecha = factura.datetime.substring(0, 10); // YYYY-MM-DD
-      } catch { /* mantener hoy */ }
+      try { fecha = factura.datetime.substring(0, 10); } catch { /* mantener hoy */ }
     }
 
-    // Concepto automático basado en el número de factura
     const concepto = `Compra según factura N° ${factura.invoiceNumber}`;
 
+    // Patchear campos básicos
     this.form.patchValue({
       nit:          factura.nit,
       prov:         factura.companyName,
@@ -924,6 +1190,31 @@ export class RendDComponent implements OnInit {
       importe:      factura.total,
       concepto:     concepto.substring(0, 250),
     });
+
+    // Buscar o crear proveedor en REND_PROV y pre-seleccionar en el selector
+    if (factura.nit && factura.companyName) {
+      this.provSvc.findOrCreate(factura.nit, factura.companyName).subscribe({
+        next: (prov) => {
+          // U_CODIGO es el cardCode que usa el selector de proveedor
+          const cardCode = (prov as any).U_CODIGO ?? factura.nit;
+          const cardName = (prov as any).U_RAZON_SOCIAL ?? factura.companyName;
+          this.proveedorSeleccionado = { cardCode, cardName };
+          this.form.patchValue({
+            prov:    cardName,
+            codProv: cardCode,
+          });
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          // Si falla, al menos mostrar los datos del QR
+          this.proveedorSeleccionado = {
+            cardCode: factura.nit,
+            cardName: factura.companyName,
+          };
+          this.cdr.markForCheck();
+        },
+      });
+    }
 
     this.cdr.markForCheck();
     this.toast.success(`Factura N° ${factura.invoiceNumber} cargada — completá cuenta y otros datos`);

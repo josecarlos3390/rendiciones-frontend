@@ -1,0 +1,184 @@
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<div class="page-header">
+  <div class="page-title-group">
+    <h2>Tipos de Documento SAP</h2>
+    <p class="page-subtitle">Administrá los tipos de documento del sistema SAP y su configuración de cálculo</p>
+  </div>
+  <button class="btn btn-primary" (click)="openCreate()">
+    + Nuevo Tipo
+  </button>
+</div>
+
+<!-- Loading / Error -->
+<div class="empty-state" *ngIf="loading">⏳ Cargando tipos de documento...</div>
+<div class="empty-state" *ngIf="!loading && loadError">
+  Error al cargar. <a (click)="load()" style="cursor:pointer;color:var(--color-primary)">Reintentar</a>
+</div>
+<div class="empty-state" *ngIf="!loading && !loadError && items.length === 0">
+  No hay tipos de documento registrados. <a (click)="openCreate()" style="cursor:pointer;color:var(--color-primary)">Crear el primero</a>
+</div>
+
+<!-- Tabla -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && items.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center" style="width:80px">Cód. SAP</th>
+        <th>Nombre</th>
+        <th class="text-center">Tipo</th>
+        <th class="text-center">Grossing Up</th>
+        <th class="text-center">Grossing Down</th>
+        <th class="text-center">Orden</th>
+        <th class="text-center">Estado</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of items" [class.row-inactive]="item.U_Activo === 'N'">
+        <td class="text-center mono-cell">{{ item.U_IdTipo }}</td>
+        <td>{{ item.U_Nombre }}</td>
+        <td class="text-center">
+          <span [class]="tipoCss(item)">{{ tipoLabel(item) }}</span>
+        </td>
+        <td class="text-center">
+          <span class="bool-badge" [class.bool-yes]="item.U_PermiteGU === 'Y'">
+            {{ item.U_PermiteGU === 'Y' ? '✓ Sí' : '— No' }}
+          </span>
+        </td>
+        <td class="text-center">
+          <span class="bool-badge" [class.bool-yes]="item.U_PermiteGD === 'Y'">
+            {{ item.U_PermiteGD === 'Y' ? '✓ Sí' : '— No' }}
+          </span>
+        </td>
+        <td class="text-center mono-cell">{{ item.U_Orden }}</td>
+        <td class="text-center">
+          <span [class]="activoCss(item)">{{ item.U_Activo === 'Y' ? 'Activo' : 'Inactivo' }}</span>
+        </td>
+        <td class="actions">
+          <button class="btn btn-sm btn-ghost" (click)="openEdit(item)" title="Editar">✎ Editar</button>
+          <button class="btn btn-sm btn-danger-soft" (click)="remove(item)" title="Eliminar">✕</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal formulario -->
+<div class="modal-backdrop" *ngIf="showForm">
+  <div class="user-modal tipo-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>{{ editingItem ? 'Editar Tipo de Documento' : 'Nuevo Tipo de Documento' }}</h3>
+      <span class="dirty-badge" *ngIf="isDirty && editingItem">● cambios sin guardar</span>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-body modal-single-col">
+
+      <!-- Código SAP -->
+      <div class="form-field" [class.field-changed]="fieldChanged('idTipo')">
+        <label>Código SAP <span class="required">*</span></label>
+        <input type="number" formControlName="idTipo" placeholder="Ej: 1, 4, 10..."
+          min="0" [attr.readonly]="editingItem ? true : null" />
+        <span class="field-hint">Código numérico del tipo de transacción en SAP</span>
+        <span class="field-error" *ngIf="form.get('idTipo')?.invalid && form.get('idTipo')?.touched">
+          Obligatorio — debe ser un número positivo
+        </span>
+      </div>
+
+      <!-- Nombre -->
+      <div class="form-field" [class.field-changed]="fieldChanged('nombre')">
+        <label>Nombre / Descripción <span class="required">*</span></label>
+        <input type="text" formControlName="nombre" placeholder="Ej: Factura de Compra" maxlength="100" autocomplete="off" />
+        <span class="field-error" *ngIf="form.get('nombre')?.invalid && form.get('nombre')?.touched">Obligatorio</span>
+      </div>
+
+      <!-- Tipo F/R -->
+      <div class="form-field" [class.field-changed]="fieldChanged('esTipoF')">
+        <label>Tipo de lógica de cálculo <span class="required">*</span></label>
+        <div class="radio-group">
+          <label class="radio-option" [class.radio-option--selected]="form.get('esTipoF')?.value === 'F'">
+            <input type="radio" formControlName="esTipoF" value="F" />
+            <div class="radio-content">
+              <span class="radio-title">🧾 Factura</span>
+              <span class="radio-desc">Impuestos calculados sobre la base imponible</span>
+            </div>
+          </label>
+          <label class="radio-option" [class.radio-option--selected]="form.get('esTipoF')?.value === 'R'">
+            <input type="radio" formControlName="esTipoF" value="R" />
+            <div class="radio-content">
+              <span class="radio-title">📄 Recibo</span>
+              <span class="radio-desc">Impuestos calculados sobre el importe bruto, permite grossing</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Grossing — solo visible si es Recibo -->
+      <div class="form-row" *ngIf="form.get('esTipoF')?.value === 'R'">
+        <div class="form-field" [class.field-changed]="fieldChanged('permiteGU')">
+          <label>Grossing Up</label>
+          <label class="toggle-switch">
+            <input type="checkbox" formControlName="permiteGU" />
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
+            <span class="toggle-label">
+              {{ form.get('permiteGU')?.value ? 'Permitido — empresa asume retenciones' : 'No permitido' }}
+            </span>
+          </label>
+          <span class="field-hint">La empresa asume el costo de las retenciones</span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('permiteGD')">
+          <label>Grossing Down</label>
+          <label class="toggle-switch">
+            <input type="checkbox" formControlName="permiteGD" />
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
+            <span class="toggle-label">
+              {{ form.get('permiteGD')?.value ? 'Permitido — proveedor asume retenciones' : 'No permitido' }}
+            </span>
+          </label>
+          <span class="field-hint">El proveedor asume el costo de las retenciones</span>
+        </div>
+      </div>
+
+      <!-- Orden -->
+      <div class="form-field" [class.field-changed]="fieldChanged('orden')">
+        <label>Orden de visualización</label>
+        <input type="number" formControlName="orden" min="0" placeholder="0" style="max-width:120px" />
+        <span class="field-hint">Menor número = aparece primero en el selector</span>
+      </div>
+
+      <!-- Activo -->
+      <div class="form-field" [class.field-changed]="fieldChanged('activo')">
+        <label>Estado</label>
+        <label class="toggle-switch">
+          <input type="checkbox" formControlName="activo" />
+          <span class="toggle-track">
+            <span class="toggle-thumb"></span>
+          </span>
+          <span class="toggle-label">
+            {{ form.get('activo')?.value ? 'Activo — visible en selectores' : 'Inactivo — oculto en selectores' }}
+          </span>
+        </label>
+      </div>
+
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" (click)="closeForm()" [disabled]="isSaving">Cancelar</button>
+      <button class="btn btn-primary" type="button"
+        [disabled]="form.invalid || isSaving || (!!editingItem && !isDirty)"
+        (click)="save()">
+        {{ isSaving ? 'Guardando...' : (editingItem ? 'Guardar cambios' : '+ Crear Tipo') }}
+      </button>
+    </div>
+
+  </div>
+</div>

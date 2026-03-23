@@ -22,3 +22,16 @@ Los componentes shared del proyecto (app-perfil-select, app-cuenta-search,
 app-empleado-search, app-select, app-paginator) usan OnPush. Si un componente
 padre usa Default, Angular no propaga los cambios correctamente y la vista
 no refresca hasta el próximo evento del usuario.
+
+SEGUNDO FIX, cuando no cargan los registros
+
+El fix específico fue ApplicationRef.tick().
+La diferencia con los casos anteriores:
+
+Casos anteriores (rend-m, rend-d, perfiles) — el problema era que el propio componente con OnPush no se actualizaba. El fix era form.statusChanges.subscribe(() => cdr.markForCheck()) o ChangeDetectionStrategy.Default en el componente mismo.
+Este caso — el problema era diferente: el usuario-search (hijo) cargaba datos HTTP y llamaba cdr.markForCheck() sobre sí mismo, pero eso solo marca el hijo para revisión. El padre users.component tiene OnPush y no sabe que su hijo cambió, entonces no re-renderiza el árbol. markForCheck() sube por el árbol marcando ancestros, pero en algunos casos con componentes standalone y lazy el árbol no está completamente conectado.
+appRef.tick() — dispara un ciclo de detección completo desde la raíz, igual que cuando Angular detecta un evento del navegador. No importa si el padre es OnPush o no, todos se revisan.
+
+------------------------------------------------
+
+El fix real es agregar appRef.tick() en el next de loadDocumentos, igual que hicimos en usuario-search:

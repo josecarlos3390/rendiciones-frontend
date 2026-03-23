@@ -699,3 +699,86 @@ th.th-net { color: var(--text-heading); font-weight: var(--weight-bold); }
   .trace-pending { color: #fbbf24; }
   .trace-chip-ordered { color: #99afff; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SKELETON LOADER
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.skeleton-block {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle)  25%,
+    var(--border-soft) 50%,
+    var(--bg-subtle)  75%
+  );
+  background-size: 600px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+
+  &--title  { width: 40%; height: 13px; }
+  &--value  { width: 55%; height: 22px; margin-top: 8px; border-radius: var(--radius-md); }
+  &--sub    { width: 30%; height: 11px; margin-top: 6px; }
+  &--line-lg{ width: 70%; }
+  &--line-sm{ width: 40%; height: 11px; margin-top: 6px; }
+}
+
+// ── Tabla ──────────────────────────────────────────────────────
+.skeleton-table {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--bg-faint);
+    border-bottom: 1.5px solid var(--border-color);
+
+    .skeleton-block { height: 11px; }
+  }
+
+  &__row {
+    display: flex;
+    gap: 16px;
+    padding: 15px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    &:last-child { border-bottom: none; }
+  }
+}
+
+// ── Cards (dashboard) ──────────────────────────────────────────
+.skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.skeleton-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+// ── Lista ──────────────────────────────────────────────────────
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &__item {
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    padding: 14px 16px;
+  }
+}

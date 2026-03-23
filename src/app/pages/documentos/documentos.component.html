@@ -33,14 +33,12 @@
           </div>
           <div class="form-field">
             <label>Tipo Doc SAP <span class="required">*</span></label>
-            <app-select
-              label="Tipo Doc SAP"
-              [required]="true"
-              [options]="tipoDocSapOptions"
+            <app-tipo-doc-sap-select
               [value]="form.get('idTipoDoc')?.value"
               [invalid]="!!form.get('idTipoDoc')?.invalid && !!form.get('idTipoDoc')?.touched"
-              (valueChange)="form.get('idTipoDoc')?.setValue($event)">
-            </app-select>
+              (valueChange)="form.get('idTipoDoc')?.setValue($event)"
+              (itemChange)="onTipoDocSapSelected($event)">
+            </app-tipo-doc-sap-select>
             <span class="field-hint">Tipo de documento SAP al que se contabilizará.</span>
           </div>
           <div class="form-field">
@@ -152,8 +150,7 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>% ICE</label>
-                <input type="number" style="max-width:110px" formControlName="ice" step="0.01" min="-1" />
-                <span class="field-hint">-1 si variable</span>
+                <input type="number" style="max-width:110px" formControlName="ice" step="0.01" min="0" />
               </div>
               <div class="form-field tax-pct-field">
                 <label>% Tasa</label>

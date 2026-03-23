@@ -1,72 +1,330 @@
 <div class="dashboard">
 
-  <!-- ── Encabezado ────────────────────────────────────── -->
-  <div class="page-header">
-    <div>
-      <h1 class="title">Dashboard</h1>
-      <p class="subtitle">Bienvenido de vuelta, <strong>{{ userName }}</strong></p>
+  <!-- ── Encabezado ─────────────────────────────────────────── -->
+  <div class="dash-header">
+    <div class="dash-greeting">
+      <p class="greeting-time">{{ greeting }},</p>
+      <h1 class="greeting-name">{{ userName }}</h1>
+      <p class="greeting-date">{{ today }}</p>
     </div>
-    <div class="header-date">
+    <button class="btn btn-ghost btn-sm refresh-btn" (click)="loadData()" title="Actualizar">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="4" width="18" height="18" rx="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8"  y1="2" x2="8"  y2="6"/>
-        <line x1="3"  y1="10" x2="21" y2="10"/>
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
       </svg>
-      {{ today }}
-    </div>
+      Actualizar
+    </button>
   </div>
 
-  <!-- ── KPI Cards ─────────────────────────────────────── -->
+  <!-- ── Alerta pendientes de aprobación ────────────────────── -->
+  <a class="alert-banner" routerLink="/aprobaciones" *ngIf="pendientesCount > 0">
+    <div class="alert-icon">🔔</div>
+    <div class="alert-body">
+      <strong>{{ pendientesCount }} rendición{{ pendientesCount !== 1 ? 'es' : '' }} pendiente{{ pendientesCount !== 1 ? 's' : '' }} de tu aprobación</strong>
+      <span>Tocá para revisar y aprobar</span>
+    </div>
+    <svg class="alert-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </a>
+
+  <!-- ── KPIs ───────────────────────────────────────────────── -->
   <div class="kpi-grid">
-    <div class="kpi-card" *ngFor="let k of kpis">
-      <div class="kpi-icon-wrap" [class]="'kpi-icon-wrap--' + k.theme">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" [innerHTML]="k.svg"></svg>
+
+    <!-- Mis rendiciones -->
+    <div class="kpi-card kpi-card--primary">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
       </div>
       <div class="kpi-body">
-        <span class="kpi-label">{{ k.title }}</span>
-        <span class="kpi-value">{{ k.value }}</span>
-      </div>
-      <div class="kpi-trend" [class.up]="k.trend > 0" [class.down]="k.trend < 0" *ngIf="k.trend !== 0">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path *ngIf="k.trend > 0" d="M18 15l-6-6-6 6"/>
-          <path *ngIf="k.trend < 0" d="M6 9l6 6 6-6"/>
-        </svg>
-        {{ k.trend > 0 ? '+' : '' }}{{ k.trend }}%
+        <span class="kpi-label">Mis Rendiciones</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!loadingStats">{{ stats?.total ?? 0 }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">Propias</span>
       </div>
     </div>
+
+    <!-- Total sistema — solo ADMIN -->
+    <div class="kpi-card kpi-card--primary" *ngIf="isAdmin && stats?.totalGlobal !== undefined">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total Sistema</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!loadingStats">{{ stats?.totalGlobal ?? 0 }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">Todos los usuarios</span>
+      </div>
+    </div>
+
+    <!-- Abiertas -->
+    <div class="kpi-card kpi-card--blue">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12,6 12,12 16,14"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Abiertas</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!loadingStats">{{ stats?.abiertas ?? 0 }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">En proceso</span>
+      </div>
+    </div>
+
+    <!-- Enviadas -->
+    <div class="kpi-card kpi-card--amber">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22,2 15,22 11,13 2,9"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Enviadas</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!loadingStats">{{ stats?.enviadas ?? 0 }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">En aprobación</span>
+      </div>
+    </div>
+
+    <!-- Aprobadas -->
+    <div class="kpi-card kpi-card--green">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="20,6 9,17 4,12"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Aprobadas</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!loadingStats">{{ stats?.aprobadas ?? 0 }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">Listas para sincronizar</span>
+      </div>
+    </div>
+
+    <!-- Sincronizadas -->
+    <div class="kpi-card kpi-card--green" *ngIf="stats?.sincronizadas">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Sincronizadas</span>
+        <span class="kpi-value">
+          <ng-container *ngIf="!loadingStats">{{ stats?.sincronizadas ?? 0 }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">Enviadas al ERP</span>
+      </div>
+    </div>
+
+    <!-- Monto total -->
+    <div class="kpi-card kpi-card--monto">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Monto Total (Bs)</span>
+        <span class="kpi-value kpi-value--mono">
+          <ng-container *ngIf="!loadingStats">{{ montoFormateado }}</ng-container>
+          <span class="kpi-loading" *ngIf="loadingStats">—</span>
+        </span>
+        <span class="kpi-sub">Suma de importes</span>
+      </div>
+    </div>
+
+    <!-- Pendientes de aprobación (si es aprobador) -->
+    <div class="kpi-card kpi-card--danger" *ngIf="pendientesCount > 0">
+      <div class="kpi-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Mis Aprobaciones</span>
+        <span class="kpi-value">{{ pendientesCount }}</span>
+        <span class="kpi-sub">Pendientes de revisión</span>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ── Acceso rápido ──────────────────────────────────── -->
+  <!-- ── Accesos rápidos ────────────────────────────────────── -->
   <div class="section-header">
-    <h2 class="section-title">Acceso rápido</h2>
+    <h2 class="section-title">Accesos rápidos</h2>
   </div>
 
   <div class="shortcuts-grid">
-    <a class="shortcut-card" *ngFor="let s of shortcuts" [routerLink]="s.route">
-      <div class="shortcut-icon" [class]="'shortcut-icon--' + s.theme">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" [innerHTML]="s.svg"></svg>
+
+    <a class="shortcut-card shortcut-card--primary" routerLink="/rend-m">
+      <div class="shortcut-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9"  y1="15" x2="15" y2="15"/>
+        </svg>
       </div>
       <div class="shortcut-body">
-        <span class="shortcut-name">{{ s.name }}</span>
-        <span class="shortcut-desc">{{ s.desc }}</span>
+        <span class="shortcut-name">Nueva Rendición</span>
+        <span class="shortcut-desc">Crear y gestionar rendiciones</span>
       </div>
-      <svg class="shortcut-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="shortcut-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M9 18l6-6-6-6"/>
       </svg>
     </a>
+
+    <a class="shortcut-card shortcut-card--amber" routerLink="/aprobaciones">
+      <div class="shortcut-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22,4 12,14.01 9,11.01"/>
+        </svg>
+      </div>
+      <div class="shortcut-body">
+        <span class="shortcut-name">Aprobaciones</span>
+        <span class="shortcut-desc">
+          Revisar rendiciones pendientes
+          <span class="badge-inline" *ngIf="pendientesCount > 0">{{ pendientesCount }}</span>
+        </span>
+      </div>
+      <svg class="shortcut-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </a>
+
+    <a class="shortcut-card shortcut-card--green" routerLink="/users" *ngIf="isAdmin">
+      <div class="shortcut-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+          <path d="M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+      </div>
+      <div class="shortcut-body">
+        <span class="shortcut-name">Usuarios</span>
+        <span class="shortcut-desc">Administrar usuarios y aprobadores</span>
+      </div>
+      <svg class="shortcut-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </a>
+
+    <a class="shortcut-card shortcut-card--purple" routerLink="/perfiles" *ngIf="isAdmin">
+      <div class="shortcut-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+      <div class="shortcut-body">
+        <span class="shortcut-name">Perfiles</span>
+        <span class="shortcut-desc">Configurar perfiles de rendición</span>
+      </div>
+      <svg class="shortcut-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </a>
+
+    <a class="shortcut-card shortcut-card--cyan" routerLink="/documentos" *ngIf="isAdmin">
+      <div class="shortcut-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <div class="shortcut-body">
+        <span class="shortcut-name">Documentos</span>
+        <span class="shortcut-desc">Tipos de documentos por perfil</span>
+      </div>
+      <svg class="shortcut-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </a>
+
+    <a class="shortcut-card shortcut-card--gray" routerLink="/permisos" *ngIf="isAdmin">
+      <div class="shortcut-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <div class="shortcut-body">
+        <span class="shortcut-name">Permisos</span>
+        <span class="shortcut-desc">Asignar perfiles a usuarios</span>
+      </div>
+      <svg class="shortcut-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </a>
+
   </div>
 
-  <!-- ── Estado del sistema ─────────────────────────────── -->
+  <!-- ── Guía rápida ────────────────────────────────────────── -->
   <div class="section-header">
-    <h2 class="section-title">Estado del sistema</h2>
+    <h2 class="section-title">Flujo de trabajo</h2>
   </div>
 
-  <div class="status-grid">
-    <div class="status-card" *ngFor="let s of statusItems">
-      <div class="status-dot" [class]="s.status"></div>
-      <span class="status-name">{{ s.name }}</span>
-      <span class="status-badge" [class]="s.status">{{ s.label }}</span>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-info">
+        <span class="flow-title">Crear rendición</span>
+        <span class="flow-desc">Registrá el monto inicial recibido y el objetivo</span>
+      </div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-info">
+        <span class="flow-title">Cargar documentos</span>
+        <span class="flow-desc">Agregá facturas, recibos o comprobantes por QR, URL o PDF</span>
+      </div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-info">
+        <span class="flow-title">Enviar para aprobación</span>
+        <span class="flow-desc">La rendición pasa por los niveles de aprobación configurados</span>
+      </div>
+    </div>
+    <div class="flow-connector"></div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-info">
+        <span class="flow-title">Sincronizar con ERP</span>
+        <span class="flow-desc">Una vez aprobada, se sincroniza automáticamente con el sistema contable</span>
+      </div>
     </div>
   </div>
 

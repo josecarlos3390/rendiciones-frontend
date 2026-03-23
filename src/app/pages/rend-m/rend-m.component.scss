@@ -5,6 +5,14 @@
 // ── Modal formulario — sobreescribe width de .user-modal ──────
 .user-modal {
   width: min(1000px, 96vw);
+
+  @media (max-width: 480px) {
+    width:         100%;
+    max-height:    92vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    margin:        0;
+    overflow-y:    auto;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -145,6 +153,10 @@
   text-align:     center;
   padding:        48px 24px 64px;
   gap:            12px;
+
+  @media (max-width: 480px) {
+    padding: 32px 16px 40px;
+  }
 }
 
 .perfil-step__icon {
@@ -166,6 +178,10 @@
   max-width:   420px;
   line-height: 1.55;
   margin:      0;
+
+  @media (max-width: 480px) {
+    max-width: 100%;
+  }
 }
 
 .perfil-step__loading,
@@ -182,6 +198,12 @@
   width:                 100%;
   max-width:             720px;
   margin-top:            16px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    max-width:             100%;
+    padding:               0;
+  }
 }
 
 .perfil-card {
@@ -250,6 +272,10 @@
   display:    flex;
   align-items: center;
   gap:        4px;
+
+  @media (max-width: 400px) {
+    flex-wrap: wrap;
+  }
 }
 
 .estado-chip {
@@ -363,27 +389,8 @@
 
 .data-table th.actions,
 .data-table td.actions {
-  width:         140px;
-  min-width:     140px;
-  max-width:     140px;
-  white-space:   nowrap;
-  text-align:    right;
-  padding-right: 16px;
-}
-
-// Anula el display:flex global de .actions para que la celda
-// se comporte como tabla normal y respete el alto de la fila
-.data-table td.actions {
-  display:        table-cell;
-  vertical-align: middle;
-
-  // Reagrupar los botones internamente con flex
-  > * {
-    display:        inline-flex;
-    align-items:    center;
-    justify-content: center;
-    vertical-align: middle;
-  }
+  min-width:   100px;
+  white-space: nowrap;
 }
 // ── Banner informativo de flujo ───────────────────────────────
 .rend-m-info {
@@ -395,5 +402,19 @@
     font-style:  normal;
     font-weight: var(--weight-semibold);
     color:       var(--text-heading);
+  }
+}
+
+// ── Botón Enviar ──────────────────────────────────────────────
+.btn-send {
+  background:   rgba(245, 158, 11, 0.12);
+  color:        #854F0B;
+  border:       1px solid rgba(245, 158, 11, 0.35);
+  font-weight:  var(--weight-semibold);
+  white-space:  nowrap;
+
+  &:hover {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.6);
   }
 }

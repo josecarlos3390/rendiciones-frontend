@@ -1,270 +1,369 @@
-// ── Variables ─────────────────────────────────────────────────
-$transition: 0.18s ease;
-
 .dashboard {
-  padding: 32px;
-  max-width: 1200px;
-
-  @media (max-width: 768px) { padding: 20px 16px; }
+  max-width:  1200px;
+  padding-bottom: 40px;
 }
 
 // ── Header ────────────────────────────────────────────────────
-.page-header {
-  display: flex;
-  align-items: flex-start;
+.dash-header {
+  display:         flex;
+  align-items:     flex-start;
   justify-content: space-between;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
-  gap: 12px;
+  margin-bottom:   28px;
+  gap:             16px;
+  flex-wrap:       wrap;
 }
 
-.title {
-  font-size: var(--text-2xl);
+.greeting-time {
+  font-size:   var(--text-sm);
+  color:       var(--text-muted);
+  margin:      0 0 2px;
+  font-weight: var(--weight-medium);
+}
+
+.greeting-name {
+  font-size:   clamp(1.4rem, 4vw, 2rem);
   font-weight: var(--weight-bold);
-  color: var(--text-heading);
-  margin: 0 0 4px;
-  letter-spacing: -0.02em;
+  color:       var(--text-heading);
+  margin:      0 0 4px;
+  line-height: 1.2;
 }
 
-.subtitle {
-  font-size: var(--text-md);
-  color: var(--text-muted);
-  margin: 0;
-
-  strong { color: var(--text-body); font-weight: var(--weight-semibold); }
-}
-
-.header-date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-base);
-  color: var(--text-faint);
-  background: var(--bg-faint);
-  border: 1px solid var(--border-color);
-  padding: 7px 12px;
-  border-radius: 8px;
-  white-space: nowrap;
+.greeting-date {
+  font-size:  var(--text-sm);
+  color:      var(--text-muted);
+  margin:     0;
   text-transform: capitalize;
 }
 
-// ── KPI Grid ──────────────────────────────────────────────────
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin-bottom: 32px;
+.refresh-btn {
+  flex-shrink: 0;
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  margin-top:  8px;
 }
 
-.kpi-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow $transition, transform $transition;
-  position: relative;
+// ── Alerta aprobaciones ───────────────────────────────────────
+.alert-banner {
+  display:         flex;
+  align-items:     center;
+  gap:             14px;
+  padding:         14px 18px;
+  background:      rgba(245, 158, 11, 0.08);
+  border:          1px solid rgba(245, 158, 11, 0.3);
+  border-radius:   var(--radius-lg);
+  margin-bottom:   24px;
+  text-decoration: none;
+  transition:      background 0.2s, border-color 0.2s;
+  cursor:          pointer;
 
   &:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    background:   rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.5);
   }
 }
 
-.kpi-icon-wrap {
-  width: 44px; height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+.alert-icon { font-size: 22px; flex-shrink: 0; }
 
-.kpi-body {
-  flex: 1;
-  display: flex;
+.alert-body {
+  flex:           1;
+  display:        flex;
   flex-direction: column;
-  gap: 2px;
+  gap:            2px;
+
+  strong {
+    font-size:   var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color:       #854F0B;
+  }
+  span {
+    font-size: var(--text-xs);
+    color:     var(--text-muted);
+  }
 }
 
-.kpi-label {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.alert-arrow { color: var(--text-muted); flex-shrink: 0; }
+
+// ── KPI Grid ──────────────────────────────────────────────────
+.kpi-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap:                   16px;
+  margin-bottom:         32px;
 }
 
-.kpi-value {
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
-  color: var(--text-heading);
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.kpi-trend {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  padding: 3px 7px;
-  border-radius: 20px;
-
-  &.up   { background: var(--status-closed-bg);    color: var(--status-closed-color); }
-  &.down { background: var(--status-cancelled-bg); color: var(--status-cancelled-color); }
-}
-
-// ── Sección ───────────────────────────────────────────────────
-.section-header {
-  margin-bottom: 14px;
-}
-
-.section-title {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
-  color: var(--text-heading);
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-// ── Acceso rápido ─────────────────────────────────────────────
-.shortcuts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-  margin-bottom: 32px;
-}
-
-.shortcut-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 16px;
-  text-decoration: none;
-  transition: box-shadow $transition, transform $transition, border-color $transition;
-  cursor: pointer;
+.kpi-card {
+  display:       flex;
+  align-items:   center;
+  gap:           14px;
+  padding:       18px 20px;
+  background:    var(--bg-surface);
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition:    box-shadow 0.2s, transform 0.15s;
 
   &:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-    border-color: var(--color-primary-border);
+    transform:  translateY(-1px);
+  }
+}
+
+.kpi-icon {
+  width:           44px;
+  height:          44px;
+  border-radius:   var(--radius-md);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+}
+
+.kpi-body {
+  flex:           1;
+  min-width:      0;
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.kpi-label {
+  font-size:      var(--text-xs);
+  font-weight:    var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color:          var(--text-muted);
+}
+
+.kpi-value {
+  font-size:   clamp(1.4rem, 3vw, 1.75rem);
+  font-weight: var(--weight-bold);
+  color:       var(--text-heading);
+  line-height: 1.1;
+
+  &--mono { font-family: var(--font-mono, monospace); font-size: 1.1rem; }
+}
+
+.kpi-loading { color: var(--text-faint); }
+
+.kpi-sub {
+  font-size: var(--text-xs);
+  color:     var(--text-faint);
+}
+
+// ── KPI color themes ──────────────────────────────────────────
+.kpi-card--primary .kpi-icon {
+  background: rgba(59, 130, 246, 0.1);
+  color:      #185FA5;
+  svg { stroke: #185FA5; }
+}
+.kpi-card--blue .kpi-icon {
+  background: rgba(99, 179, 237, 0.12);
+  color:      #2B6CB0;
+  svg { stroke: #2B6CB0; }
+}
+.kpi-card--amber .kpi-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color:      #854F0B;
+  svg { stroke: #854F0B; }
+}
+.kpi-card--green .kpi-icon {
+  background: rgba(59, 109, 17, 0.1);
+  color:      #3B6D11;
+  svg { stroke: #3B6D11; }
+}
+.kpi-card--monto .kpi-icon {
+  background: rgba(139, 92, 246, 0.1);
+  color:      #5B21B6;
+  svg { stroke: #5B21B6; }
+}
+.kpi-card--danger .kpi-icon {
+  background: rgba(220, 38, 38, 0.1);
+  color:      #A32D2D;
+  svg { stroke: #A32D2D; }
+}
+
+// ── Section header ────────────────────────────────────────────
+.section-header {
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.section-title {
+  font-size:   var(--text-base);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-heading);
+  margin:      0;
+}
+
+// ── Shortcuts ─────────────────────────────────────────────────
+.shortcuts-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap:                   12px;
+  margin-bottom:         32px;
+}
+
+.shortcut-card {
+  display:         flex;
+  align-items:     center;
+  gap:             14px;
+  padding:         14px 16px;
+  background:      var(--bg-surface);
+  border:          1px solid var(--border-color);
+  border-radius:   var(--radius-lg);
+  text-decoration: none;
+  transition:      background 0.15s, border-color 0.15s, transform 0.15s;
+  cursor:          pointer;
+
+  &:hover {
+    border-color: var(--color-primary);
+    transform:    translateX(2px);
+    background:   var(--bg-faint);
+
+    .shortcut-arrow { opacity: 1; transform: translateX(2px); }
   }
 }
 
 .shortcut-icon {
-  width: 42px; height: 42px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
+  width:           40px;
+  height:          40px;
+  border-radius:   var(--radius-md);
+  display:         flex;
+  align-items:     center;
   justify-content: center;
-  flex-shrink: 0;
+  flex-shrink:     0;
 }
 
 .shortcut-body {
-  flex: 1;
-  display: flex;
+  flex:           1;
+  min-width:      0;
+  display:        flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  gap:            2px;
 }
 
 .shortcut-name {
-  font-size: var(--text-md);
+  font-size:   var(--text-sm);
   font-weight: var(--weight-semibold);
-  color: var(--text-heading);
+  color:       var(--text-heading);
 }
 
 .shortcut-desc {
-  font-size: var(--text-sm);
-  color: var(--text-faint);
+  font-size: var(--text-xs);
+  color:     var(--text-muted);
+  display:   flex;
+  align-items: center;
+  gap:       6px;
 }
 
 .shortcut-arrow {
-  color: var(--text-faint);
+  color:      var(--text-faint);
   flex-shrink: 0;
-  transition: color $transition, transform $transition;
-
-  .shortcut-card:hover & {
-    color: var(--text-muted);
-    transform: translateX(3px);
-  }
+  opacity:    0.5;
+  transition: opacity 0.15s, transform 0.15s;
 }
 
-// ── Estado del sistema ────────────────────────────────────────
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
-  margin-bottom: 32px;
+.badge-inline {
+  display:       inline-flex;
+  align-items:   center;
+  justify-content: center;
+  min-width:     18px;
+  height:        18px;
+  padding:       0 5px;
+  border-radius: 9px;
+  background:    #E24B4A;
+  color:         #fff;
+  font-size:     11px;
+  font-weight:   700;
 }
 
-.status-card {
-  display: flex;
+// Shortcut color themes
+.shortcut-card--primary .shortcut-icon { background: rgba(59,130,246,.1); svg { stroke: #185FA5; } }
+.shortcut-card--amber   .shortcut-icon { background: rgba(245,158,11,.1); svg { stroke: #854F0B; } }
+.shortcut-card--green   .shortcut-icon { background: rgba(59,109,17,.1);  svg { stroke: #3B6D11; } }
+.shortcut-card--purple  .shortcut-icon { background: rgba(139,92,246,.1); svg { stroke: #5B21B6; } }
+.shortcut-card--cyan    .shortcut-icon { background: rgba(6,182,212,.1);  svg { stroke: #0E7490; } }
+.shortcut-card--gray    .shortcut-icon { background: rgba(107,114,128,.1);svg { stroke: #374151; } }
+
+// ── Flow steps ────────────────────────────────────────────────
+.flow-steps {
+  display:   flex;
   align-items: center;
-  gap: 10px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 12px 14px;
+  gap:       0;
+  flex-wrap: wrap;
+  row-gap:   16px;
 }
 
-.status-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
+.flow-step {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     14px 18px;
+  background:  var(--bg-surface);
+  border:      1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  flex:        1;
+  min-width:   180px;
+}
+
+.flow-num {
+  width:           32px;
+  height:          32px;
+  border-radius:   50%;
+  background:      var(--color-primary-bg);
+  border:          2px solid var(--color-primary-border);
+  color:           var(--color-primary-text);
+  font-size:       var(--text-sm);
+  font-weight:     var(--weight-bold);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  font-family:     var(--font-mono);
+}
+
+.flow-info {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  min-width:      0;
+}
+
+.flow-title {
+  font-size:   var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-heading);
+}
+
+.flow-desc {
+  font-size: var(--text-xs);
+  color:     var(--text-muted);
+}
+
+.flow-connector {
+  width:      24px;
+  height:     2px;
+  background: var(--border-soft);
   flex-shrink: 0;
 
-  &.ok      { background: var(--status-closed-color);    box-shadow: 0 0 0 3px var(--status-closed-bg); }
-  &.warning { background: var(--status-confirmed-color);  box-shadow: 0 0 0 3px var(--status-confirmed-bg); }
-  &.error   { background: var(--status-cancelled-color);  box-shadow: 0 0 0 3px var(--status-cancelled-bg); }
+  @media (max-width: 640px) { display: none; }
 }
 
-.status-name {
-  flex: 1;
-  font-size: var(--text-base);
-  color: var(--text-body);
-  font-weight: var(--weight-medium);
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .kpi-grid        { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .shortcuts-grid  { grid-template-columns: 1fr; }
+  .flow-steps      { flex-direction: column; align-items: stretch; }
+  .flow-step       { flex: none; }
+  .kpi-value       { font-size: 1.3rem; }
+  .dash-header     { margin-bottom: 20px; }
+  .alert-banner    { padding: 12px 14px; gap: 10px; }
 }
 
-.status-badge {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  padding: 2px 8px;
-  border-radius: 20px;
-
-  &.ok      { background: var(--status-closed-bg);    color: var(--status-closed-color); }
-  &.warning { background: var(--status-confirmed-bg); color: var(--status-confirmed-color); }
-  &.error   { background: var(--status-cancelled-bg); color: var(--status-cancelled-color); }
+@media (max-width: 400px) {
+  .kpi-grid        { grid-template-columns: 1fr; }
+  .kpi-card        { padding: 14px 16px; }
+  .kpi-value       { font-size: 1.2rem; }
+  .shortcut-card   { padding: 12px 14px; }
 }
-
-// ── Variantes de tema para iconos — resueltas con CSS tokens ──────────
-// Usadas en KPI cards y shortcuts. Cambian automáticamente en dark mode
-// porque los tokens ya están definidos por tema en styles.scss.
-
-@mixin icon-theme($bg, $color) {
-  background: $bg;
-  color: $color;
-}
-
-// KPI icon wraps
-.kpi-icon-wrap--primary  { @include icon-theme(var(--status-open-bg),      var(--status-open-color)); }
-.kpi-icon-wrap--success  { @include icon-theme(var(--status-closed-bg),    var(--status-closed-color)); }
-.kpi-icon-wrap--warning  { @include icon-theme(var(--status-confirmed-bg), var(--status-confirmed-color)); }
-.kpi-icon-wrap--cost     { @include icon-theme(var(--color-cost-bg),       var(--color-cost)); }
-.kpi-icon-wrap--amber    { @include icon-theme(var(--status-confirmed-bg), var(--color-warning)); }
-.kpi-icon-wrap--info     { @include icon-theme(var(--status-open-bg),      var(--color-primary)); }
-
-// Shortcut icons (mismas variantes)
-.shortcut-icon--primary  { @include icon-theme(var(--status-open-bg),      var(--status-open-color)); }
-.shortcut-icon--success  { @include icon-theme(var(--status-closed-bg),    var(--status-closed-color)); }
-.shortcut-icon--warning  { @include icon-theme(var(--status-confirmed-bg), var(--status-confirmed-color)); }
-.shortcut-icon--cost     { @include icon-theme(var(--color-cost-bg),       var(--color-cost)); }
-.shortcut-icon--amber    { @include icon-theme(var(--status-confirmed-bg), var(--color-warning)); }
-.shortcut-icon--info     { @include icon-theme(var(--status-open-bg),      var(--color-primary)); }

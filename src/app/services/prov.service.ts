@@ -17,4 +17,9 @@ export class ProvService {
     return this.http.post<ProvEventual>(this.api, { nit, razonSocial });
   }
   remove(nit: string)                   { return this.http.delete<{ affected: number }>(`${this.api}/${encodeURIComponent(nit)}`); }
+
+  /** Busca proveedor por NIT — si no existe lo crea automáticamente como PL */
+  findOrCreate(nit: string, razonSocial: string) {
+    return this.http.post<ProvEventual>(`${this.api}/find-or-create`, { nit, razonSocial, tipo: 'PL' });
+  }
 }

@@ -46,7 +46,11 @@ export class PerfilesComponent implements OnInit {
   private _pendingAction: (() => void) | null = null;
 
   // Opciones para selects
-  monedaOptions: SelectOption[] = [];
+  // Opciones por defecto — se actualizan con appConfig pero nunca quedan vacías
+  monedaOptions: SelectOption[] = [
+    { value: '0', label: 'Moneda Local (BS)' },
+    { value: '1', label: 'Moneda Sistema (USD)' },
+  ];
   readonly proCarOptions = PRO_CAR_OPTIONS;
   readonly cueCarOptions = CUE_CAR_OPTIONS;
   readonly empCarOptions = EMP_CAR_OPTIONS;
@@ -73,6 +77,9 @@ export class PerfilesComponent implements OnInit {
 
   ngOnInit() {
     this.buildForm();
+    // Con OnPush, el botón no se habilita automáticamente al escribir.
+    // statusChanges fuerza la re-evaluación cuando cambia form.valid.
+    this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
     Promise.resolve().then(() => {
       this.load();
       this.reloadMonedaOptions();
@@ -157,7 +164,7 @@ export class PerfilesComponent implements OnInit {
   openNew() {
     this.reloadMonedaOptions();
     this.editingPerfil = null;
-    this.initialValues = null;
+    this.initialValues = null; // isDirty retorna true cuando editingPerfil es null
     this.form.reset({
       nombrePerfil: '', trabaja: '0', perCtaBl: 0,
       proCar: 'TODOS', proTexto: '',

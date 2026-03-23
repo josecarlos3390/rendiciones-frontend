@@ -44,12 +44,17 @@ export type UpdateRendMPayload = Partial<CreateRendMPayload>;
 export const ESTADO_LABEL: Record<number, string> = {
   1: 'ABIERTO',
   2: 'CERRADO',
+  3: 'APROBADO',
   4: 'ENVIADO',
+  5: 'SINCRONIZADO',
+  6: 'ERROR SYNC',
 };
-
 /** Clases del design system (_badges.scss) */
 export const ESTADO_CLASS: Record<number, string> = {
-  1: 'status-badge status-open',        // azul  — abierto
-  2: 'status-badge status-closed',      // verde — cerrado
-  4: 'status-badge status-confirmed',   // naranja — enviado
+  1: 'status-badge status-open',
+  2: 'status-badge status-secondary',
+  3: 'status-badge status-closed',
+  4: 'status-badge status-confirmed',
+  5: 'status-badge status-sync-ok',
+  6: 'status-badge status-sync-error',
 };

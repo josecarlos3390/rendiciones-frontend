@@ -159,6 +159,19 @@
   width: min(900px, 96vw);
   margin: auto;
   animation: _doc-modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+
+  @media (max-width: 480px) {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    margin: 0;
+    animation: _doc-modal-slide-up 0.28s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+}
+
+@keyframes _doc-modal-slide-up {
+  from { opacity: 0; transform: translateY(60px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes _doc-modal-in {
@@ -180,6 +193,10 @@
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    padding: 14px 16px;
+  }
 }
 
 .doc-modal-title {
@@ -234,6 +251,11 @@
   padding: 0 24px;
   overflow-x: auto;
   flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;  // ← agregar para scroll suave en iOS
+
+  @media (max-width: 480px) {
+    padding: 0 12px;
+  }
 }
 
 .modal-tab {
@@ -264,14 +286,24 @@
     background: var(--color-primary-bg); color: var(--color-primary-text);
     font-size: 10px; font-weight: var(--weight-bold);
   }
+
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    font-size: var(--text-xs);
+  }
 }
 
 // ── Body del modal ────────────────────────────────────────────
 .modal-body {
   padding: 20px 24px;
   overflow-y: auto;
-  max-height: calc(90vh - 180px); // header + tabs + footer
+  max-height: calc(90vh - 180px);
   flex: 1;
+
+  @media (max-width: 480px) {
+    padding: 16px;
+    max-height: calc(92vh - 160px);
+  }
 }
 
 // ── Secciones del formulario ──────────────────────────────────
@@ -447,6 +479,11 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 24px; border-top: 1px solid var(--border-color);
   flex-shrink: 0; gap: 12px; flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); // soporte notch iOS
+  }
 }
 .footer-nav { display: flex; gap: 8px; }
 .footer-actions { display: flex; gap: 10px; }
@@ -949,4 +986,147 @@ th.col-impuesto {
   gap:        8px;
   margin-top: 12px;
   justify-content: center;
+}
+
+
+// ── Panel de control de saldo ─────────────────────────────────
+.saldo-panel {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding:       16px 20px;
+  margin-bottom: 16px;
+}
+
+.saldo-row {
+  display:   flex;
+  gap:       24px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.saldo-item {
+  display:        flex;
+  flex-direction: column;
+  gap:            3px;
+  flex:           1;
+  min-width:      120px;
+  padding:        10px 14px;
+  border-radius:  var(--radius-md);
+  background:     var(--bg-faint);
+  border:         1px solid var(--border-soft);
+  transition:     background 0.2s, border-color 0.2s;
+
+  &.saldo-ok {
+    background:   rgba(59, 109, 17, 0.06);
+    border-color: rgba(99, 153, 34, 0.3);
+    .saldo-value { color: #3B6D11; }
+  }
+
+  &.saldo-exacto {
+    background:   rgba(59, 130, 246, 0.06);
+    border-color: rgba(59, 130, 246, 0.3);
+    .saldo-value { color: var(--color-primary); }
+  }
+
+  &.saldo-excedido {
+    background:   rgba(220, 38, 38, 0.06);
+    border-color: rgba(220, 38, 38, 0.25);
+    .saldo-value { color: var(--color-danger-text, #a32d2d); }
+  }
+}
+
+.saldo-label {
+  font-size:      var(--text-xs);
+  font-weight:    var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color:          var(--text-muted);
+}
+
+.saldo-value {
+  font-size:   var(--text-lg);
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono, monospace);
+  color:       var(--text-heading);
+}
+
+// Barra de progreso
+.saldo-bar-wrap {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+.saldo-bar {
+  flex:             1;
+  height:           8px;
+  background:       var(--border-soft);
+  border-radius:    4px;
+  overflow:         hidden;
+}
+
+.saldo-bar-fill {
+  height:        100%;
+  border-radius: 4px;
+  transition:    width 0.4s ease;
+
+  &.saldo-bar-ok      { background: #63991A; }
+  &.saldo-bar-exacto  { background: var(--color-primary); }
+  &.saldo-bar-excedido { background: var(--color-danger-text, #a32d2d); }
+}
+
+.saldo-pct {
+  font-size:   var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-muted);
+  min-width:   36px;
+  text-align:  right;
+}
+
+@media (max-width: 640px) {
+  .saldo-row { gap: 10px; }
+  .saldo-value { font-size: var(--text-base); }
+}
+
+
+// ── Botones exportar/importar ─────────────────────────────────
+.header-actions {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex-wrap:   wrap;
+}
+
+.import-btn-wrap {
+  display: flex;
+  gap:     6px;
+}
+
+// Label como botón para el input file
+label.btn {
+  cursor:      pointer;
+  display:     inline-flex;
+  align-items: center;
+  gap:         5px;
+  user-select: none;
+}
+
+.import-error-banner {
+  display:       flex;
+  align-items:   center;
+  justify-content: space-between;
+  gap:           12px;
+  padding:       10px 16px;
+  background:    rgba(220, 38, 38, 0.08);
+  border:        1px solid rgba(220, 38, 38, 0.25);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  font-size:     var(--text-sm);
+  color:         var(--color-danger-text, #a32d2d);
+}
+
+@media (max-width: 640px) {
+  .header-actions { gap: 6px; }
+  .import-btn-wrap { flex-wrap: wrap; }
 }

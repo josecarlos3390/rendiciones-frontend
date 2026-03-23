@@ -1,0 +1,262 @@
+.empty-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.row-error td {
+  background: var(--color-danger-soft);
+}
+
+// ── Badges de estado ───────────────────────────────────────
+.badge-aprobado {
+  background: var(--status-open-bg);
+  color: var(--status-open-color);
+  border: 1px solid var(--status-open-border);
+}
+
+.badge-sync-ok {
+  background: var(--status-closed-bg);
+  color: var(--status-closed-color);
+  border: 1px solid var(--status-closed-border);
+}
+
+.badge-sync-error {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+  border: 1px solid var(--color-danger-border);
+}
+
+.badge-pendiente {
+  background: var(--status-confirmed-bg);
+  color: var(--status-confirmed-color);
+  border: 1px solid var(--status-confirmed-border);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+// ── Modal sync e historial ─────────────────────────────────
+.sync-modal,
+.historial-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-modal);
+  width: 100%;
+  max-width: 480px;
+  animation: popup-in 0.22s var(--transition-spring);
+
+  @media (max-width: 480px) {
+    max-width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    animation: modal-slide-up 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+}
+
+.historial-modal {
+  max-width: 520px;
+
+  @media (max-width: 480px) {
+    max-width: 100%;
+  }
+}
+
+// ── Info rows dentro de modales ────────────────────────────
+.sync-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+
+  @media (max-width: 400px) {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.info-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: var(--text-sm);
+  color: var(--text-heading);
+  text-align: right;
+
+  @media (max-width: 400px) {
+    text-align: left;
+  }
+}
+
+// ── Spinner sync ───────────────────────────────────────────
+.sync-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary-border);
+  font-size: var(--text-sm);
+  color: var(--color-primary-text);
+}
+
+.sync-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-primary-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes modal-slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Historial ──────────────────────────────────────────────
+.historial-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historial-item {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.historial-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-faint);
+  flex-wrap: wrap;
+}
+
+.historial-intento {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.historial-fecha {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-left: auto;
+
+  @media (max-width: 400px) {
+    margin-left: 0;
+    width: 100%;
+    order: 10;
+  }
+}
+
+.historial-admin {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.historial-item-body {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.historial-doc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.historial-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-subtle);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  color: var(--text-heading);
+  word-break: break-all;
+}
+
+.historial-msg {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.historial-msg-error {
+  color: var(--color-danger-text);
+}
+
+// ── Badge ID rendición ─────────────────────────────────────
+.rend-id-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-text);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+}
+
+// ── Botón warning ──────────────────────────────────────────
+.btn-warning-soft {
+  background: var(--status-confirmed-bg);
+  color: var(--status-confirmed-color);
+  border: 1.5px solid var(--status-confirmed-border);
+  &:hover { opacity: 0.85; }
+}
+
+// ── Acciones en mobile ─────────────────────────────────────
+@media (max-width: 640px) {
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

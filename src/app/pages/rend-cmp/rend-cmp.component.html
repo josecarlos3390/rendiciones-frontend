@@ -1,0 +1,137 @@
+<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
+  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
+
+<div class="page-header">
+  <div class="page-title-group">
+    <h2>Mapeo de Campos SAP</h2>
+    <p class="page-subtitle">Configurá qué campos de SAP B1 reciben los datos de las rendiciones al sincronizar</p>
+  </div>
+  <button class="btn btn-primary btn-sm" (click)="openCreate()">+ Nuevo Campo</button>
+</div>
+
+<!-- Modal formulario -->
+<div class="modal-backdrop" *ngIf="showForm">
+  <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+        {{ editingItem ? 'Editar Campo' : 'Nuevo Campo de Mapeo' }}
+        <span class="dirty-badge" *ngIf="editingItem && isDirty">● cambios sin guardar</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="modal-body">
+
+        <div class="info-banner info-neutral" style="margin-bottom: 16px">
+          <span>ℹ</span>
+          <span>
+            <strong>Descripción</strong> es el nombre legible del campo (ej: "Número de Factura").<br>
+            <strong>Campo SAP</strong> es el nombre técnico del campo en SAP B1 donde se migrarán los datos (ej: <code>DocNum</code>, <code>U_CUF</code>).
+          </span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('descripcion')">
+          <label>Descripción <span class="required">*</span></label>
+          <input
+            type="text"
+            formControlName="descripcion"
+            maxlength="100"
+            placeholder="Ej: Número de Factura, NIT Proveedor, CUF..."
+            autocomplete="off" />
+          <span class="field-error" *ngIf="form.get('descripcion')?.invalid && form.get('descripcion')?.touched">
+            Obligatorio, máx. 100 caracteres
+          </span>
+        </div>
+
+        <div class="form-field" [class.field-changed]="fieldChanged('campo')">
+          <label>Campo SAP B1 <span class="required">*</span></label>
+          <input
+            type="text"
+            formControlName="campo"
+            maxlength="100"
+            placeholder="Ej: DocNum, CardCode, U_CUF, U_NIT..."
+            autocomplete="off"
+            class="font-mono" />
+          <span class="field-hint">
+            Nombre exacto del campo en el documento SAP donde se va a migrar el dato
+          </span>
+          <span class="field-error" *ngIf="form.get('campo')?.invalid && form.get('campo')?.touched">
+            Obligatorio, máx. 100 caracteres
+          </span>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <ng-container *ngIf="isDirty; else noChanges">
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
+          <button type="submit"
+            [class]="editingItem ? 'btn btn-save-changes' : 'btn btn-primary'"
+            [disabled]="form.invalid || isSaving">
+            <span *ngIf="isSaving">Guardando...</span>
+            <span *ngIf="!isSaving">{{ editingItem ? '💾 Guardar cambios' : 'Crear Campo' }}</span>
+          </button>
+        </ng-container>
+        <ng-template #noChanges>
+          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+        </ng-template>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Carga -->
+<app-skeleton-loader *ngIf="loading" variant="table"
+  [rows]="4" [columns]="['10%','40%','40%','10%']">
+</app-skeleton-loader>
+
+<div *ngIf="!loading && loadError" class="empty-state">
+  No se pudo cargar la lista. <a (click)="load()">Reintentar</a>
+</div>
+
+<div *ngIf="!loading && !loadError && items.length === 0" class="empty-state">
+  <p>No hay campos de mapeo configurados.</p>
+  <a (click)="openCreate()">Crear el primero</a>
+</div>
+
+<!-- Tabla -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && items.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center">#</th>
+        <th>Descripción</th>
+        <th>Campo SAP B1</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of items">
+        <td class="text-center mono-cell" data-label="#">{{ item.U_IdCampo }}</td>
+        <td data-label="Descripción">{{ item.U_Descripcion }}</td>
+        <td data-label="Campo SAP B1">
+          <code class="campo-tag">{{ item.U_Campo }}</code>
+        </td>
+        <td class="actions" data-label="Acciones">
+          <button class="btn btn-sm btn-ghost" (click)="openEdit(item)" title="Editar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="btn btn-sm btn-danger-soft" (click)="remove(item)" title="Eliminar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

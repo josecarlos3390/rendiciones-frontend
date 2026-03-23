@@ -94,3 +94,41 @@
 
 // ── Centro ──────────────────────────────────────────────────────
 .text-center { text-align: center; }
+
+// ── Fix móvil: scroll único de arriba a abajo ────────────────────
+@media (max-width: 700px) {
+  // El modal ocupa casi toda la pantalla
+  .perfil-modal.user-modal {
+    max-height:     92vh;
+    height:         92vh;
+    display:        flex;
+    flex-direction: column;
+    overflow:       hidden;
+  }
+
+  // El layout en móvil es una sola columna scrolleable
+  .perfil-modal .modal-2col-layout {
+    display:                    flex;
+    flex-direction:             column;
+    overflow-y:                 auto;
+    overflow-x:                 hidden;
+    -webkit-overflow-scrolling: touch;
+    flex:                       1;
+    min-height:                 0;
+  }
+
+  // Cada columna ocupa su altura natural — sin overflow propio
+  .perfil-modal .modal-body.modal-col {
+    overflow:   visible;
+    flex:       none;
+    min-height: 0;
+    // Quitar borde derecho (no aplica en columna única)
+    border-right:  none !important;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  // El footer siempre visible al fondo
+  .perfil-modal .modal-2col-footer {
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,141 @@
+<div class="page-header">
+  <div class="page-title-group">
+    <h2>Aprobaciones Pendientes</h2>
+    <p class="page-subtitle">Rendiciones enviadas que requieren tu revisión y aprobación</p>
+  </div>
+  <button class="btn btn-ghost btn-sm" (click)="load()">↺ Actualizar</button>
+</div>
+
+<!-- Estado carga -->
+<app-skeleton-loader *ngIf="loading" variant="table"
+  [rows]="4" [columns]="['10%','18%','18%','14%','10%','10%','10%','10%']">
+</app-skeleton-loader>
+<div *ngIf="!loading && loadError" class="empty-state">
+  No se pudo cargar. <a (click)="load()">Reintentar</a>
+</div>
+<div *ngIf="!loading && !loadError && pendientes.length === 0" class="empty-state">
+  <div class="empty-icon">✅</div>
+  <p>No tenés rendiciones pendientes de aprobación</p>
+</div>
+
+<!-- Tabla de pendientes -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && pendientes.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center">N°</th>
+        <th>Usuario</th>
+        <th>Perfil</th>
+        <th>Objetivo</th>
+        <th>Fecha Inicio</th>
+        <th>Fecha Final</th>
+        <th class="text-right">Monto</th>
+        <th class="text-center">Nivel</th>
+        <th class="text-center">Estado</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of pendientes">
+        <td class="text-center">
+          <a class="link-primary" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
+            {{ r.U_IdRendicion }}
+          </a>
+        </td>
+        <td>{{ r.U_NomUsuario }}</td>
+        <td>{{ r.U_NombrePerfil }}</td>
+        <td>{{ r.U_Objetivo }}</td>
+        <td class="text-center">{{ r.U_FechaIni | ddmmyyyy }}</td>
+        <td class="text-center">{{ r.U_FechaFinal | ddmmyyyy }}</td>
+        <td class="text-right mono-cell">{{ r.U_Monto | number:'1.2-2' }}</td>
+        <td class="text-center">
+          <span class="nivel-badge">Nivel {{ r.U_Nivel }}</span>
+        </td>
+        <td class="text-center">
+          <span [class]="estadoRendCss(r.U_Estado_Rend)">{{ estadoRendTexto(r.U_Estado_Rend) }}</span>
+        </td>
+        <td class="actions">
+          <button class="btn btn-sm btn-primary" (click)="openAprobar(r)" title="Aprobar">
+            ✓ Aprobar
+          </button>
+          <button class="btn btn-sm btn-danger-soft" (click)="openRechazar(r)" title="Rechazar">
+            ✗ Rechazar
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal de acción -->
+<div class="modal-backdrop" *ngIf="showAccionModal">
+  <div class="accion-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        {{ accionActual === 'aprobar' ? '✓ Aprobar Rendición' : '✗ Rechazar Rendición' }}
+        <span class="rend-id-badge">N° {{ rendSeleccionada?.U_IdRendicion }}</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Info rendición -->
+      <div class="accion-info">
+        <div class="info-row">
+          <span class="info-label">Usuario</span>
+          <span class="info-value">{{ rendSeleccionada?.U_NomUsuario }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Objetivo</span>
+          <span class="info-value">{{ rendSeleccionada?.U_Objetivo }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Monto</span>
+          <span class="info-value mono-cell">{{ rendSeleccionada?.U_Monto | number:'1.2-2' }} Bs</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Período</span>
+          <span class="info-value">
+            {{ rendSeleccionada?.U_FechaIni | ddmmyyyy }} → {{ rendSeleccionada?.U_FechaFinal | ddmmyyyy }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Alerta rechazo -->
+      <div class="info-banner info-warning" *ngIf="accionActual === 'rechazar'" style="margin: 12px 0">
+        ⚠ Al rechazar, la rendición volverá a estado <strong>ABIERTO</strong> para que el usuario realice correcciones y la reenvíe.
+      </div>
+
+      <!-- Comentario -->
+      <div class="form-field" style="margin-top: 12px">
+        <label>
+          Comentario
+          <span class="required" *ngIf="accionActual === 'rechazar'">*</span>
+          <span class="label-muted" *ngIf="accionActual === 'aprobar'">(opcional)</span>
+        </label>
+        <textarea
+          [(ngModel)]="comentario"
+          rows="3"
+          maxlength="500"
+          [placeholder]="accionActual === 'rechazar' ? 'Indicá el motivo del rechazo...' : 'Observaciones opcionales...'"
+          style="width:100%; resize:vertical">
+        </textarea>
+        <span class="field-error" *ngIf="accionActual === 'rechazar' && !comentario.trim()">
+          El motivo de rechazo es obligatorio
+        </span>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" (click)="closeModal()" [disabled]="isSaving">Cancelar</button>
+      <button
+        [class]="accionActual === 'aprobar' ? 'btn btn-primary' : 'btn btn-danger-soft'"
+        type="button"
+        [disabled]="isSaving || (accionActual === 'rechazar' && !comentario.trim())"
+        (click)="confirmarAccion()">
+        <span *ngIf="isSaving">Procesando...</span>
+        <span *ngIf="!isSaving">{{ accionActual === 'aprobar' ? '✓ Confirmar Aprobación' : '✗ Confirmar Rechazo' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
