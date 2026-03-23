@@ -1,7 +1,8 @@
 const backendHost =
   typeof window !== 'undefined' && window.location.hostname !== ''
     ? window.location.hostname
-    : '192.168.122.54'; // ← fallback explícito para SSR
+      : '10.0.8.45';
+//    : '192.168.122.54'; // ← fallback explícito para SSR
 //    : '192.168.1.8';
 
 export const environment = {

@@ -152,7 +152,8 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>% ICE</label>
-                <input type="number" style="max-width:110px" formControlName="ice" step="0.01" min="0" />
+                <input type="number" style="max-width:110px" formControlName="ice" step="0.01" min="-1" />
+                <span class="field-hint">-1 si variable</span>
               </div>
               <div class="form-field tax-pct-field">
                 <label>% Tasa</label>

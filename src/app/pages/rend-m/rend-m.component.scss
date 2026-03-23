@@ -363,8 +363,27 @@
 
 .data-table th.actions,
 .data-table td.actions {
-  min-width:   100px;
-  white-space: nowrap;
+  width:         140px;
+  min-width:     140px;
+  max-width:     140px;
+  white-space:   nowrap;
+  text-align:    right;
+  padding-right: 16px;
+}
+
+// Anula el display:flex global de .actions para que la celda
+// se comporte como tabla normal y respete el alto de la fila
+.data-table td.actions {
+  display:        table-cell;
+  vertical-align: middle;
+
+  // Reagrupar los botones internamente con flex
+  > * {
+    display:        inline-flex;
+    align-items:    center;
+    justify-content: center;
+    vertical-align: middle;
+  }
 }
 // ── Banner informativo de flujo ───────────────────────────────
 .rend-m-info {

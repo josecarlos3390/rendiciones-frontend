@@ -34,7 +34,7 @@ import {
             CuentaCabeceraSelectComponent, DdmmyyyyPipe],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class RendMComponent implements OnInit {
 
@@ -118,6 +118,7 @@ export class RendMComponent implements OnInit {
     });
   }
 
+
   /**
    * Carga en paralelo perfiles completos y permisos del usuario con forkJoin.
    * Garantiza que this.perfiles esté poblado antes de intentar auto-seleccionar,
@@ -133,6 +134,21 @@ export class RendMComponent implements OnInit {
         this.perfiles             = perfiles;
         this.misPermisosPaso1     = permisos;
         this.loadingPerfilesPaso1 = false;
+        // Si viene de rend-d (botón Volver), sessionStorage tiene el perfil guardado
+        const perfilGuardado = sessionStorage.getItem('rendiciones_perfil_activo');
+        if (perfilGuardado) {
+          sessionStorage.removeItem('rendiciones_perfil_activo'); // limpiar
+          const idPerfil = Number(perfilGuardado);
+          const permiso = permisos.find(p => p.U_IDPERFIL === idPerfil);
+          if (permiso) {
+            this.misPermisos = permisos; // poblar picker también
+            this.seleccionarPerfilDirecto(permiso);
+            this.load();
+            this.cdr.markForCheck();
+            return;
+          }
+        }
+        // Si solo tiene un perfil, seleccionarlo directamente
         if (permisos.length === 1) {
           this.seleccionarPerfilDirecto(permisos[0]);
           // Recargar con el perfil ya activo

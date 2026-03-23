@@ -57,6 +57,6 @@ export const TIPO_DOC_SAP_OPTIONS = [
 
 // Tipos de cálculo
 export const TIPO_CALC_OPTIONS = [
-  { value: '0', label: 'Grossing Up' },
-  { value: '1', label: 'Grossing Down' },
+  { value: '0', label: 'Grossing Up (GU) — empresa asume retenciones' },
+  { value: '1', label: 'Grossing Down (GD) — retenciones al proveedor' },
 ];

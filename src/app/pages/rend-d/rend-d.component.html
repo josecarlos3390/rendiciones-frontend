@@ -40,6 +40,7 @@
     <div class="maestro-item">
       <span class="maestro-label">Cuenta</span>
       <span class="maestro-value mono">{{ cabecera.U_Cuenta }}</span>
+      <span class="maestro-sub" *ngIf="cabecera.U_NombreCuenta">{{ cabecera.U_NombreCuenta }}</span>
     </div>
     <div class="maestro-item">
       <span class="maestro-label">Empleado</span>
@@ -170,15 +171,25 @@
 
     <div class="qr-body">
 
-      <!-- Error de permisos -->
+      <!-- Error -->
       <div class="qr-error" *ngIf="qrError">
         <span class="qr-error-icon">⚠️</span>
         <p>{{ qrError }}</p>
-        <button class="btn btn-ghost btn-sm" type="button" (click)="cerrarQrScanner()">Cerrar</button>
+        <div class="qr-error-actions">
+          <button class="btn btn-ghost btn-sm" type="button" (click)="cerrarQrScanner()">Cerrar</button>
+          <button class="btn btn-primary btn-sm" type="button" (click)="abrirQrScanner()">Reintentar</button>
+        </div>
+      </div>
+
+      <!-- Cargando datos del SIAT -->
+      <div class="qr-loading" *ngIf="qrLoadingFactura && !qrError">
+        <div class="qr-loading-spinner"></div>
+        <p class="qr-loading-text">Consultando SIAT...</p>
+        <p class="qr-loading-sub">Obteniendo datos de la factura</p>
       </div>
 
       <!-- Visor de cámara -->
-      <div class="qr-viewport" *ngIf="!qrError">
+      <div class="qr-viewport" *ngIf="!qrError && !qrLoadingFactura">
         <video id="qr-video" class="qr-video" autoplay playsinline muted></video>
         <div class="qr-overlay">
           <div class="qr-frame">
@@ -253,6 +264,7 @@
                 [cueTexto]="cueTexto"
                 [listaCuentas]="listaCuentas"
                 [initialCode]="form.get('cuenta')?.value"
+                [initialName]="form.get('nombreCuenta')?.value"
                 placeholder="— Buscar cuenta —"
                 (cuentaChange)="onCuentaSelected($event)">
               </app-cuenta-search>
@@ -342,6 +354,7 @@
         <!-- ══ PESTAÑA 2: MONTOS Y NORMAS ══ -->
         <div class="tab-panel" [class.active]="activeTab === 'montos'">
           <div class="doc-grid">
+
             <div class="form-field" [class.field-changed]="fieldChanged('importe')">
               <label>Importe <span class="required">*</span></label>
               <input type="number" formControlName="importe" min="0" step="0.01"
@@ -361,21 +374,29 @@
             </div>
 
             <div class="form-field"
-
               [class.field-changed]="fieldChanged('exento')"
               [class.field-disabled]="exentoEsFijo">
-              <label>
+              <label [class]="exentoEsVariable ? 'label-with-toggle' : ''">
                 Exento
                 <span *ngIf="exentoEsFijo" class="label-pct">
                   {{ configDocActivo?.U_EXENTOpercent }}%
                 </span>
+                <!-- Toggle solo cuando es variable (-1) -->
+                <button *ngIf="exentoEsVariable"
+                  type="button" class="toggle-btn toggle-btn-sm" [class.active]="exentoActivo"
+                  (click)="toggleExento()">
+                  <span class="toggle-knob"></span>
+                </button>
               </label>
-              <!-- Variable (-1): input editable directo, sin toggle -->
-              <input *ngIf="exentoEsVariable"
-                type="number" formControlName="exento" min="0" step="0.01" />
+              <!-- Variable (-1): toggle activo → input, toggle apagado → dash -->
+              <ng-container *ngIf="exentoEsVariable">
+                <input *ngIf="exentoActivo"
+                  type="number" formControlName="exento" min="0" step="0.01" />
+                <div *ngIf="!exentoActivo" class="calc-display calc-zero-display">—</div>
+              </ng-container>
               <!-- Sin config o 0: siempre dash -->
               <div *ngIf="!exentoEsVariable && !exentoEsFijo" class="calc-display calc-zero-display">—</div>
-              <!-- % fijo (> 0): valor calculado automático, solo lectura -->
+              <!-- % fijo (> 0): valor calculado automático -->
               <div *ngIf="exentoEsFijo" class="calc-display">
                 {{ +form.get('exento')?.value !== 0 ? (form.get('exento')?.value | number:'1.2-2') : '—' }}
               </div>
@@ -426,12 +447,16 @@
               [class.field-disabled]="iceEsFijo">
               <label>
                 ICE
-                <span *ngIf="iceEsFijo && configDocActivo?.U_ICE !== 0" class="label-pct">
-                  {{ configDocActivo?.U_ICE }}
+                <span *ngIf="iceEsFijo" class="label-pct">
+                  {{ configDocActivo?.U_ICE }}%
                 </span>
               </label>
-              <input *ngIf="iceEsVariable || !configDocActivo"
+              <!-- Variable (-1): input editable directo, sin toggle -->
+              <input *ngIf="iceEsVariable"
                 type="number" formControlName="ice" min="0" step="0.01" />
+              <!-- Sin config o 0: siempre dash -->
+              <div *ngIf="!iceEsVariable && !iceEsFijo" class="calc-display calc-zero-display">—</div>
+              <!-- % fijo (> 0): valor calculado automático, solo lectura -->
               <div *ngIf="iceEsFijo" class="calc-display">
                 {{ +form.get('ice')?.value !== 0 ? (form.get('ice')?.value | number:'1.2-2') : '—' }}
               </div>
@@ -656,47 +681,64 @@
   <a (click)="loadDocs()">Reintentar</a>
 </div>
 
+<!-- ── Pestañas de la tabla ── -->
+<div class="table-tabs" *ngIf="!loadingDocs && !loadError && documentos.length > 0">
+  <button class="table-tab" [class.active]="tablaActiva === 'documentos'" (click)="tablaActiva = 'documentos'">Documentos</button>
+  <button class="table-tab" [class.active]="tablaActiva === 'impuestos'"  (click)="tablaActiva = 'impuestos'">Impuestos</button>
+</div>
+
 <!-- ── Tabla ── -->
-<div class="table-wrapper" *ngIf="!loadingDocs && !loadError">
+<div class="table-wrapper table-scroll-wrapper" *ngIf="!loadingDocs && !loadError">
 
   <div *ngIf="documentos.length === 0" class="empty-state">
     No hay documentos registrados.
     <a *ngIf="!isReadonly" (click)="openNew()">Agregar el primero</a>
   </div>
 
-  <table class="data-table" *ngIf="documentos.length > 0">
+  <!-- ══ Vista Documentos ══ -->
+  <table class="data-table" *ngIf="documentos.length > 0 && tablaActiva === 'documentos'">
     <thead>
       <tr>
-        <th class="text-center">N°</th>
-        <th>Cuenta</th>
+        <th class="col-sticky">Concepto · Cuenta</th>
         <th>Fecha</th>
         <th>Tipo Doc.</th>
         <th>N° Doc.</th>
-        <th>Concepto</th>
         <th class="text-right">Importe</th>
-        <th class="text-right">Descuento</th>
-        <th class="text-right">ICE</th>
-        <th class="text-right">Total</th>
+        <th class="text-right col-reduccion">− Exento</th>
+        <th class="text-right col-reduccion">− ICE</th>
+        <th class="text-right col-reduccion">− Tasas</th>
+        <th class="text-right col-reduccion">− T.Cero</th>
+        <th class="text-right col-reduccion">− GiftCard</th>
+        <th class="text-right col-base">Base Imp.</th>
+        <th class="text-right">Imp/Ret</th>
+        <th class="text-right col-total">Total</th>
         <th class="actions">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let d of paged">
-        <td class="text-center col-id"        data-label="N°">{{ d.U_RD_IdRD }}</td>
-        <td class="col-cuenta"                data-label="Cuenta">
-          <div class="cuenta-inner">
-            <span class="code-tag" *ngIf="d.U_RD_Cuenta">{{ d.U_RD_Cuenta }}</span>
-            <span class="text-muted-cell" *ngIf="!d.U_RD_Cuenta">—</span>
-          </div>
+        <td class="col-sticky" data-label="Concepto">
+          <span class="sticky-id">{{ d.U_RD_IdRD }} · {{ d.U_RD_Concepto }}</span>
+          <span class="sticky-concepto" *ngIf="d.U_RD_Cuenta">
+            <code class="sticky-code">{{ d.U_RD_Cuenta }}</code>
+            <span *ngIf="d.U_RD_NombreCuenta"> {{ d.U_RD_NombreCuenta }}</span>
+          </span>
+          <span class="sticky-concepto text-muted-cell" *ngIf="!d.U_RD_Cuenta">Sin cuenta</span>
         </td>
-        <td class="text-center"               data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
-        <td                                   data-label="Tipo"><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
-        <td class="mono-cell"                 data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
-        <td class="col-concepto"              data-label="Concepto">{{ d.U_RD_Concepto }}</td>
-        <td class="text-right mono-cell"      data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell"      data-label="Descuento">{{ d.U_RD_Descuento | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell"      data-label="ICE">{{ d.U_ICE | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
+        <td data-label="Tipo"><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
+        <td class="mono-cell"   data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
+        <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-reduccion" data-label="Exento">{{ (d.U_RD_Exento ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-reduccion" data-label="ICE">{{ d.U_ICE | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-reduccion" data-label="Tasas">{{ (d.U_TASA ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-reduccion" data-label="T.Cero">{{ (d.U_RD_TasaCero ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-reduccion" data-label="GiftCard">{{ (d.U_GIFTCARD ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-base" data-label="Base Imp.">
+          {{ (d.U_RD_Importe - (d.U_RD_Exento ?? 0) - d.U_ICE - (d.U_TASA ?? 0) - (d.U_RD_TasaCero ?? 0) - (d.U_GIFTCARD ?? 0)) | number:'1.2-2' }}
+        </td>
+        <td class="text-right mono-cell" data-label="Imp/Ret">{{ (d.U_RD_ImpRet ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-total" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
         <td class="actions">
           <button class="btn btn-sm btn-ghost" (click)="openEdit(d)">Editar</button>
           <button class="btn btn-sm btn-danger-soft" *ngIf="!isReadonly" (click)="confirmDelete(d)">Eliminar</button>
@@ -705,12 +747,79 @@
     </tbody>
     <tfoot>
       <tr class="totals-row">
-        <td colspan="6" class="totals-label">Totales</td>
+        <td colspan="4" class="totals-label">Totales</td>
         <td class="text-right mono-cell total-cell">{{ totalImporte   | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell">{{ totalDescuento | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell">{{ totalIVA       | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell">{{ totalGeneral   | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-reduccion">{{ totalExento    | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-reduccion">{{ totalIce       | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-reduccion">{{ totalTasa      | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-reduccion">{{ totalTasaCero  | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-reduccion">{{ totalGiftCard  | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-base">{{ totalBaseImp   | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ totalImpRet    | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-total">{{ totalGeneral   | number:'1.2-2' }}</td>
         <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- ══ Vista Impuestos ══ -->
+  <table class="data-table tabla-impuestos" *ngIf="documentos.length > 0 && tablaActiva === 'impuestos'">
+    <thead>
+      <tr>
+        <th class="col-sticky">N° · Proveedor</th>
+        <th>Fecha</th>
+        <th>N° Doc.</th>
+        <th>NIT</th>
+        <th class="text-right">Importe</th>
+        <th class="text-right col-base">Base Imp.</th>
+        <th class="text-right col-impuesto">IVA</th>
+        <th class="text-right col-impuesto">IT</th>
+        <th class="text-right col-impuesto">IUE</th>
+        <th class="text-right col-impuesto">RCIIVA</th>
+        <th class="text-right">Imp/Ret</th>
+        <th class="text-right col-total">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let d of paged">
+        <td class="col-sticky" data-label="Proveedor">
+          <span class="sticky-id">{{ d.U_RD_IdRD }}</span>
+          <span class="sticky-concepto">{{ d.U_RD_Prov || '—' }}</span>
+        </td>
+        <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
+        <td class="mono-cell"   data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
+        <td class="mono-cell"   data-label="NIT">{{ d.U_RD_NIT || '—' }}</td>
+        <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell col-base" data-label="Base Imp.">
+          {{ (d.U_RD_Importe - (d.U_RD_Exento ?? 0) - d.U_ICE - (d.U_TASA ?? 0) - (d.U_RD_TasaCero ?? 0) - (d.U_GIFTCARD ?? 0)) | number:'1.2-2' }}
+        </td>
+        <td class="text-right mono-cell col-impuesto" data-label="IVA">
+          <span [class.imp-valor]="d.U_MontoIVA > 0">{{ d.U_MontoIVA | number:'1.2-2' }}</span>
+        </td>
+        <td class="text-right mono-cell col-impuesto" data-label="IT">
+          <span [class.imp-valor]="d.U_MontoIT > 0">{{ d.U_MontoIT | number:'1.2-2' }}</span>
+        </td>
+        <td class="text-right mono-cell col-impuesto" data-label="IUE">
+          <span [class.imp-valor]="d.U_MontoIUE > 0">{{ d.U_MontoIUE | number:'1.2-2' }}</span>
+        </td>
+        <td class="text-right mono-cell col-impuesto" data-label="RCIIVA">
+          <span [class.imp-valor]="d.U_MontoRCIVA > 0">{{ d.U_MontoRCIVA | number:'1.2-2' }}</span>
+        </td>
+        <td class="text-right mono-cell imp-ret-cell" data-label="Imp/Ret">{{ (d.U_RD_ImpRet ?? 0) | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-total" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="totals-row">
+        <td colspan="4" class="totals-label">Totales</td>
+        <td class="text-right mono-cell total-cell">{{ totalImporte   | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-base">{{ totalBaseImp   | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-impuesto">{{ totalIVA       | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-impuesto">{{ totalIT        | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-impuesto">{{ totalIUE       | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-impuesto">{{ totalRCIVA     | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell">{{ totalImpRet    | number:'1.2-2' }}</td>
+        <td class="text-right mono-cell total-cell col-total">{{ totalGeneral   | number:'1.2-2' }}</td>
       </tr>
     </tfoot>
   </table>

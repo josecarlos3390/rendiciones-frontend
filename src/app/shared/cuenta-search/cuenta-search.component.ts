@@ -244,6 +244,7 @@ export class CuentaSearchComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() placeholder   = '— Buscar y seleccionar cuenta —';
   @Input() initialCode:  string | null = null;
+  @Input() initialName:  string | null = null;
   @Input() cueCar:       string = 'TODOS';
   @Input() cueTexto:     string = '';
   @Input() listaCuentas: CuentaDto[] = [];
@@ -288,14 +289,14 @@ export class CuentaSearchComponent implements OnInit, OnDestroy, OnChanges {
 
     // Pre-seleccionar si viene initialCode
     if (this.initialCode) {
-      this.selected = { code: this.initialCode, name: '' };
+      this.selected = { code: this.initialCode, name: this.initialName ?? '' };
     }
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['initialCode']) {
+    if (changes['initialCode'] || changes['initialName']) {
       this.selected = this.initialCode
-        ? { code: this.initialCode, name: '' }
+        ? { code: this.initialCode, name: this.initialName ?? '' }
         : null;
       this.cdr.markForCheck();
     }
