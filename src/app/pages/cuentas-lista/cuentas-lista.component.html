@@ -3,7 +3,7 @@
     <h2>Lista de Cuentas Detalle</h2>
     <p class="page-subtitle">Activá o desactivá las cuentas disponibles en el detalle de rendición por perfil.</p>
   </div>
-  <button class="btn btn-primary btn-sm" (click)="openForm()" [disabled]="!selectedPerfilId">
+  <button *ngIf="auth.puedeEditarConf" class="btn btn-primary btn-sm" (click)="openForm()" [disabled]="!selectedPerfilId">
     + Adicionar
   </button>
 </div>
@@ -53,7 +53,7 @@
 
     <div class="modal-footer">
       <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-      <button type="button" class="btn btn-primary" [disabled]="!selectedCuenta || isSaving" (click)="save()">
+      <button *ngIf="auth.puedeEditarConf" type="button" class="btn btn-primary" [disabled]="!selectedCuenta || isSaving" (click)="save()">
         <span *ngIf="isSaving">Guardando...</span>
         <span *ngIf="!isSaving">Agregar Cuenta</span>
       </button>
@@ -122,7 +122,7 @@
         <td class="col-mono" data-label="Código Cuenta">{{ c.U_Cuenta }}</td>
         <td data-label="Nombre Cuenta">{{ c.U_NombreCuenta }}</td>
         <td class="actions">
-          <button class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar cuenta" (click)="confirmRemove(c)">
+          <button *ngIf="auth.puedeEditarConf" class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar cuenta" (click)="confirmRemove(c)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
         </td>

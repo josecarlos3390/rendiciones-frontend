@@ -33,6 +33,15 @@ export interface SyncResult {
   estado:     string;
 }
 
+export interface SapCredentials {
+  sapUser:     string;
+  sapPassword: string;
+}
+
+export interface RendicionSync extends RendPendiente {
+  U_NroDocERP: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class IntegracionService {
   private api = environment.apiUrl;
@@ -40,6 +49,10 @@ export class IntegracionService {
 
   getPendientes(): Observable<RendPendiente[]> {
     return this.http.get<RendPendiente[]>(`${this.api}/integracion/pendientes`);
+  }
+
+  getMisRendiciones(): Observable<RendicionSync[]> {
+    return this.http.get<RendicionSync[]>(`${this.api}/integracion/mis-rendiciones`);
   }
 
   countPendientes(): Observable<{ count: number }> {
@@ -50,7 +63,10 @@ export class IntegracionService {
     return this.http.get<RendSync[]>(`${this.api}/integracion/${idRendicion}/historial`);
   }
 
-  sincronizar(idRendicion: number): Observable<SyncResult> {
-    return this.http.post<SyncResult>(`${this.api}/integracion/${idRendicion}/sincronizar`, {});
+  sincronizar(idRendicion: number, credentials: SapCredentials): Observable<SyncResult> {
+    return this.http.post<SyncResult>(
+      `${this.api}/integracion/${idRendicion}/sincronizar`,
+      credentials,
+    );
   }
 }

@@ -1130,3 +1130,17 @@ label.btn {
   .header-actions { gap: 6px; }
   .import-btn-wrap { flex-wrap: wrap; }
 }
+// ── Botón distribución porcentual ─────────────────────────────────────────
+.btn-dist {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-primary-text, var(--color-primary));
+  border-color: var(--color-primary-text, var(--color-primary));
+
+  &:hover {
+    background: var(--color-background-info);
+  }
+
+  svg { flex-shrink: 0; }
+}

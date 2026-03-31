@@ -16,7 +16,7 @@ import { AppSelectComponent, SelectOption } from '../../../shared/app-select/app
             ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './offline-normas.component.html',
   styleUrls:   ['./offline-normas.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class OfflineNormasComponent implements OnInit {
 

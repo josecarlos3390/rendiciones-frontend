@@ -1,7 +1,8 @@
 <div class="page-header">
   <div class="page-title-group">
     <h2>Integración ERP</h2>
-    <p class="page-subtitle">Rendiciones aprobadas pendientes de sincronización con el sistema contable</p>
+    <p class="page-subtitle" *ngIf="isAdmin">Rendiciones aprobadas pendientes de sincronización con el sistema contable</p>
+    <p class="page-subtitle" *ngIf="!isAdmin">Mis rendiciones aprobadas y sincronizadas con el sistema contable</p>
   </div>
   <button class="btn btn-ghost btn-sm" (click)="load()">↺ Actualizar</button>
 </div>
@@ -33,17 +34,19 @@
 
   <!-- Sin resultados -->
   <div *ngIf="filtered.length === 0 && !search" class="empty-state">
-    <div class="empty-icon">✅</div>
-    <p>No hay rendiciones pendientes de sincronización</p>
-    <span class="empty-hint">Las rendiciones aprobadas aparecerán aquí para ser enviadas al ERP</span>
+    <div class="empty-icon">{{ isAdmin ? '✅' : '📋' }}</div>
+    <p *ngIf="isAdmin">No hay rendiciones pendientes de sincronización</p>
+    <p *ngIf="!isAdmin">No tenés rendiciones aprobadas o sincronizadas aún</p>
+    <span class="empty-hint" *ngIf="isAdmin">Las rendiciones aprobadas aparecerán aquí para ser enviadas al ERP</span>
+    <span class="empty-hint" *ngIf="!isAdmin">Cuando tu rendición sea aprobada y sincronizada, aparecerá aquí con el número de documento SAP</span>
   </div>
 
   <div *ngIf="filtered.length === 0 && search" class="empty-state">
     Sin resultados para "{{ search }}"
   </div>
 
-  <!-- Tabla -->
-  <div class="table-wrapper" *ngIf="filtered.length > 0">
+  <!-- ══ VISTA ADMIN: tabla con acciones de sincronización ══ -->
+  <div class="table-wrapper" *ngIf="isAdmin && filtered.length > 0">
     <table class="data-table">
       <thead>
         <tr>
@@ -82,7 +85,7 @@
             </button>
             <button
               [class]="esError(r) ? 'btn btn-sm btn-warning-soft' : 'btn btn-sm btn-primary'"
-              (click)="openConfirmSync(r)"
+              (click)="openCredentials(r)"
               title="Sincronizar con ERP">
               {{ esError(r) ? '↺ Reintentar' : '⇅ Sincronizar' }}
             </button>
@@ -92,23 +95,146 @@
     </table>
 
     <app-paginator
-      [page]="page"
-      [limit]="limit"
-      [total]="filtered.length"
-      [totalPages]="totalPages"
-      (pageChange)="onPageChange($event)"
-      (limitChange)="onLimitChange($event)">
+      [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
+      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
+    </app-paginator>
+  </div>
+
+  <!-- ══ VISTA USER: tabla de solo lectura con doc SAP ══ -->
+  <div class="table-wrapper" *ngIf="!isAdmin && filtered.length > 0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="text-center">N°</th>
+          <th>Perfil</th>
+          <th>Objetivo</th>
+          <th class="text-center">Fecha Inicio</th>
+          <th class="text-center">Fecha Final</th>
+          <th class="text-right">Monto</th>
+          <th class="text-center">Estado</th>
+          <th class="text-center">Doc. SAP</th>
+          <th class="actions">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of paged" [class.row-error]="esError(r)">
+          <td class="text-center">
+            <a class="link-primary" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
+              {{ r.U_IdRendicion }}
+            </a>
+          </td>
+          <td>{{ r.U_NombrePerfil }}</td>
+          <td>{{ r.U_Objetivo }}</td>
+          <td class="text-center">{{ r.U_FechaIni | ddmmyyyy }}</td>
+          <td class="text-center">{{ r.U_FechaFinal | ddmmyyyy }}</td>
+          <td class="text-right mono-cell">{{ r.U_Monto | number:'1.2-2' }}</td>
+          <td class="text-center">
+            <span [class]="'status-badge ' + estadoCss(r.U_Estado)">
+              {{ estadoTexto(r.U_Estado) }}
+            </span>
+          </td>
+          <td class="text-center">
+            <code class="doc-erp-code" *ngIf="asRendicionSync(r).U_NroDocERP">
+              {{ asRendicionSync(r).U_NroDocERP }}
+            </code>
+            <span class="muted" *ngIf="!asRendicionSync(r).U_NroDocERP">—</span>
+          </td>
+          <td class="actions">
+            <a class="btn btn-sm btn-ghost"
+               [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']"
+               title="Ver detalle">
+              Ver detalle
+            </a>
+            <button class="btn btn-sm btn-ghost" (click)="openHistorial(r)" title="Ver historial sync">
+              Historial sync
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <app-paginator
+      [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
+      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
     </app-paginator>
   </div>
 
 </ng-container>
 
-<!-- ── Modal confirmación sincronización ── -->
+<!-- ── Modal credenciales SAP (paso 1) — solo ONLINE ── -->
+<div class="modal-backdrop" *ngIf="showCredentials && !appConfig.isOffline">
+  <div class="credentials-modal" role="dialog" aria-modal="true" aria-labelledby="cred-title" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3 id="cred-title">
+        <span class="sap-logo-icon">🔐</span>
+        Credenciales SAP Business One
+        <span class="rend-id-badge">N° {{ credRend?.U_IdRendicion }}</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="closeCredentials()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <p class="cred-hint">
+        Ingresa tus credenciales de SAP para generar el asiento preliminar.
+        No serán almacenadas.
+      </p>
+
+      <div class="cred-form">
+        <div class="form-field">
+          <label class="form-label" for="sap-user">Usuario SAP</label>
+          <input
+            id="sap-user" type="text" class="form-control"
+            [class.is-invalid]="credError && !sapUser.trim()"
+            placeholder="Ej: manager"
+            [(ngModel)]="sapUser"
+            (keyup.enter)="confirmarCredentials()"
+            autocomplete="username" />
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="sap-password">Contraseña SAP</label>
+          <div class="input-group">
+            <input
+              id="sap-password" [type]="showSapPassword ? 'text' : 'password'"
+              class="form-control"
+              [class.is-invalid]="credError && !sapPassword.trim()"
+              placeholder="Contraseña"
+              [(ngModel)]="sapPassword"
+              (keyup.enter)="confirmarCredentials()"
+              autocomplete="current-password" />
+            <button type="button" class="input-addon btn-icon"
+              (click)="toggleSapPassword()"
+              [title]="showSapPassword ? 'Ocultar' : 'Mostrar'">
+              {{ showSapPassword ? '🙈' : '👁' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="cred-error" *ngIf="credError">
+          <span>⚠ {{ credError }}</span>
+        </div>
+      </div>
+
+      <div class="info-banner info-neutral" style="margin-top: 14px">
+        <span>ℹ</span>
+        <span>Las credenciales se usan únicamente para esta operación y <strong>no se guardan</strong>.</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" (click)="closeCredentials()">Cancelar</button>
+      <button class="btn btn-primary" type="button" (click)="confirmarCredentials()">Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal confirmación sincronización (paso 2) — solo ADMIN ── -->
 <div class="modal-backdrop" *ngIf="showConfirmSync">
   <div class="sync-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
-        {{ esError(syncRend!) ? '↺ Reintentar Sincronización' : '⇅ Sincronizar con ERP' }}
+        {{ esError(syncRend!) ? '↺ Reintentar Sincronización' : '⇅ Sincronizar con SAP' }}
         <span class="rend-id-badge">N° {{ syncRend?.U_IdRendicion }}</span>
       </h3>
       <button class="modal-close" type="button" (click)="closeConfirmSync()">✕</button>
@@ -116,52 +242,39 @@
 
     <div class="modal-body">
       <div class="sync-info">
+        <div class="info-row"><span class="info-label">Usuario</span><span class="info-value">{{ syncRend?.U_NomUsuario }}</span></div>
+        <div class="info-row"><span class="info-label">Perfil</span><span class="info-value">{{ syncRend?.U_NombrePerfil }}</span></div>
+        <div class="info-row"><span class="info-label">Objetivo</span><span class="info-value">{{ syncRend?.U_Objetivo }}</span></div>
+        <div class="info-row"><span class="info-label">Monto</span><span class="info-value mono-cell">{{ syncRend?.U_Monto | number:'1.2-2' }} Bs</span></div>
         <div class="info-row">
-          <span class="info-label">Usuario</span>
-          <span class="info-value">{{ syncRend?.U_NomUsuario }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Perfil</span>
-          <span class="info-value">{{ syncRend?.U_NombrePerfil }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Objetivo</span>
-          <span class="info-value">{{ syncRend?.U_Objetivo }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Monto</span>
-          <span class="info-value mono-cell">{{ syncRend?.U_Monto | number:'1.2-2' }} Bs</span>
+          <span class="info-label">Usuario SAP</span>
+          <span class="info-value"><span class="sap-user-badge">🔑 {{ sapUser }}</span></span>
         </div>
       </div>
 
       <div class="info-banner info-neutral" style="margin-top: 14px">
         <span>ℹ</span>
         <span *ngIf="!esError(syncRend!)">
-          Se registrará esta rendición en el sistema contable ERP y quedará en estado
-          <strong>SINCRONIZADO</strong>.
+          Se generará un <strong>asiento preliminar</strong> en SAP Business One con el usuario
+          <strong>{{ sapUser }}</strong>.
         </span>
         <span *ngIf="esError(syncRend!)">
-          Se realizará un nuevo intento de sincronización con el ERP.
-          Si falla nuevamente quedará en estado <strong>ERROR SYNC</strong> para revisión.
+          Se realizará un nuevo intento de sincronización con el usuario <strong>{{ sapUser }}</strong>.
         </span>
       </div>
 
       <div class="sync-progress" *ngIf="isSyncing">
         <div class="sync-spinner"></div>
-        <span>Conectando con el ERP...</span>
+        <span>Conectando con SAP Service Layer...</span>
       </div>
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-ghost" type="button" (click)="closeConfirmSync()" [disabled]="isSyncing">
-        Cancelar
-      </button>
+      <button class="btn btn-ghost" type="button" (click)="closeConfirmSync()" [disabled]="isSyncing">← Volver</button>
       <button
         [class]="esError(syncRend!) ? 'btn btn-warning-soft' : 'btn btn-primary'"
-        type="button"
-        [disabled]="isSyncing"
-        (click)="confirmarSync()">
-        <span *ngIf="isSyncing">Sincronizando...</span>
+        type="button" [disabled]="isSyncing" (click)="confirmarSync()">
+        <span *ngIf="isSyncing">Sincronizando con SAP...</span>
         <span *ngIf="!isSyncing">{{ esError(syncRend!) ? '↺ Reintentar' : '⇅ Confirmar Sincronización' }}</span>
       </button>
     </div>
@@ -200,11 +313,10 @@
           </div>
           <div class="historial-item-body" *ngIf="h.U_NroDocERP || h.U_Mensaje">
             <div *ngIf="h.U_NroDocERP" class="historial-doc">
-              <span class="info-label">Doc. ERP</span>
+              <span class="info-label">Doc. SAP</span>
               <code class="historial-code">{{ h.U_NroDocERP }}</code>
             </div>
-            <div *ngIf="h.U_Mensaje" class="historial-msg"
-              [class.historial-msg-error]="h.U_Estado === 'ERROR'">
+            <div *ngIf="h.U_Mensaje" class="historial-msg" [class.historial-msg-error]="h.U_Estado === 'ERROR'">
               {{ h.U_Mensaje }}
             </div>
           </div>

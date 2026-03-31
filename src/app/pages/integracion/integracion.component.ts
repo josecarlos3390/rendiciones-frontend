@@ -5,8 +5,10 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
-  IntegracionService, RendPendiente, RendSync, SyncResult,
+  IntegracionService, RendPendiente, RendicionSync, RendSync, SyncResult, SapCredentials,
 } from '../../services/integracion.service';
+import { AuthService }             from '../../auth/auth.service';
+import { AppConfigService }        from '../../services/app-config.service';
 import { ToastService }            from '../../core/toast/toast.service';
 import { DdmmyyyyPipe }            from '../../shared/ddmmyyyy.pipe';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
@@ -16,16 +18,24 @@ import { PaginatorComponent }      from '../../shared/paginator/paginator.compon
 @Component({
   selector: 'app-integracion',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent, PaginatorComponent],
   templateUrl: './integracion.component.html',
   styleUrls: ['./integracion.component.scss'],
 })
 export class IntegracionComponent implements OnInit {
 
+  // ── Vista según rol ───────────────────────────────────
+  get isAdmin(): boolean { return this.auth.isAdmin; }
+
+  // ── Estado general ────────────────────────────────────
+  // ADMIN: lista de pendientes para sincronizar
   pendientes:  RendPendiente[] = [];
-  filtered:    RendPendiente[] = [];
-  paged:       RendPendiente[] = [];
+  // USER: sus propias rendiciones en estados 3/5/6
+  misRend:     RendicionSync[] = [];
+
+  filtered:    (RendPendiente | RendicionSync)[] = [];
+  paged:       (RendPendiente | RendicionSync)[] = [];
   search       = '';
   loading      = false;
   loadError    = false;
@@ -41,15 +51,25 @@ export class IntegracionComponent implements OnInit {
   historialItems:  RendSync[] = [];
   loadingHistorial = false;
 
-  // Modal confirmación sync
+  // Modal credenciales SAP (paso 1) — solo ADMIN
+  showCredentials  = false;
+  credRend:        RendPendiente | null = null;
+  sapUser          = '';
+  sapPassword      = '';
+  showSapPassword  = false;
+  credError        = '';
+
+  // Modal confirmación sync (paso 2) — solo ADMIN
   showConfirmSync  = false;
   syncRend:        RendPendiente | null = null;
   isSyncing        = false;
 
   constructor(
-    private svc:   IntegracionService,
-    private toast: ToastService,
-    private cdr:   ChangeDetectorRef,
+    public  auth:      AuthService,
+    public  appConfig: AppConfigService,
+    private svc:       IntegracionService,
+    private toast:     ToastService,
+    private cdr:       ChangeDetectorRef,
   ) {}
 
   ngOnInit() { this.load(); }
@@ -59,32 +79,41 @@ export class IntegracionComponent implements OnInit {
     this.loadError = false;
     this.cdr.markForCheck();
 
-    this.svc.getPendientes().subscribe({
-      next: (data) => {
-        this.pendientes = data;
-        this.loading    = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loading   = false;
-        this.loadError = true;
-        this.cdr.markForCheck();
-      },
-    });
+    if (this.isAdmin) {
+      this.svc.getPendientes().subscribe({
+        next: (data) => {
+          this.pendientes = data;
+          this.loading    = false;
+          this.applyFilter();
+          this.cdr.markForCheck();
+        },
+        error: () => { this.loading = false; this.loadError = true; this.cdr.markForCheck(); },
+      });
+    } else {
+      this.svc.getMisRendiciones().subscribe({
+        next: (data) => {
+          this.misRend = data;
+          this.loading = false;
+          this.applyFilter();
+          this.cdr.markForCheck();
+        },
+        error: () => { this.loading = false; this.loadError = true; this.cdr.markForCheck(); },
+      });
+    }
   }
 
   // ── Búsqueda y paginación ─────────────────────────────
   applyFilter() {
-    const q = this.search.toLowerCase().trim();
+    const q      = this.search.toLowerCase().trim();
+    const source = this.isAdmin ? this.pendientes : this.misRend;
     this.filtered = q
-      ? this.pendientes.filter(r =>
+      ? source.filter((r: any) =>
           (r.U_NomUsuario   ?? '').toLowerCase().includes(q) ||
           (r.U_NombrePerfil ?? '').toLowerCase().includes(q) ||
           (r.U_Objetivo     ?? '').toLowerCase().includes(q) ||
           String(r.U_IdRendicion).includes(q)
         )
-      : [...this.pendientes];
+      : [...source];
     this.page = 1;
     this.updatePaging();
     this.cdr.markForCheck();
@@ -99,16 +128,69 @@ export class IntegracionComponent implements OnInit {
   onPageChange(p: number)  { this.page = p;  this.updatePaging(); this.cdr.markForCheck(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); this.cdr.markForCheck(); }
 
-  // ── Sync ──────────────────────────────────────────────
-  openConfirmSync(rend: RendPendiente) {
-    this.syncRend        = rend;
+  // ── Modal credenciales SAP (paso 1) — solo ADMIN ──────
+  openCredentials(rend: RendPendiente) {
+    this.credRend    = rend;
+    this.credError   = '';
+
+    // En modo OFFLINE no hay SAP — saltar el paso de credenciales
+    if (this.appConfig.isOffline) {
+      this.sapUser         = '';
+      this.sapPassword     = '';
+      this.syncRend        = rend;
+      this.showConfirmSync = true;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.sapUser         = '';
+    this.sapPassword     = '';
+    this.showSapPassword = false;
+    this.showCredentials = true;
+    this.cdr.markForCheck();
+  }
+
+  closeCredentials() {
+    this.showCredentials = false;
+    this.credRend        = null;
+    this.sapUser         = '';
+    this.sapPassword     = '';
+    this.credError       = '';
+    this.cdr.markForCheck();
+  }
+
+  confirmarCredentials() {
+    // En modo OFFLINE no se validan credenciales SAP
+    if (!this.appConfig.isOffline) {
+      if (!this.sapUser.trim()) {
+        this.credError = 'El usuario SAP es obligatorio';
+        this.cdr.markForCheck();
+        return;
+      }
+      if (!this.sapPassword.trim()) {
+        this.credError = 'La contraseña SAP es obligatoria';
+        this.cdr.markForCheck();
+        return;
+      }
+    }
+    this.syncRend        = this.credRend;
+    this.showCredentials = false;
     this.showConfirmSync = true;
     this.cdr.markForCheck();
   }
 
+  toggleSapPassword() {
+    this.showSapPassword = !this.showSapPassword;
+    this.cdr.markForCheck();
+  }
+
+  // ── Modal confirmación sync (paso 2) — solo ADMIN ─────
   closeConfirmSync() {
     this.showConfirmSync = false;
     this.syncRend        = null;
+    this.isSyncing       = false;
+    this.sapUser         = '';
+    this.sapPassword     = '';
     this.cdr.markForCheck();
   }
 
@@ -117,20 +199,26 @@ export class IntegracionComponent implements OnInit {
     this.isSyncing = true;
     const id = this.syncRend.U_IdRendicion;
 
-    this.svc.sincronizar(id).subscribe({
+    const credentials: SapCredentials = { sapUser: this.sapUser, sapPassword: this.sapPassword };
+
+    this.svc.sincronizar(id, credentials).subscribe({
       next: (res: SyncResult) => {
-        this.isSyncing = false;
+        this.isSyncing   = false;
+        this.sapUser     = '';
+        this.sapPassword = '';
         this.closeConfirmSync();
         if (res.success) {
-          this.toast.success(`Rendición N° ${id} sincronizada — Doc. ERP: ${res.nroDocERP ?? '—'}`);
+          this.toast.success(`Rendición N° ${id} sincronizada — Doc. SAP: ${res.nroDocERP ?? '—'}`);
         } else {
           this.toast.error(`Error al sincronizar N° ${id}: ${res.mensaje}`);
         }
         this.load();
       },
       error: (err) => {
-        this.isSyncing = false;
-        this.toast.error(err?.error?.message ?? 'Error al sincronizar');
+        this.isSyncing   = false;
+        this.sapUser     = '';
+        this.sapPassword = '';
+        this.toast.error(err?.error?.message ?? 'Error al sincronizar con SAP');
         this.cdr.markForCheck();
       },
     });
@@ -150,10 +238,7 @@ export class IntegracionComponent implements OnInit {
         this.loadingHistorial = false;
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.loadingHistorial = false;
-        this.cdr.markForCheck();
-      },
+      error: () => { this.loadingHistorial = false; this.cdr.markForCheck(); },
     });
   }
 
@@ -167,18 +252,14 @@ export class IntegracionComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────
   estadoTexto(estado: number): string {
     const map: Record<number, string> = {
-      3: 'APROBADO',
-      5: 'SINCRONIZADO',
-      6: 'ERROR SYNC',
+      3: 'APROBADO', 5: 'SINCRONIZADO', 6: 'ERROR SYNC',
     };
     return map[estado] ?? `Estado ${estado}`;
   }
 
   estadoCss(estado: number): string {
     const map: Record<number, string> = {
-      3: 'badge-aprobado',
-      5: 'badge-sync-ok',
-      6: 'badge-sync-error',
+      3: 'badge-aprobado', 5: 'badge-sync-ok', 6: 'badge-sync-error',
     };
     return map[estado] ?? '';
   }
@@ -189,7 +270,7 @@ export class IntegracionComponent implements OnInit {
     return 'badge-pendiente';
   }
 
-  esError(rend: RendPendiente): boolean {
-    return rend.U_Estado === 6;
-  }
+  esError(rend: RendPendiente): boolean { return rend.U_Estado === 6; }
+
+  asRendicionSync(r: any): RendicionSync { return r as RendicionSync; }
 }

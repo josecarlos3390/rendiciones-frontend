@@ -6,6 +6,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { TipoDocSapService, TipoDocSap } from '../../services/tipo-doc-sap.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector:        'app-tipo-doc-sap',
@@ -33,6 +34,7 @@ export class TipoDocSapComponent implements OnInit {
   form!: FormGroup;
 
   constructor(
+    public  auth: AuthService,
     private svc:   TipoDocSapService,
     private fb:    FormBuilder,
     private toast: ToastService,

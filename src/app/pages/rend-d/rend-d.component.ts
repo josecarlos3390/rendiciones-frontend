@@ -27,6 +27,7 @@ import { RendM }              from '../../models/rend-m.model';
 import { RendD, CreateRendDPayload } from '../../models/rend-d.model';
 import { Documento }          from '../../models/documento.model';
 import { Perfil }             from '../../models/perfil.model';
+import { PrctjModalComponent }          from './prctj-modal/prctj-modal.component';
 
 
 interface NormaActiva {
@@ -43,7 +44,7 @@ interface NormaActiva {
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     ConfirmDialogComponent, PaginatorComponent, AppSelectComponent,
     CuentaSearchComponent, ProveedorSearchComponent, DdmmyyyyPipe,
-    SkeletonLoaderComponent,
+    SkeletonLoaderComponent, PrctjModalComponent,
   ],
   templateUrl: './rend-d.component.html',
   styleUrls:   ['./rend-d.component.scss'],
@@ -237,6 +238,42 @@ export class RendDComponent implements OnInit {
   /** true cuando ICE es % fijo (> 0) — se calcula automático sobre el importe */
   get iceEsFijo(): boolean {
     return Number(this.configDocActivo?.U_ICE ?? 0) > 0;
+  }
+
+  // ── Modal Distribución Porcentual (PRCTJ) ────────────────────────────────
+  showPrctjModal = false;
+  prctjDoc:       any = null;   // RendD que se está distribuyendo
+
+  abrirPrctjModal(d: any) {
+    this.prctjDoc      = d;
+    this.showPrctjModal = true;
+    this.cdr.markForCheck();
+  }
+
+  cerrarPrctjModal() {
+    this.showPrctjModal = false;
+    this.prctjDoc       = null;
+    this.cdr.markForCheck();
+  }
+
+  onPrctjSaved() {
+    // Recargar el detalle para reflejar que la línea ahora tiene distribución
+    this.cerrarPrctjModal();
+    this.loadDocs();
+  }
+
+  // ── Vista preliminar / impresión ──────────────────────────────────────
+  showPdfPreview = false;
+
+  abrirVistaPreliminar() {
+    if (!this.cabecera) return;
+    this.showPdfPreview = true;
+    this.cdr.markForCheck();
+  }
+
+  cerrarVistaPreliminar() {
+    this.showPdfPreview = false;
+    this.cdr.markForCheck();
   }
 
   constructor(
@@ -526,24 +563,39 @@ export class RendDComponent implements OnInit {
       montoIUE   = this._calcImpuesto(importe, cfg.U_IUEpercent);
 
     } else if (esRecibo && tipoCalc === '0') {
-      // ── Grossing Up: impuestos calculados sobre el importe del recibo ──
-      // Recibo: 150 Bs → IT 3% = 4.50, RCIIVA 13% = 19.50 → ImpRet = 24
-      // Proveedor recibe: 150 Bs completos
-      // Empresa registra: 150 + 24 = 174 Bs (asume las retenciones)
-      montoIT    = this._calcImpuesto(importe, cfg.U_ITpercent);
-      montoRCIVA = this._calcImpuesto(importe, cfg.U_RCIVApercent);
-      montoIVA   = this._calcImpuesto(importe, cfg.U_IVApercent);
-      montoIUE   = this._calcImpuesto(importe, cfg.U_IUEpercent);
+      // ── Grossing Up correcto: el importe ingresado es el LÍQUIDO a pagar al proveedor.
+      // La empresa asume las retenciones, por lo que hay que calcular el BRUTO hacia arriba.
+      //
+      // Fórmula:  Bruto = Líquido / (1 - suma_de_tasas)
+      // Ejemplo:  1800 / (1 - 0.155) = 2130.18  → IUE=266.27, IT=63.91, Prov.recibe=1800
+      //
+      // El Bruto es el costo real para la empresa y lo que figura en el contrato.
+      const tasaIUE   = (Number(cfg.U_IUEpercent)   || 0) / 100;
+      const tasaIT    = (Number(cfg.U_ITpercent)     || 0) / 100;
+      const tasaRCIVA = (Number(cfg.U_RCIVApercent)  || 0) / 100;
+      const tasaIVA   = (Number(cfg.U_IVApercent)    || 0) / 100;
+      const sumaTasas = tasaIUE + tasaIT + tasaRCIVA + tasaIVA;
+
+      // Bruto = Líquido / (1 - tasas) — solo si hay tasas configuradas
+      const bruto = sumaTasas > 0 && sumaTasas < 1
+        ? this._round(importe / (1 - sumaTasas))
+        : importe;
+
+      montoIUE   = this._round(bruto * tasaIUE);
+      montoIT    = this._round(bruto * tasaIT);
+      montoRCIVA = this._round(bruto * tasaRCIVA);
+      montoIVA   = this._round(bruto * tasaIVA);
     }
 
     const impRet = this._round(montoIVA + montoIT + montoIUE + montoRCIVA);
 
     // Total según tipo de cálculo:
+    // GU → el Total es el BRUTO (costo real empresa = líquido + retenciones que asume)
+    //       Total = Importe (líquido) + ImpRet = Bruto
     // GD → proveedor recibe menos: Total = Importe - ImpRet
-    // GU → empresa asume retenciones: Total = Importe + ImpRet (gasto mayor)
     // Factura → Total = Importe - ImpRet
     const total = esRecibo && tipoCalc === '0'
-      ? this._round(importe + impRet)   // GU: empresa paga importe + retenciones
+      ? this._round(importe + impRet)   // GU: Total = Bruto (líquido + retenciones)
       : this._round(importe - impRet);  // GD / Factura: se descuenta al proveedor
 
     // Actualizar campos calculados sin disparar otro ciclo de valueChanges
@@ -557,11 +609,12 @@ export class RendDComponent implements OnInit {
       // Propagar exento calculado al campo del formulario si viene de %
       ...(Number(cfg.U_EXENTOpercent) > 0 ? { exento: this._round(exento) } : {}),
       ...(icePct > 0 ? { ice: this._round(ice) } : {}),
-      // Propagar las cuentas contables desde la config
-      cuentaIVA:   cfg.U_IVAcuenta   || '',
-      cuentaIT:    cfg.U_ITcuenta    || '',
-      cuentaIUE:   cfg.U_IUEcuenta   || '',
-      cuentaRCIVA: cfg.U_RCIVAcuenta || '',
+      // Propagar cuentas contables desde la config SOLO si el campo está vacío.
+      // Si el usuario ya seleccionó una cuenta manualmente, NO se sobreescribe.
+      ...(!r.cuentaIVA   && cfg.U_IVAcuenta   ? { cuentaIVA:   cfg.U_IVAcuenta   } : {}),
+      ...(!r.cuentaIT    && cfg.U_ITcuenta    ? { cuentaIT:    cfg.U_ITcuenta    } : {}),
+      ...(!r.cuentaIUE   && cfg.U_IUEcuenta   ? { cuentaIUE:   cfg.U_IUEcuenta   } : {}),
+      ...(!r.cuentaRCIVA && cfg.U_RCIVAcuenta ? { cuentaRCIVA: cfg.U_RCIVAcuenta } : {}),
     }, { emitEvent: false });
 
     this.cdr.markForCheck();
@@ -1264,6 +1317,11 @@ export class RendDComponent implements OnInit {
       impRet:       d.U_RD_ImpRet   ?? 0,
       total:        d.U_RD_Total    ?? 0,
       ctaExento:    d.U_CTAEXENTO,
+      // Cuentas contables de impuestos — se preservan del registro guardado
+      cuentaIVA:   d.U_CuentaIVA   ?? '',
+      cuentaIT:    d.U_CuentaIT    ?? '',
+      cuentaIUE:   d.U_CuentaIUE   ?? '',
+      cuentaRCIVA: d.U_CuentaRCIVA ?? '',
     };
     this.form.reset(values);
     this.initialValues = { ...values };

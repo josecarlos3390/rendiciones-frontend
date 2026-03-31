@@ -22,7 +22,7 @@ import { UserFormComponent } from './user-form/user-form.component';
   ],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class UsersComponent implements OnInit {
   users:    User[] = [];
@@ -54,7 +54,7 @@ export class UsersComponent implements OnInit {
   constructor(
     private usersService: UsersService,
     private toast:        ToastService,
-    private auth:         AuthService,
+    protected  auth:      AuthService,
     private cdr:          ChangeDetectorRef,
     private sapService:   SapService,
   ) {}

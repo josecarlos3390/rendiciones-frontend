@@ -13,7 +13,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
   selector: 'app-user-form',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, UsuarioSearchComponent, AppSelectComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   template: `
 <div class="modal-backdrop" *ngIf="visible">
   <div class="user-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
@@ -284,8 +284,6 @@ export class UserFormComponent implements OnChanges {
       superUser:      [0],
       appRend:        ['1'],
       appConf:        ['0'],
-      appExtB:        ['0'],
-      appUpLA:        ['0'],
       genDocPre:      ['0'],
       fijarNr:        ['0'],
       nr1:            [''],
@@ -305,7 +303,7 @@ export class UserFormComponent implements OnChanges {
     this.form.reset({
       login: '', name: '', supervisorName: '', password: '',
       superUser: 0, appRend: '1', appConf: '0',
-      appExtB: '0', appUpLA: '0', genDocPre: '0',
+      genDocPre: '0',
       fijarNr: '0', nr1: '', nr2: '', nr3: '', nr4: '', nr5: '',
       fijarSaldo: '0', estado: '1',
       fechaExpiracion: this.defaultExpiry(),
@@ -326,8 +324,6 @@ export class UserFormComponent implements OnChanges {
       superUser:      user.U_SuperUser       ?? 0,
       appRend:        user.U_AppRend   == '1' ? '1' : '0',
       appConf:        user.U_AppConf   == '1' ? '1' : '0',
-      appExtB:        user.U_AppExtB   == '1' ? '1' : '0',
-      appUpLA:        user.U_AppUpLA   == '1' ? '1' : '0',
       genDocPre:      user.U_GenDocPre == '1' ? '1' : '0',
       fijarNr:        user.U_FIJARNR   == '1' ? '1' : '0',
       nr1:            user.U_NR1             ?? '',
@@ -374,7 +370,7 @@ export class UserFormComponent implements OnChanges {
     if (!this.initialValues) return false;
     const curr   = this.form.getRawValue();
     const fields = ['name','supervisorName','superUser','appRend','appConf',
-                    'appExtB','appUpLA','genDocPre','fijarNr','nr1','nr2',
+                    'genDocPre','fijarNr','nr1','nr2',
                     'nr3','nr4','nr5','fijarSaldo','estado','fechaExpiracion','password'];
     return fields.some(f => curr[f] !== this.initialValues[f]);
   }

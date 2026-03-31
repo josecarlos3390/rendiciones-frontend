@@ -865,6 +865,13 @@
         <td class="text-right mono-cell total-cell col-total" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
         <td class="actions">
           <button class="btn btn-sm btn-ghost" (click)="openEdit(d)">Editar</button>
+          <!-- Botón distribución porcentual -->
+          <button class="btn btn-sm btn-ghost btn-dist"
+            title="Distribución porcentual entre centros de costo"
+            (click)="abrirPrctjModal(d)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="12" r="3"/><path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+            Distribuir
+          </button>
           <button class="btn btn-sm btn-danger-soft" *ngIf="!isReadonly" (click)="confirmDelete(d)">Eliminar</button>
         </td>
       </tr>
@@ -970,5 +977,17 @@
     (pageChange)="onPageChange($event)"
     (limitChange)="onLimitChange($event)">
   </app-paginator>
+
+
+
+<!-- ── Modal Distribución Porcentual PRCTJ ── -->
+<app-prctj-modal
+  *ngIf="showPrctjModal && prctjDoc"
+  [doc]="prctjDoc"
+  [idRendicion]="cabecera!.U_IdRendicion"
+  [canEdit]="!isReadonly"
+  (saved)="onPrctjSaved()"
+  (cancelled)="cerrarPrctjModal()">
+</app-prctj-modal>
 
 </div>

@@ -12,7 +12,7 @@ import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-l
 @Component({
   selector:        'app-aprobaciones',
   standalone:      true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent],
   templateUrl: './aprobaciones.component.html',
   styleUrls:  ['./aprobaciones.component.scss'],

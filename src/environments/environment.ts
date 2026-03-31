@@ -5,7 +5,7 @@ const backendHost =
 
 //    ? window.location.hostname
 //      : '10.0.8.45';
-      : '192.168.122.52'; // ← fallback explícito para SSR
+      : '192.168.122.51'; // ← fallback explícito para SSR
 //    : '192.168.1.6';
 
 

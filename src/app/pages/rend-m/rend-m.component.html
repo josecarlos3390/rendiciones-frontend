@@ -206,8 +206,72 @@
 <!-- ════ PASO 2: Perfil seleccionado — filtros + tabla ════ -->
 <ng-container *ngIf="perfilActivo">
 
+  <!-- ── Barra de filtros unificada ─────────────────────────────────── -->
   <div class="filter-bar">
     <div class="filter-left">
+
+      <!-- Selector VER: solo visible para aprobadores / nivel sync / admin -->
+      <div class="filter-field" *ngIf="auth.esAprobador || auth.sinAprobador || auth.isAdmin">
+        <label>Ver</label>
+        <div class="ver-chips">
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="verFiltro === 'propias'"
+            (click)="onVerFiltroChange('propias')">
+            Mis rendiciones
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="verFiltro === 'subordinados'"
+            (click)="onVerFiltroChange('subordinados')">
+            Subordinados
+            <span class="sub-count-badge" *ngIf="verFiltro === 'subordinados' && totalSubordinados > 0">{{ totalSubordinados }}</span>
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="verFiltro === 'todas'"
+            (click)="onVerFiltroChange('todas')">
+            Todas
+            <span class="sub-count-badge" *ngIf="verFiltro === 'todas' && totalSubordinados > 0">+{{ totalSubordinados }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Selector ESTADO -->
+      <div class="filter-field">
+        <label>Estado</label>
+        <div class="estado-chips">
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'todas'"
+            (click)="onEstadoFiltroChange('todas')">
+            Todos
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'abiertas'"
+            (click)="onEstadoFiltroChange('abiertas')">
+            <span class="chip-dot chip-dot--open"></span> Pendientes
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'enviadas'"
+            (click)="onEstadoFiltroChange('enviadas')">
+            <span class="chip-dot chip-dot--sent"></span> Enviadas
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'aprobadas'"
+            (click)="onEstadoFiltroChange('aprobadas')">
+            <span class="chip-dot chip-dot--approved"></span> Aprobadas
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'sincronizadas'"
+            (click)="onEstadoFiltroChange('sincronizadas')">
+            <span class="chip-dot chip-dot--sync"></span> Sincronizadas
+          </button>
+          <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'error'"
+            (click)="onEstadoFiltroChange('error')">
+            <span class="chip-dot chip-dot--error"></span> Error
+          </button>
+        </div>
+      </div>
+
+      <!-- Búsqueda -->
       <div class="filter-field">
         <label>Buscar</label>
         <div class="filter-search">
@@ -217,29 +281,12 @@
           <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
         </div>
       </div>
-      <div class="filter-field">
-        <label>Estado</label>
-        <div class="estado-chips">
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'abiertas'"
-            (click)="setEstadoFiltro('abiertas')">
-            <span class="chip-dot chip-dot--open"></span> Abiertas
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'enviadas'"
-            (click)="setEstadoFiltro('enviadas')">
-            <span class="chip-dot chip-dot--sent"></span> Enviadas
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'todas'"
-            (click)="setEstadoFiltro('todas')">
-            Todas
-          </button>
-        </div>
-      </div>
+
     </div>
-    <span class="filter-count" *ngIf="!loading">
-      {{ filtered.length }} rendición{{ filtered.length !== 1 ? 'es' : '' }}
+    <span class="filter-count" *ngIf="!loading && !loadingSubordinados">
+      <ng-container *ngIf="verFiltro === 'propias'">{{ filtered.length }} rendición{{ filtered.length !== 1 ? 'es' : '' }}</ng-container>
+      <ng-container *ngIf="verFiltro === 'subordinados'">{{ totalSubordinados }} rendición{{ totalSubordinados !== 1 ? 'es' : '' }}</ng-container>
+      <ng-container *ngIf="verFiltro === 'todas'">{{ filtered.length + totalSubordinados }} rendición{{ (filtered.length + totalSubordinados) !== 1 ? 'es' : '' }}</ng-container>
     </span>
   </div>
 
@@ -250,10 +297,16 @@
   <div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
     <ng-container [ngSwitch]="estadoFiltro">
       <ng-container *ngSwitchCase="'abiertas'">
-        No tenés rendiciones abiertas en este perfil. <a (click)="openNew()">Crear la primera</a>
+        No tenés rendiciones pendientes en este perfil. <a (click)="openNew()">Crear la primera</a>
       </ng-container>
       <ng-container *ngSwitchCase="'enviadas'">
         No tenés rendiciones enviadas en este perfil.
+      </ng-container>
+      <ng-container *ngSwitchCase="'aprobadas'">
+        No tenés rendiciones aprobadas en este perfil.
+      </ng-container>
+      <ng-container *ngSwitchCase="'sincronizadas'">
+        No tenés rendiciones sincronizadas con SAP en este perfil.
       </ng-container>
       <ng-container *ngSwitchDefault>
         No hay rendiciones en este perfil. <a (click)="openNew()">Crear la primera</a>
@@ -261,74 +314,168 @@
     </ng-container>
   </div>
 
-  <div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th class="text-center">N°</th>
-          <th>Objetivo</th>
-          <th>Cuenta</th>
-          <th>Empleado</th>
-          <th>Fecha Inicio</th>
-          <th>Fecha Fin</th>
-          <th class="text-right">Monto</th>
-          <th class="text-center">Estado</th>
-          <th class="actions">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let r of paged">
-          <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
-          <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
-          <td class="col-cuenta" data-label="Cuenta">
-            <div class="cuenta-inner">
-              <span class="code-tag">{{ r.U_Cuenta }}</span>
-              <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
-            </div>
-          </td>
-          <td class="col-empleado" data-label="Empleado">{{ r.U_NombreEmpleado }}</td>
-          <td class="text-center" data-label="Fecha Inicio">{{ r.U_FechaIni | ddmmyyyy }}</td>
-          <td class="text-center" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
-          <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
-          <td class="text-center" data-label="Estado">
-            <span [class]="estadoCss(r.U_Estado)">{{ estadoTexto(r.U_Estado) }}</span>
-          </td>
-          <td class="actions">
-            <a class="btn btn-icon btn-sm btn-ghost-primary" title="Ver detalle"
-              [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            </a>
-            <button class="btn btn-icon btn-sm btn-ghost" title="Editar rendición"
-              *ngIf="canEdit(r)" (click)="openEdit(r)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
+  <!-- ── Tabla principal (propias / todas) ─────────────────────────── -->
+  <ng-container *ngIf="verFiltro !== 'subordinados'">
 
-            <!-- Enviar / Generar Preliminar — solo en estado ABIERTO -->
-            <ng-container *ngIf="r.U_Estado === 1 && canEdit(r)">
-              <!-- Sin aprobador + permiso generar preliminar → Generar Preliminar -->
-              <button *ngIf="auth.esNivelFinal && auth.puedeGenerarPre"
-                class="btn btn-sm btn-primary"
-                title="Generar documento preliminar" (click)="generarPreliminar(r)">
-                📄 Preliminar
-              </button>
-              <!-- Con aprobador → Enviar para aprobación -->
-              <button *ngIf="!auth.esNivelFinal" class="btn btn-sm btn-send"
-                title="Enviar para aprobación" (click)="enviarAprobacion(r)">
-                ✈ Enviar
-              </button>
-            </ng-container>
+    <div *ngIf="loading" class="empty-state">⏳ Cargando...</div>
 
-            <button class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar rendición"
-              *ngIf="canDelete(r)" (click)="confirmDelete(r)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <app-paginator [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
-      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
-    </app-paginator>
-  </div>
+    <div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
+      No hay rendiciones que coincidan con los filtros seleccionados.
+    </div>
+
+    <div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="text-center">N°</th>
+            <th>Objetivo</th>
+            <th>Cuenta</th>
+            <th>Empleado</th>
+            <th class="text-center">Fecha Ini</th>
+            <th class="text-center">Fecha Fin</th>
+            <th class="text-right">Monto</th>
+            <th class="text-center">Estado</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of paged">
+            <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
+            <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
+            <td class="col-cuenta" data-label="Cuenta">
+              <div class="cuenta-inner">
+                <span class="code-tag">{{ r.U_Cuenta }}</span>
+                <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
+              </div>
+            </td>
+            <td class="col-empleado" data-label="Empleado">{{ r.U_NombreEmpleado }}</td>
+            <td class="text-center" data-label="Fecha Ini">{{ r.U_FechaIni | ddmmyyyy }}</td>
+            <td class="text-center" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
+            <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
+            <td class="text-center" data-label="Estado">
+              <span [class]="estadoCss(r.U_Estado)">{{ estadoTexto(r.U_Estado) }}</span>
+            </td>
+            <td class="actions">
+              <a class="btn btn-icon btn-sm btn-ghost-primary" title="Ver detalle"
+                [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </a>
+              <button class="btn btn-icon btn-sm btn-ghost" title="Editar rendición"
+                *ngIf="canEdit(r)" (click)="openEdit(r)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <ng-container *ngIf="r.U_Estado === 1 && canEdit(r)">
+                <button *ngIf="auth.sinAprobador && auth.puedeGenerarPre"
+                  class="btn btn-sm btn-primary"
+                  title="Generar documento preliminar" (click)="generarPreliminar(r)">
+                  📄 Preliminar
+                </button>
+                <button *ngIf="!auth.sinAprobador" class="btn btn-sm btn-send"
+                  title="Enviar para aprobación" (click)="enviarAprobacion(r)">
+                  ✈ Enviar
+                </button>
+              </ng-container>
+              <button class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar rendición"
+                *ngIf="canDelete(r)" (click)="confirmDelete(r)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <app-paginator [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
+        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
+      </app-paginator>
+    </div>
+  </ng-container>
+
+  <!-- ── Tabla subordinados (subordinados / todas) ───────────────────── -->
+  <ng-container *ngIf="verFiltro !== 'propias' && (auth.esAprobador || auth.sinAprobador || auth.isAdmin)">
+
+    <!-- Separador visual cuando se muestran ambas -->
+    <div *ngIf="verFiltro === 'todas' && filtered.length > 0" class="section-divider">
+      <span>Rendiciones de subordinados</span>
+    </div>
+
+    <div *ngIf="loadingSubordinados" class="empty-state">⏳ Cargando subordinados...</div>
+
+    <div *ngIf="!loadingSubordinados && rendicionesSubordinados.length === 0" class="empty-state">
+      No hay rendiciones de subordinados con los filtros seleccionados.
+    </div>
+
+    <div class="table-wrapper" *ngIf="!loadingSubordinados && rendicionesSubordinados.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="text-center">N°</th>
+            <th>Usuario</th>
+            <th>Objetivo</th>
+            <th>Cuenta</th>
+            <th class="text-center">Fecha Fin</th>
+            <th class="text-right">Monto</th>
+            <th class="text-center">Estado</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rendicionesSubordinados">
+            <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
+            <td data-label="Usuario">
+              <span class="user-pill">{{ r.U_NomUsuario }}</span>
+            </td>
+            <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
+            <td class="col-cuenta" data-label="Cuenta">
+              <div class="cuenta-inner">
+                <span class="code-tag">{{ r.U_Cuenta }}</span>
+                <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
+              </div>
+            </td>
+            <td class="text-center" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
+            <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
+            <td class="text-center" data-label="Estado">
+              <span [class]="estadoCss(r.U_Estado)">{{ estadoTexto(r.U_Estado) }}</span>
+            </td>
+            <td class="actions">
+              <a class="btn btn-icon btn-sm btn-ghost-primary" title="Ver detalle"
+                [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </a>
+              <button class="btn btn-icon btn-sm btn-ghost" title="Editar rendición"
+                *ngIf="canEdit(r)" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button *ngIf="canAprobar(r)"
+                class="btn btn-sm btn-primary" title="Aprobar rendición"
+                (click)="aprobarDesdeSubordinados(r)">✓ Aprobar</button>
+              <button *ngIf="canAprobar(r)"
+                class="btn btn-sm btn-danger-soft" title="Rechazar rendición"
+                (click)="rechazarDesdeSubordinados(r)">✗ Rechazar</button>
+              <button *ngIf="canReprint(r)"
+                class="btn btn-icon btn-sm btn-ghost" title="Ver/Imprimir comprobante"
+                (click)="reimprimir(r)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <app-paginator
+        [page]="pageSubordinados" [limit]="limit"
+        [total]="totalSubordinados" [totalPages]="totalPagesSubordinados"
+        (pageChange)="onPageSubordinadosChange($event)"
+        (limitChange)="onLimitChange($event)">
+      </app-paginator>
+    </div>
+
+  </ng-container>
 
 </ng-container>
+
+<!-- ── Modal Reimpresión desde lista ── -->
+<app-rendicion-pdf-preview
+  *ngIf="showPdfReprint && pdfReprintRend"
+  [rend]="pdfReprintRend!"
+  [docs]="pdfReprintDocs"
+  mode="reprint"
+  (cancel)="onPdfReprintClose()">
+</app-rendicion-pdf-preview>

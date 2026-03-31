@@ -15,7 +15,7 @@ import { AppSelectComponent, SelectOption } from '../../../shared/app-select/app
             ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './offline-dimensiones.component.html',
   styleUrls:   ['./offline-dimensiones.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class OfflineDimensionesComponent implements OnInit {
 

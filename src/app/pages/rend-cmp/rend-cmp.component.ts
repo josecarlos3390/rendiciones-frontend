@@ -5,11 +5,12 @@ import { RendCmpService, RendCmp } from '../../services/rend-cmp.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector:        'app-rend-cmp',
   standalone:      true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, SkeletonLoaderComponent],
   templateUrl:     './rend-cmp.component.html',
   styleUrls:       ['./rend-cmp.component.scss'],
@@ -32,6 +33,7 @@ export class RendCmpComponent implements OnInit {
   form!: FormGroup;
 
   constructor(
+    public  auth: AuthService,
     private svc:    RendCmpService,
     private fb:     FormBuilder,
     private toast:  ToastService,

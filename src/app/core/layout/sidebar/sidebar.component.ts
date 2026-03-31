@@ -68,18 +68,18 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this._filteredItems = [];
   }
 
-  navItems: { label: string; route: string; icon: string; section: string }[] = [
+  navItems: { label: string; route: string; icon: string; section: string; adminOnly?: boolean }[] = [
     { label: 'Dashboard',         route: '/dashboard',        icon: 'dashboard', section: 'General' },
     { label: 'Nueva Rendición',   route: '/rend-m',           icon: 'rend',      section: 'Rendiciones' },
     { label: 'Aprobaciones',      route: '/aprobaciones',     icon: 'rend',      section: 'Rendiciones' },
     { label: 'Integración ERP',   route: '/integracion',      icon: 'rend',      section: 'Rendiciones' },
-    { label: 'Usuarios',          route: '/users',            icon: 'admin',     section: 'Administración' },
-    { label: 'Perfiles',          route: '/perfiles',         icon: 'admin',     section: 'Administración' },
-    { label: 'Documentos',        route: '/documentos',       icon: 'admin',     section: 'Administración' },
-    { label: 'Usuario/Perfil',    route: '/permisos',         icon: 'admin',     section: 'Administración' },
-    { label: 'Cuentas Cabecera',  route: '/cuentas-cabecera', icon: 'admin',     section: 'Administración' },
-    { label: 'Lista de Cuentas',  route: '/cuentas-lista',    icon: 'admin',     section: 'Administración' },
-    { label: 'Mapeo SAP',         route: '/rend-cmp',         icon: 'admin',     section: 'Administración' },
+    { label: 'Usuarios',          route: '/users',            icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Perfiles',          route: '/perfiles',         icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Documentos',        route: '/documentos',       icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Usuario/Perfil',    route: '/permisos',         icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Cuentas Cabecera',  route: '/cuentas-cabecera', icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Lista de Cuentas',  route: '/cuentas-lista',    icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Mapeo SAP',         route: '/rend-cmp',         icon: 'admin',     section: 'Administración', adminOnly: true },
   ];
 
   private _filteredItems: { label: string; route: string; icon: string; section: string }[] = [];
@@ -97,9 +97,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this._groupedResults = {};
       return [];
     }
-    this._filteredItems = this.navItems.filter(item =>
-      item.label.toLowerCase().includes(query)
-    );
+    this._filteredItems = this.navItems.filter(item => {
+      if (item.adminOnly && !this.auth.isAdmin) return false;
+      return item.label.toLowerCase().includes(query);
+    });
     this._groupedResults = {};
     this._filteredItems.forEach(item => {
       if (!this._groupedResults[item.section]) {

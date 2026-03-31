@@ -24,7 +24,8 @@ interface JwtPayload {
   nr2:        string;   // norma reparto 2 preconfigurada
   nr3:        string;   // norma reparto 3 preconfigurada
   genDocPre?: string;   // '1'=puede generar preliminar
-  nomSup?:    string;   // login del aprobador (vacío = nivel final)
+  nomSup?:     string;   // login del aprobador (vacío = nivel final)
+  esAprobador?: boolean;  // true si algún usuario tiene este login como aprobador
   exp:        number;
   iat:        number;
 }
@@ -132,19 +133,89 @@ export class AuthService {
   }
 
 
-  get fijarSaldo():    boolean { return this.user?.fijarSaldo === '1'; }
-  get fijarNr():       boolean { return this.user?.fijarNr === '1'; }
-  get nr1():           string  { return this.user?.nr1 ?? ''; }
-  get nr2():           string  { return this.user?.nr2 ?? ''; }
-  get nr3():           string  { return this.user?.nr3 ?? ''; }
-  /** Login del aprobador inmediato — vacío = usuario es nivel final */
+  get fijarSaldo():     boolean { return this.user?.fijarSaldo === '1'; }
+  get fijarNr():        boolean { return this.user?.fijarNr === '1'; }
+  get nr1():            string  { return this.user?.nr1 ?? ''; }
+  get nr2():            string  { return this.user?.nr2 ?? ''; }
+  get nr3():            string  { return this.user?.nr3 ?? ''; }
+  /** Login del aprobador inmediato — vacío = sin aprobador */
   get nomSup():         string  { return this.user?.nomSup ?? ''; }
-  /** true si el usuario NO tiene aprobador configurado (es nivel final) */
-  get esNivelFinal():   boolean { return !(this.user?.nomSup?.trim()); }
   /** true si puede generar documentos preliminares */
   get puedeGenerarPre(): boolean { return this.user?.genDocPre === '1'; }
-  /** Puede ver módulo rendiciones */
-  get canAccessRend():  boolean { return this.isAdmin || this.user?.appRend === 'Y'; }
-  /** Puede ver módulo configuración */
-  get canAccessConf():  boolean { return this.isAdmin || this.user?.appConf === 'Y'; }
+
+  // ── Clasificación de roles de negocio ────────────────────────────────
+  //
+  //  TIPO 1 — USER sin appRend:
+  //    NO ve ningún módulo de rendiciones
+  //
+  //  TIPO 2 — USER con appRend, con aprobador, NO es aprobador de nadie:
+  //    Ve: solo "Nueva Rendición"
+  //    Ve solo sus propias rendiciones en cualquier estado
+  //
+  //  TIPO 3 — USER con appRend, ES aprobador de alguien:
+  //    Ve: "Nueva Rendición" + "Aprobaciones"
+  //    Ve sus propias rendiciones + las que le llegan a él para aprobar
+  //    Puede editar y aprobar/rechazar rendiciones de sus subordinados directos
+  //
+  //  TIPO 4 — USER con appRend, SIN aprobador (nivel final/sync):
+  //    Ve: "Nueva Rendición" + "Aprobaciones" + "Integración ERP"
+  //    Ve todas las rendiciones de su jerarquía en cascada
+  //    Puede sincronizar si además tiene genDocPre habilitado
+  //
+  //  ADMIN — mismo comportamiento que TIPO 4 pero además puede configurar la app
+
+  /** true si el usuario no tiene aprobador configurado (es nivel final) */
+  get sinAprobador(): boolean {
+    return !this.user?.nomSup?.trim();
+  }
+
+  /** true si este usuario es aprobador de algún otro usuario */
+  get esAprobador(): boolean {
+    return this.user?.esAprobador === true;
+  }
+
+  /** Puede ver el módulo de Rendiciones (requiere appRend habilitado) */
+  get canAccessRend(): boolean {
+    return this.isAdmin || this.user?.appRend === 'Y';
+  }
+
+  /** Puede ver Aprobaciones — aprobadores y usuarios nivel final */
+  get canAccessAprobaciones(): boolean {
+    if (this.isAdmin) return true;
+    if (!this.canAccessRend) return false;
+    return this.sinAprobador || this.esAprobador;
+  }
+
+  /** Puede ver Integración ERP — solo usuarios sin aprobador (nivel final) */
+  get canAccessIntegracion(): boolean {
+    if (this.isAdmin) return true;
+    if (!this.canAccessRend) return false;
+    return this.sinAprobador;
+  }
+
+  /**
+   * Puede ejecutar sincronización con SAP.
+   * Requiere: sin aprobador (nivel final) + genDocPre habilitado.
+   */
+  get puedeSync(): boolean {
+    return this.isAdmin || (this.sinAprobador && this.puedeGenerarPre);
+  }
+
+  /**
+   * En la tab de subordinados, debe ver en cascada (toda la jerarquía).
+   * Solo aplica a usuarios sin aprobador y ADMIN.
+   */
+  get verSubordinadosEnCascada(): boolean {
+    return this.isAdmin || this.sinAprobador;
+  }
+
+  /** Puede VER el módulo de Administración — cualquier ADMIN */
+  get canAccessConf(): boolean {
+    return this.isAdmin;
+  }
+
+  /** Puede MODIFICAR configuraciones (crear/editar/eliminar) — ADMIN con appConf = 'Y' */
+  get puedeEditarConf(): boolean {
+    return this.isAdmin && this.user?.appConf === 'Y';
+  }
 }

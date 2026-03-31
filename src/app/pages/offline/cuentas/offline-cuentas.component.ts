@@ -15,7 +15,7 @@ import { AppSelectComponent, SelectOption } from '../../../shared/app-select/app
             ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './offline-cuentas.component.html',
   styleUrls:   ['./offline-cuentas.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class OfflineCuentasComponent implements OnInit {
 

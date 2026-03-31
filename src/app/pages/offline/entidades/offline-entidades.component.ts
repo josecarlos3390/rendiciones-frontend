@@ -15,7 +15,7 @@ import { PaginatorComponent } from '../../../shared/paginator/paginator.componen
             ConfirmDialogComponent, PaginatorComponent],
   templateUrl: './offline-entidades.component.html',
   styleUrls:   ['./offline-entidades.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class OfflineEntidadesComponent implements OnInit {
 

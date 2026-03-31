@@ -12,6 +12,7 @@ import { Perfil } from '../../models/perfil.model';
 import { AppSelectComponent } from '../../shared/app-select/app-select.component';
 import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
 import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search.component';
+import { AuthService }            from '../../auth/auth.service';
 import { ChartOfAccount }         from '../../services/sap.service';
 
 @Component({
@@ -55,6 +56,7 @@ export class DocumentosComponent implements OnInit {
   private _pendingAction: (() => void) | null = null;
 
   constructor(
+    public  auth:    AuthService,
     private service: DocumentosService,
     private toast:   ToastService,
     private fb:      FormBuilder,
@@ -74,7 +76,7 @@ export class DocumentosComponent implements OnInit {
     this.form = this.fb.group({
       tipDoc:        ['', [Validators.required, Validators.maxLength(25)]],
       idTipoDoc:     [0,  Validators.required],
-      tipoCalc:      ['G', Validators.required],
+      tipoCalc:      ['0', Validators.required],
       ivaPercent:    [0],
       ivaCuenta:     [''],
       itPercent:     [0],
@@ -187,7 +189,7 @@ export class DocumentosComponent implements OnInit {
       codPerfil:     this.selectedPerfilId,
       tipDoc:        raw.tipDoc.trim(),
       idTipoDoc:     Number(raw.idTipoDoc),
-      tipoCalc:      raw.tipoCalc,
+      tipoCalc:      String(raw.tipoCalc === '1' || raw.tipoCalc === 1 ? '1' : '0'),
       ivaPercent:    Number(raw.ivaPercent)   || 0,
       ivaCuenta:     raw.ivaCuenta?.trim()    || '',
       itPercent:     Number(raw.itPercent)    || 0,
@@ -261,8 +263,11 @@ export class DocumentosComponent implements OnInit {
    * Handler genérico para los selectores de cuenta.
    * Asigna el formatCode al campo correspondiente del formulario.
    */
-  onCuentaChange(field: string, account: ChartOfAccount | null) {
-    this.form.get(field)?.setValue(account?.formatCode ?? '');
+  onCuentaChange(field: string, account: any | null) {
+    // CuentaSearchComponent emite { code, name } — usar code (no formatCode)
+    const value = account?.code ?? account?.formatCode ?? '';
+    this.form.get(field)?.setValue(value);
+    this.cdr.markForCheck();
   }
 
   onTipoDocSapSelected(item: TipoDocSapItem | null) {

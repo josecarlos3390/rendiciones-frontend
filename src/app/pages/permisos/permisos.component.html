@@ -80,7 +80,7 @@
         <td class="text-center" data-label="Código Perfil">{{ p.U_IDPERFIL }}</td>
         <td data-label="Nombre del Perfil">{{ p.U_NOMBREPERFIL }}</td>
         <td class="actions">
-          <button class="btn-remove" title="Quitar permiso" (click)="confirmRemove(p)">
+          <button *ngIf="auth.puedeEditarConf" class="btn-remove" title="Quitar permiso" (click)="confirmRemove(p)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <line x1="15" y1="9" x2="9" y2="15"/>

@@ -58,8 +58,8 @@
           <span [class]="activoCss(item)">{{ item.U_Activo === 'Y' ? 'Activo' : 'Inactivo' }}</span>
         </td>
         <td class="actions">
-          <button class="btn btn-sm btn-ghost" (click)="openEdit(item)" title="Editar">✎ Editar</button>
-          <button class="btn btn-sm btn-danger-soft" (click)="remove(item)" title="Eliminar">✕</button>
+          <button *ngIf="auth.puedeEditarConf" class="btn btn-sm btn-ghost" (click)="openEdit(item)" title="Editar">✎ Editar</button>
+          <button *ngIf="auth.puedeEditarConf" class="btn btn-sm btn-danger-soft" (click)="remove(item)" title="Eliminar">✕</button>
         </td>
       </tr>
     </tbody>
@@ -173,7 +173,7 @@
 
     <div class="modal-footer">
       <button class="btn btn-ghost" type="button" (click)="closeForm()" [disabled]="isSaving">Cancelar</button>
-      <button class="btn btn-primary" type="button"
+      <button *ngIf="auth.puedeEditarConf" class="btn btn-primary" type="button"
         [disabled]="form.invalid || isSaving || (!!editingItem && !isDirty)"
         (click)="save()">
         {{ isSaving ? 'Guardando...' : (editingItem ? 'Guardar cambios' : '+ Crear Tipo') }}

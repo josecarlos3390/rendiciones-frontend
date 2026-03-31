@@ -8,6 +8,7 @@ import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-
 import { Permiso, UsuarioSimple } from '../../models/permiso.model';
 import { Perfil } from '../../models/perfil.model';
 import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   standalone: true,
@@ -15,7 +16,7 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, AppSelectComponent],
   templateUrl: './permisos.component.html',
   styleUrls: ['./permisos.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class PermisosComponent implements OnInit {
 
@@ -40,6 +41,7 @@ export class PermisosComponent implements OnInit {
   private _pendingAction: (() => void) | null = null;
 
   constructor(
+    public  auth: AuthService,
     private service: PermisosService,
     private toast:   ToastService,
     private cdr:     ChangeDetectorRef,

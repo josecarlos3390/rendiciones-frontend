@@ -16,16 +16,33 @@ export class RendMService {
   private http = inject(HttpClient);
   private api  = `${environment.apiUrl}/rend-m`;
 
-  getAll(options: {
-    idPerfil?: number;
-    page?:     number;
-    limit?:    number;
-  } = {}) {
+  /** Rendiciones propias del usuario logueado */
+  getAll(options: { idPerfil?: number; page?: number; limit?: number; } = {}) {
     let params = new HttpParams();
     if (options.idPerfil !== undefined) params = params.set('idPerfil', options.idPerfil);
     if (options.page     !== undefined) params = params.set('page',     options.page);
     if (options.limit    !== undefined) params = params.set('limit',    options.limit);
     return this.http.get<PaginatedResult<RendM>>(this.api, { params });
+  }
+
+  /**
+   * Rendiciones de subordinados del aprobador/sincronizador.
+   * estados: array de números (ej: [1,4]) — vacío = todos los estados
+   */
+  getSubordinados(options: {
+    estados?:   number[];
+    idPerfil?:  number;
+    idUsuario?: string;
+    page?:      number;
+    limit?:     number;
+  } = {}) {
+    let params = new HttpParams();
+    if (options.estados?.length)        params = params.set('estados',  options.estados.join(','));
+    if (options.idPerfil !== undefined)  params = params.set('idPerfil', options.idPerfil);
+    if (options.idUsuario)              params = params.set('idUsuario', options.idUsuario);
+    if (options.page     !== undefined)  params = params.set('page',     options.page);
+    if (options.limit    !== undefined)  params = params.set('limit',    options.limit);
+    return this.http.get<PaginatedResult<RendM>>(`${this.api}/subordinados`, { params });
   }
 
   getOne(id: number) {

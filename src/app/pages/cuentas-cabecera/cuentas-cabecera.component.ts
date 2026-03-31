@@ -11,6 +11,7 @@ import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search
 import { CuentaCabecera }         from '../../models/cuenta-cabecera.model';
 import { Perfil }                 from '../../models/perfil.model';
 import { ChartOfAccount }         from '../../services/sap.service';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   standalone: true,
@@ -25,7 +26,7 @@ import { ChartOfAccount }         from '../../services/sap.service';
   ],
   templateUrl: './cuentas-cabecera.component.html',
   styleUrls: ['./cuentas-cabecera.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class CuentasCabeceraComponent implements OnInit {
 
@@ -60,6 +61,7 @@ export class CuentasCabeceraComponent implements OnInit {
   private _pendingAction: (() => void) | null = null;
 
   constructor(
+    public  auth: AuthService,
     private service: CuentasCabeceraService,
     private toast:   ToastService,
     private cdr:     ChangeDetectorRef,

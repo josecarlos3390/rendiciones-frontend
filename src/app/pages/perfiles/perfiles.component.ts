@@ -12,6 +12,7 @@ import {
 } from '../../models/perfil.model';
 import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 import { AppConfigService } from '../../services/app-config.service';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   standalone: true,
@@ -19,7 +20,7 @@ import { AppConfigService } from '../../services/app-config.service';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
   templateUrl: './perfiles.component.html',
   styleUrls: ['./perfiles.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
 })
 export class PerfilesComponent implements OnInit {
   perfiles:  Perfil[] = [];
@@ -68,6 +69,7 @@ export class PerfilesComponent implements OnInit {
   ];
 
   constructor(
+    public  auth: AuthService,
     private perfilesService: PerfilesService,
     private toast:           ToastService,
     private fb:              FormBuilder,

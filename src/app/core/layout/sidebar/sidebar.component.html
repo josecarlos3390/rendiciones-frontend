@@ -98,10 +98,10 @@
           <span class="child-dot"></span>Nueva Rendición
         </a>
 
-        <!-- Aprobaciones: solo visible si el usuario NO tiene aprobador (nivel final) -->
+        <!-- Aprobaciones: visible si es ADMIN, no tiene aprobador, o es aprobador de alguien -->
         <a class="nav-child nav-child--aprobaciones" routerLink="/aprobaciones"
            routerLinkActive="active-child"
-           *ngIf="auth.esNivelFinal">
+           *ngIf="auth.canAccessAprobaciones">
           <span class="child-dot"></span>
           Aprobaciones
           <span class="aprobaciones-badge" *ngIf="pendientesCount > 0">
@@ -109,13 +109,13 @@
           </span>
         </a>
 
-        <!-- Integración ERP: visible para todos los que tienen acceso a rendiciones -->
+        <!-- Integración ERP: solo ADMIN y usuarios sin aprobador (nivel que sincroniza con SAP) -->
         <a class="nav-child nav-child--aprobaciones" routerLink="/integracion"
            routerLinkActive="active-child"
-           *ngIf="auth.canAccessRend">
+           *ngIf="auth.canAccessIntegracion">
           <span class="child-dot"></span>
           Integración ERP
-          <span class="aprobaciones-badge" *ngIf="integracionCount > 0">
+          <span class="aprobaciones-badge" *ngIf="integracionCount > 0 && auth.isAdmin">
             {{ integracionCount > 99 ? '99+' : integracionCount }}
           </span>
         </a>

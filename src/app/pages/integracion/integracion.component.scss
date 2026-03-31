@@ -260,3 +260,135 @@
     }
   }
 }
+// ── Modal credenciales SAP ──────────────────────────────────
+.credentials-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-modal);
+  width: min(480px, 94vw);
+  display: flex;
+  flex-direction: column;
+
+  .cred-hint {
+    margin: 0 0 18px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .cred-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .form-label {
+    font-size: 13px;
+    font-weight: var(--weight-medium);
+    color: var(--text-muted);
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-input, var(--bg-subtle));
+    color: var(--text-body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+
+    &:focus { border-color: var(--color-primary-text, var(--color-primary)); }
+    &.is-invalid { border-color: var(--text-danger, #e53e3e); }
+  }
+
+  .input-group {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color 0.15s;
+    &:focus-within { border-color: var(--color-primary-text, var(--color-primary)); }
+
+    .form-control {
+      flex: 1;
+      border: none;
+      border-radius: 0;
+      &:focus { box-shadow: none; }
+    }
+
+    .input-addon {
+      padding: 0 12px;
+      background: var(--bg-faint);
+      border: none;
+      border-left: 1.5px solid var(--color-border);
+      cursor: pointer;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      &:hover { background: var(--color-hover); }
+    }
+  }
+
+  .cred-error {
+    background: var(--status-sync-error-bg, #fff5f5);
+    color: var(--color-danger, #c53030);
+    border: 1px solid var(--status-sync-error-border, #fc8181);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+// ── Badge usuario SAP en confirmación ──────────────────────
+.sap-user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-text);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+}
+
+.sap-logo-icon {
+  margin-right: 4px;
+}
+
+// ── Código documento ERP (vista USER) ──────────────────
+.doc-erp-code {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  background: var(--color-surface-secondary, var(--color-hover));
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-text);
+  letter-spacing: 0.3px;
+}
+
+// ── Badge modo offline ─────────────────────────────────────────────────
+.offline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 20px);
+  background: var(--bg-warning);
+  color: var(--text-warning);
+  border: 1px solid var(--color-warning-border, var(--color-warning));
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
