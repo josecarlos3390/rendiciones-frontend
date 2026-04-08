@@ -6,6 +6,12 @@ import { ToastService } from './toast/toast.service';
 import { AuthService } from '../auth/auth.service';
 
 /**
+ * Track if we're already handling a 401 to prevent race conditions
+ * where multiple concurrent requests fail and each tries to logout
+ */
+let isHandling401 = false;
+
+/**
  * Interceptor global de errores HTTP.
  *
  * Maneja automáticamente:
@@ -13,6 +19,7 @@ import { AuthService } from '../auth/auth.service';
  *   400 → Bad request → mensaje del backend si existe
  *   401 → Token expirado o inválido → logout y redirige a login
  *   403 → Sin permisos → toast informativo
+ *   408/timeout → Request timeout → mensaje específico
  *   5xx → Error del servidor → mensaje genérico
  *
  * NO maneja (el componente es responsable):
@@ -39,7 +46,18 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   return next(req).pipe(
-    catchError((err: HttpErrorResponse) => {
+    catchError((err: HttpErrorResponse | Error) => {
+      // Handle timeout errors (from timeoutInterceptor)
+      if (err.name === 'HttpTimeoutError') {
+        toast.error(err.message || 'La solicitud tardó demasiado tiempo.');
+        return throwError(() => err);
+      }
+
+      // Handle non-HTTP errors
+      if (!(err instanceof HttpErrorResponse)) {
+        return throwError(() => err);
+      }
+
       // Extraer mensaje del backend si existe
       const backendMsg: string | undefined =
         err.error?.message || err.error?.error || err.error?.detail;
@@ -59,10 +77,20 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
         case err.status === 401: {
           // No mostrar toast si es el endpoint de login (credenciales incorrectas)
           const isLoginAttempt = req.url.includes('/auth/login');
-          if (!isLoginAttempt) {
+          
+          if (!isLoginAttempt && !isHandling401) {
+            // Prevent multiple concurrent 401s from triggering multiple redirects
+            isHandling401 = true;
+            
             toast.warning('Tu sesión expiró. Por favor ingresa de nuevo.');
             auth.logout();
-            router.navigate(['/login']);
+            
+            // Reset flag after navigation completes
+            router.navigate(['/login']).then(() => {
+              setTimeout(() => {
+                isHandling401 = false;
+              }, 100);
+            });
           }
           break;
         }
@@ -70,6 +98,11 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
         // ── Sin permisos ──────────────────────────────────────────
         case err.status === 403:
           toast.error('No tienes permisos para realizar esta acción.');
+          break;
+
+        // ── Request Timeout (server-side) ─────────────────────────
+        case err.status === 408:
+          toast.error('El servidor tardó demasiado en responder. Intenta de nuevo.');
           break;
 
         // ── Error del servidor ────────────────────────────────────

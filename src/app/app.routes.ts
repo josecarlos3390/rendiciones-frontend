@@ -69,6 +69,41 @@ export const routes: Routes = [
             .then(m => m.PerfilesComponent)
       },
       {
+        path: 'proyectos',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/proyectos/proyectos.component')
+            .then(m => m.ProyectosComponent)
+      },
+      {
+        path: 'coa',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/coa/coa.component')
+            .then(m => m.CoaComponent)
+      },
+      {
+        path: 'dimensiones',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/dimensiones/dimensiones.component')
+            .then(m => m.DimensionesComponent)
+      },
+      {
+        path: 'normas',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/normas/normas.component')
+            .then(m => m.NormasComponent)
+      },
+      {
+        path: 'tipo-cambio',
+        canActivate: [roleGuard(['ADMIN'])],
+        loadComponent: () =>
+          import('./pages/tipo-cambio/tipo-cambio.component')
+            .then(m => m.TipoCambioComponent)
+      },
+      {
         path: 'users',
         canActivate: [roleGuard(['ADMIN'])],
         loadComponent: () =>

@@ -638,3 +638,64 @@ $transition:          0.22s cubic-bezier(.4,0,.2,1);
   0%, 100% { opacity: 1;    }
   50%       { opacity: 0.75; }
 }
+
+// ── Indicador OFFLINE ───────────────────────────────────────
+.offline-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 20px;
+  margin-left: auto;
+  cursor: help;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.offline-dot {
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.offline-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #92400e;
+  letter-spacing: 0.05em;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+// En modo oscuro
+:host-context(.dark-theme) {
+  .offline-badge {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.5);
+  }
+  
+  .offline-text {
+    color: #fbbf24;
+  }
+}
+
+// Responsive: ocultar en móvil si es necesario
+@media (max-width: 768px) {
+  .offline-badge {
+    padding: 3px 8px;
+  }
+  
+  .offline-text {
+    font-size: 9px;
+  }
+}

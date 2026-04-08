@@ -5,6 +5,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../auth/auth.service';
 import { AprobacionesService } from '../../../services/aprobaciones.service';
 import { IntegracionService } from '../../../services/integracion.service';
+import { AppModeService } from '../../../services/app-mode.service';
 import { interval, Subscription } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
 import { ThemeService } from '../../theme/theme.service';
@@ -27,13 +28,16 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   pendientesCount  = 0;
   integracionCount = 0;
+  isOffline = false;
   private pollingSubscription?: Subscription;
   private integracionSub?: Subscription;
+  private modeSub?: Subscription;
 
   constructor(
     public  auth:             AuthService,
     private aprobacionesSvc:  AprobacionesService,
     private integracionSvc:   IntegracionService,
+    private appModeSvc:       AppModeService,
     private router:           Router,
     private themeService:     ThemeService,
     private cdr:              ChangeDetectorRef,
@@ -150,6 +154,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private routerSub?: Subscription;
 
   ngOnInit() {
+    this._loadMode();
     this._startPolling();
     this.routerSub = this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
@@ -163,15 +168,36 @@ export class SidebarComponent implements OnInit, OnDestroy {
       });
   }
 
+  private _loadMode() {
+    this.appModeSvc.getMode().subscribe({
+      next: (mode) => {
+        this.isOffline = mode.isOffline;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isOffline = false;
+      }
+    });
+    
+    // Suscribirse a cambios
+    this.modeSub = this.appModeSvc.mode$.subscribe((mode) => {
+      if (mode) {
+        this.isOffline = mode.isOffline;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   ngOnDestroy() {
     this.routerSub?.unsubscribe();
     this.pollingSubscription?.unsubscribe();
     this.integracionSub?.unsubscribe();
+    this.modeSub?.unsubscribe();
     this.setBodyScroll(true);
   }
 
   private _startPolling() {
-    // Polling aprobaciones pendientes
+    // Polling aprobaciones pendientes (nivel 1)
     this.pollingSubscription = interval(60000).pipe(
       startWith(0),
       switchMap(() => this.aprobacionesSvc.countPendientes()),

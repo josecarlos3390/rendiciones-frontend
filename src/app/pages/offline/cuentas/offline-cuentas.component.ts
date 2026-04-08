@@ -174,7 +174,7 @@ export class OfflineCuentasComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Cuenta actualizada');
+          this.toast.exito('Cuenta actualizada');
           this.closeForm();
           this.load();
         },
@@ -188,7 +188,7 @@ export class OfflineCuentasComponent implements OnInit {
       this.svc.create(v).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success('Cuenta creada');
+          this.toast.exito('Cuenta creada');
           this.closeForm();
           this.load();
         },
@@ -211,7 +211,7 @@ export class OfflineCuentasComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.svc.remove(c.COA_CODE).subscribe({
-        next: () => { this.toast.success('Cuenta eliminada'); this.load(); },
+        next: () => { this.toast.exito('Cuenta eliminada'); this.load(); },
         error: err => this.toast.error(err?.error?.message || 'Error al eliminar'),
       });
     });

@@ -39,8 +39,12 @@
         </div>
         <div class="meta-item">
           <span class="meta-label">Estado</span>
-          <span class="status-badge" [class.status-active]="user?.U_Estado === 'A'" [class.status-inactive]="user?.U_Estado === 'I'">
-            <span class="status-dot"></span>{{ user?.U_Estado === 'A' ? 'Activo' : 'Inactivo' }}
+          <span class="status-badge" 
+                [class.status-active]="user?.U_Estado === '1'" 
+                [class.status-inactive]="user?.U_Estado === '0'"
+                [class.status-blocked]="user?.U_Estado === '2'">
+            <span class="status-dot"></span>
+            {{ user?.U_Estado === '1' ? 'Activo' : user?.U_Estado === '2' ? 'Bloqueado' : 'Inactivo' }}
           </span>
         </div>
       </div>

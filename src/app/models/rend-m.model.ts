@@ -40,21 +40,25 @@ export interface CreateRendMPayload {
 
 export type UpdateRendMPayload = Partial<CreateRendMPayload>;
 
-/** Mapeo legible del estado numérico */
+/** Mapeo legible del estado numérico
+ * 1=ABIERTO, 2=CERRADO, 3=ELIMINADO, 4=ENVIADO, 5=SINCRONIZADO, 6=ERROR, 7=APROBADO
+ */
 export const ESTADO_LABEL: Record<number, string> = {
   1: 'ABIERTO',
   2: 'CERRADO',
-  3: 'APROBADO',
+  3: 'ELIMINADO',
   4: 'ENVIADO',
   5: 'SINCRONIZADO',
   6: 'ERROR SYNC',
+  7: 'APROBADO',
 };
 /** Clases del design system (_badges.scss) */
 export const ESTADO_CLASS: Record<number, string> = {
   1: 'status-badge status-open',
   2: 'status-badge status-secondary',
-  3: 'status-badge status-closed',
+  3: 'status-badge status-deleted',
   4: 'status-badge status-confirmed',
   5: 'status-badge status-sync-ok',
   6: 'status-badge status-sync-error',
+  7: 'status-badge status-closed',
 };

@@ -25,6 +25,12 @@
         <span class="brand-tag">BO</span>
       </div>
     </div>
+    
+    <!-- Indicador OFFLINE -->
+    <div *ngIf="isOffline" class="offline-badge" title="Modo autónomo - Sin conexión a SAP">
+      <span class="offline-dot"></span>
+      <span class="offline-text">OFFLINE</span>
+    </div>
   </div>
 
   <!-- ── Navegación ─────────────────────────────────────── -->
@@ -115,11 +121,39 @@
            *ngIf="auth.canAccessIntegracion">
           <span class="child-dot"></span>
           Integración ERP
-          <span class="aprobaciones-badge" *ngIf="integracionCount > 0 && auth.isAdmin">
+          <span class="aprobaciones-badge" *ngIf="integracionCount > 0 && (auth.isAdmin || auth.puedeSync)">
             {{ integracionCount > 99 ? '99+' : integracionCount }}
           </span>
         </a>
 
+      </div>
+    </div>
+
+    <!-- ── Datos Maestros OFFLINE ─────────────────────── -->
+    <div class="nav-section" *ngIf="!isSearching && auth.isAdmin && isOffline">
+      <button class="nav-group-btn" [class.open]="openMenu === 'maestros'" (click)="toggleMenu('maestros')" [title]="collapsed ? 'Datos Maestros' : ''">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span class="nav-label">Datos Maestros</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <div class="nav-children" *ngIf="openMenu === 'maestros' && !menuCollapsed">
+        <a class="nav-child" routerLink="/coa" routerLinkActive="active-child">
+          <span class="child-dot"></span>Plan de Cuentas
+        </a>
+        <a class="nav-child" routerLink="/dimensiones" routerLinkActive="active-child">
+          <span class="child-dot"></span>Dimensiones
+        </a>
+        <a class="nav-child" routerLink="/normas" routerLinkActive="active-child">
+          <span class="child-dot"></span>Normas de Reparto
+        </a>
+        <a class="nav-child" routerLink="/proyectos" routerLinkActive="active-child">
+          <span class="child-dot"></span>Proyectos
+        </a>
       </div>
     </div>
 

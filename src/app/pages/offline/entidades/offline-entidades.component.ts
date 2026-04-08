@@ -162,7 +162,7 @@ export class OfflineEntidadesComponent implements OnInit {
       }).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success(`${this.tituloSingular} actualizado/a`);
+          this.toast.exito(`${this.tituloSingular} actualizado/a`);
           this.closeForm(); this.load();
         },
         error: err => {
@@ -175,7 +175,7 @@ export class OfflineEntidadesComponent implements OnInit {
       this.svc.create({ tipo: this.tipo, nit: v.nit ?? '', razonSocial: v.razonSocial }).subscribe({
         next: () => {
           this.isSaving = false;
-          this.toast.success(`${this.tituloSingular} creado/a`);
+          this.toast.exito(`${this.tituloSingular} creado/a`);
           this.closeForm(); this.load();
         },
         error: err => {
@@ -197,7 +197,7 @@ export class OfflineEntidadesComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.svc.remove(e.U_CODIGO).subscribe({
-        next: () => { this.toast.success(`${this.tituloSingular} eliminado/a`); this.load(); },
+        next: () => { this.toast.exito(`${this.tituloSingular} eliminado/a`); this.load(); },
         error: err => this.toast.error(err?.error?.message || 'Error al eliminar'),
       });
     });

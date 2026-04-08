@@ -390,8 +390,8 @@ th.col-pending   { color: var(--color-warning); font-weight: var(--weight-bold);
       input[type="text"]  { font-size: 14px; padding: 8px 10px; }
     }
 
-    // Artículo: ancho completo, sin etiqueta
-    td[data-label="Artículo"] {
+    // Articulo: ancho completo, sin etiqueta
+    td[data-label="Articulo"] {
       grid-column: 1 / -1;
       &::before { display: none; }
     }

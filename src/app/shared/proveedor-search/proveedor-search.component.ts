@@ -5,8 +5,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, catchError, of, takeUntil } from 'rxjs';
+import { Subject, forkJoin, catchError, of, takeUntil } from 'rxjs';
 import { SapService, ProveedorDto } from '../../services/sap.service';
+import { ProvService } from '../../services/prov.service';
 
 @Component({
   selector: 'app-proveedor-search',
@@ -31,8 +32,8 @@ import { SapService, ProveedorDto } from '../../services/sap.service';
       &.has-value { border-style: solid; border-color: var(--border-color); &:hover { border-color: var(--color-primary); } }
     }
     .ps-trigger-left { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; overflow: hidden; }
-    .ps-trigger-code { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-primary-text); }
     .ps-trigger-name { font-size: var(--text-xs); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ps-trigger-nit  { font-size: var(--text-xs); color: var(--text-faint); font-family: var(--font-mono); }
     .ps-placeholder  { color: var(--text-faint); font-weight: var(--weight-regular); }
     .ps-trigger-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
     .ps-clear { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 2px 4px; font-size: 11px; border-radius: var(--radius-xs); &:hover { background: var(--color-danger-soft); color: var(--color-danger); } }
@@ -69,6 +70,7 @@ import { SapService, ProveedorDto } from '../../services/sap.service';
     .ps-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     .ps-item-code { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-faint); background: var(--bg-subtle); padding: 1px 6px; border-radius: var(--radius-xs); width: fit-content; }
     .ps-item-name { font-size: var(--text-base); font-weight: var(--weight-medium); color: var(--text-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.1s; }
+    .ps-item-nit   { font-size: var(--text-xs); color: var(--text-faint); font-family: var(--font-mono); }
     .ps-arrow { font-size: 14px; color: var(--color-primary); opacity: 0; transform: translateX(-4px); transition: opacity 0.1s, transform 0.1s; flex-shrink: 0; }
 
     .ps-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 44px 24px; text-align: center; color: var(--text-faint); .ps-empty-icon { font-size: 28px; line-height: 1; opacity: 0.45; } p { margin: 0; font-size: var(--text-base); } }
@@ -81,8 +83,8 @@ import { SapService, ProveedorDto } from '../../services/sap.service';
     <button type="button" class="ps-trigger" [class.has-value]="selected" (click)="open()">
       <ng-container *ngIf="selected; else placeholderTpl">
         <div class="ps-trigger-left">
-          <span class="ps-trigger-code">{{ selected.cardCode }}</span>
           <span class="ps-trigger-name">{{ selected.cardName }}</span>
+          <span class="ps-trigger-nit" *ngIf="selected.licTradNum">NIT: {{ selected.licTradNum }}</span>
         </div>
       </ng-container>
       <ng-template #placeholderTpl>
@@ -100,14 +102,17 @@ import { SapService, ProveedorDto } from '../../services/sap.service';
 
         <div class="ps-header">
           <h3>🏢 Buscar Proveedor</h3>
-          <button type="button" class="ps-close" (click)="close()">✕</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="ps-close" (click)="reloadAll()" title="Recargar proveedores">🔄</button>
+            <button type="button" class="ps-close" (click)="close()">✕</button>
+          </div>
         </div>
 
         <div class="ps-search-bar">
           <div class="ps-search-wrap">
             <span class="ps-search-icon">⌕</span>
             <input type="text" class="ps-search-input"
-              placeholder="Buscar por código o nombre..."
+              placeholder="Buscar por código, nombre o NIT..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
               autofocus autocomplete="off" />
@@ -117,26 +122,23 @@ import { SapService, ProveedorDto } from '../../services/sap.service';
         </div>
 
         <div class="ps-count">
-          <span *ngIf="loading">Buscando proveedores...</span>
-          <span *ngIf="!loading && searchTerm">{{ resultados.length }} resultado{{ resultados.length !== 1 ? 's' : '' }}</span>
-          <span *ngIf="!loading && !searchTerm">Escribe para buscar proveedores</span>
+          <span *ngIf="loading && !loaded">Cargando proveedores desde SAP...</span>
+          <span *ngIf="loading && loaded">Actualizando...</span>
+          <span *ngIf="!loading">{{ resultados.length }} resultado{{ resultados.length !== 1 ? 's' : '' }}</span>
         </div>
 
         <div class="ps-body">
-          <div class="ps-empty" *ngIf="loading"><span class="ps-empty-icon">⏳</span><p>Buscando...</p></div>
-          <div class="ps-empty" *ngIf="!loading && resultados.length === 0 && searchTerm">
+          <div class="ps-empty" *ngIf="loading && !loaded"><span class="ps-empty-icon">⏳</span><p>Cargando proveedores...</p></div>
+          <div class="ps-empty" *ngIf="!loading && resultados.length === 0">
             <span class="ps-empty-icon">🔎</span>
-            <p>Sin resultados para "<strong>{{ searchTerm }}</strong>"</p>
-          </div>
-          <div class="ps-empty" *ngIf="!loading && !searchTerm">
-            <span class="ps-empty-icon">🏢</span>
-            <p>Escribe el código o nombre del proveedor</p>
+            <p>Sin resultados</p>
           </div>
           <ul class="ps-list" *ngIf="!loading && resultados.length > 0">
             <li class="ps-item" *ngFor="let p of resultados" (click)="select(p)">
               <div class="ps-item-info">
                 <span class="ps-item-code">{{ p.cardCode }}</span>
                 <span class="ps-item-name">{{ p.cardName }}</span>
+                <span class="ps-item-nit" *ngIf="p.licTradNum">NIT: {{ p.licTradNum }}</span>
               </div>
               <span class="ps-arrow">→</span>
             </li>
@@ -157,47 +159,31 @@ export class ProveedorSearchComponent implements OnInit, OnDestroy, OnChanges {
   @Input() proCar:    string = 'TODOS';
   @Input() proTexto:  string = '';
   @Input() initialCode: string | null = null;
-  @Input() set selected(val: { cardCode: string; cardName: string } | null) {
+  @Input() set selected(val: { cardCode: string; cardName: string; licTradNum?: string } | null) {
     this._selected = val;
     this.cdr.markForCheck();
   }
-  get selected(): { cardCode: string; cardName: string } | null { return this._selected; }
-  private _selected: { cardCode: string; cardName: string } | null = null;
+  get selected(): { cardCode: string; cardName: string; licTradNum?: string } | null { return this._selected; }
+  private _selected: { cardCode: string; cardName: string; licTradNum?: string } | null = null;
 
   @Output() proveedorChange = new EventEmitter<ProveedorDto | null>();
 
   isOpen     = false;
   loading    = false;
+  loaded     = false;
   searchTerm = '';
   resultados: ProveedorDto[] = [];
+  allItems:   ProveedorDto[] = [];
 
-  private search$  = new Subject<string>();
   private destroy$ = new Subject<void>();
   private sap = inject(SapService);
+  private provSvc = inject(ProvService);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
-    this.search$.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap(busqueda => {
-        this.loading = true;
-        this.cdr.markForCheck();
-        return this.sap.getProveedores({
-          car:      this.proCar,
-          filtro:   this.proTexto,
-          busqueda,
-        }).pipe(catchError(() => of([])));
-      }),
-      takeUntil(this.destroy$),
-    ).subscribe(res => {
-      this.resultados = res;
-      this.loading    = false;
-      this.cdr.markForCheck();
-    });
-
-    if (this.initialCode) {
+    if (this.initialCode && !this._selected) {
       this._selected = { cardCode: this.initialCode, cardName: '' };
+      this.cdr.markForCheck();
     }
   }
 
@@ -212,18 +198,110 @@ export class ProveedorSearchComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 
-  open() { this.isOpen = true; this.searchTerm = ''; this.resultados = []; this.cdr.markForCheck(); }
+  open() {
+    this.isOpen = true;
+    this.searchTerm = '';
+    this.cdr.markForCheck();
+    if (!this.loaded) {
+      this.loadAll();
+    } else {
+      this.filterLocal('');
+    }
+  }
+
+  reloadAll() {
+    this.loaded = false;
+    this.allItems = [];
+    this.resultados = [];
+    this.loadAll();
+  }
+
   close() { this.isOpen = false; this.cdr.markForCheck(); }
 
   onSearch(term: string) {
     this.searchTerm = term;
-    if (term.length >= 1) {
-      this.search$.next(term);
-    } else {
-      this.resultados = [];
-      this.loading    = false;
-      this.cdr.markForCheck();
+    if (this.loaded) {
+      this.filterLocal(term);
     }
+  }
+
+  private loadAll() {
+    this.loading = true;
+    this.cdr.markForCheck();
+
+    forkJoin({
+      sap: this.sap.getProveedoresAll({ car: this.proCar, filtro: this.proTexto }).pipe(
+        catchError(() => of([])),
+      ),
+      prov: this.provSvc.getAll().pipe(
+        catchError(() => of([])),
+      ),
+    })
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(({ sap, prov }) => {
+      const provMapped: ProveedorDto[] = prov.map(p => ({
+        cardCode: 'PL999999',
+        cardName: p.U_RAZON_SOCIAL,
+        licTradNum: p.U_NIT,
+      }));
+
+      const map = new Map<string, ProveedorDto>();
+      [...provMapped, ...sap].forEach(p => {
+        const key = `${p.cardCode}|${p.cardName}`;
+        if (!map.has(key)) {
+          map.set(key, p);
+        }
+      });
+
+      this.allItems = Array.from(map.values());
+      this.loaded = true;
+      this.filterLocal(this.searchTerm);
+      this.loading = false;
+      this.cdr.markForCheck();
+    });
+  }
+
+  private filterLocal(term: string) {
+    const q = term.toLowerCase().trim();
+    if (!q) {
+      this.resultados = [...this.allItems];
+    } else {
+      this.resultados = this.allItems.filter(p =>
+        p.cardCode.toLowerCase().includes(q) ||
+        p.cardName.toLowerCase().includes(q) ||
+        (p.licTradNum && p.licTradNum.toLowerCase().includes(q)),
+      );
+    }
+    this.cdr.markForCheck();
+  }
+
+  refreshProvEventuales() {
+    if (!this.loaded) return;
+    this.loading = true;
+    this.cdr.markForCheck();
+
+    this.provSvc.getAll()
+      .pipe(catchError(() => of([])), takeUntil(this.destroy$))
+      .subscribe(prov => {
+        const provMapped = prov.map(p => ({
+          cardCode: 'PL999999',
+          cardName: p.U_RAZON_SOCIAL,
+          licTradNum: p.U_NIT,
+        }));
+
+        const map = new Map<string, ProveedorDto>();
+        [...provMapped, ...this.allItems.filter(p => p.cardCode !== 'PL999999')].forEach(p => {
+          const key = `${p.cardCode}|${p.cardName}`;
+          if (!map.has(key)) {
+            map.set(key, p);
+          }
+        });
+
+        this.allItems = Array.from(map.values());
+        this.filterLocal(this.searchTerm);
+        this.loading = false;
+        this.cdr.markForCheck();
+      });
   }
 
   select(p: ProveedorDto) {

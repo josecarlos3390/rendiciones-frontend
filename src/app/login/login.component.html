@@ -22,9 +22,11 @@
           id="username"
           type="text"
           formControlName="username"
-          placeholder="Tu usuario de acceso"
+          placeholder="Ej: JDOE"
           autocomplete="username"
+          (input)="form.get('username')?.setValue($any($event.target).value.toUpperCase(), { emitEvent: false })"
         />
+        <span class="field-hint">El usuario debe ir en mayúsculas</span>
       </div>
 
       <div class="form-field">

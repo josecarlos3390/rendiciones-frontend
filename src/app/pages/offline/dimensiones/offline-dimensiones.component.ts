@@ -110,7 +110,7 @@ export class OfflineDimensionesComponent implements OnInit {
 
     const onSuccess = () => {
       this.isSaving = false;
-      this.toast.success(this.editingItem ? 'Dimensión actualizada' : 'Dimensión creada');
+      this.toast.exito(this.editingItem ? 'Dimensión actualizada' : 'Dimensión creada');
       this.closeForm(); this.load();
     };
     const onError = (err: any) => {
@@ -135,7 +135,7 @@ export class OfflineDimensionesComponent implements OnInit {
       confirmLabel: 'Sí, eliminar', type: 'danger',
     }, () => {
       this.svc.remove(d.DIM_CODE).subscribe({
-        next: () => { this.toast.success('Dimensión eliminada'); this.load(); },
+        next: () => { this.toast.exito('Dimensión eliminada'); this.load(); },
         error: err => this.toast.error(err?.error?.message || 'Error al eliminar'),
       });
     });

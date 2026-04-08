@@ -110,7 +110,7 @@ export class ProfileComponent implements OnInit {
       next: () => {
         this.isSavingProfile = false;
         this.isProfileDirty  = false;
-        this.toast.success('Perfil actualizado correctamente');
+        this.toast.exito('Perfil actualizado correctamente');
         this.cdr.markForCheck();
         this.loadMe();
       },
@@ -139,7 +139,7 @@ export class ProfileComponent implements OnInit {
       next: () => {
         this.isSavingPassword = false;
         this.passwordForm.reset();
-        this.toast.success('Contraseña actualizada correctamente');
+        this.toast.exito('Contraseña actualizada correctamente');
         this.cdr.markForCheck();
       },
       error: (err: any) => {

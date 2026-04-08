@@ -51,6 +51,7 @@ export interface RendD {
   U_GIFTCARD:          number | null;
   U_ICE:               number;
   U_RD_NRO_OT:         string;
+  U_RD_AdjuntosCount?: number;  // Campo virtual para conteo de adjuntos
 }
 
 export interface CreateRendDPayload {
@@ -59,7 +60,8 @@ export interface CreateRendDPayload {
   concepto:        string;
   fecha:           string;
   idTipoDoc:       number;
-  tipoDoc:         string;
+  tipoDoc:         number;
+  tipoDocName?:    string;
   idDoc?:          number;
   numDocumento?:   string;
   nroAutor?:       string;

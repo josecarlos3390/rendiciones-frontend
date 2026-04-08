@@ -29,7 +29,9 @@ export class AprobacionesService {
   private api  = `${environment.apiUrl}/aprobaciones`;
 
   getPendientes()                    { return this.http.get<AprobacionPendiente[]>(`${this.api}/pendientes`); }
+  getPendientesNivel2()               { return this.http.get<AprobacionPendiente[]>(`${this.api}/pendientes-nivel2`); }
   countPendientes()                  { return this.http.get<{ count: number }>(`${this.api}/count`); }
+  countPendientesNivel2()            { return this.http.get<{ count: number }>(`${this.api}/count-nivel2`); }
   getNiveles(idRendicion: number)    { return this.http.get<AprobacionNivel[]>(`${this.api}/${idRendicion}/niveles`); }
   enviar(idRendicion: number)        { return this.http.post<any>(`${this.api}/${idRendicion}/enviar`, {}); }
   aprobar(idRendicion: number, comentario?: string) {

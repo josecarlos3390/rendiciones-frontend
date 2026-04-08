@@ -1,6 +1,16 @@
-// ⚠️ TODO: Reemplazar con la URL real del backend antes de hacer deploy a producción.
-// Ejemplo: 'https://api.mi-empresa.com/api/v1'
+/**
+ * Environment configuration for production
+ * 
+ * SECURITY WARNING: Update apiUrl with your actual production backend URL
+ * before deploying. Do not use placeholder URLs in production.
+ * 
+ * Example: 'https://api.tu-empresa.com/api/v1'
+ */
+
 export const environment = {
   production: true,
-  apiUrl: 'https://tu-backend-produccion.com/api/v1',
+  // TODO: Replace with your actual production backend URL
+  apiUrl: process.env['NG_APP_API_URL'] || 'https://api.tu-empresa.com/api/v1',
+  // Request timeout in milliseconds  
+  requestTimeout: 30000, // 30 seconds
 };

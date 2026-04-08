@@ -51,6 +51,17 @@
       Exportar
     </button>
 
+    <!-- Imprimir PDF (siempre visible si hay documentos) -->
+    <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
+      (click)="abrirVistaPreliminar()" title="Imprimir PDF de la rendición">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6,9 6,2 18,2 18,9"/>
+        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+        <rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      Imprimir
+    </button>
+
     <button class="btn btn-primary btn-sm" *ngIf="!isReadonly" (click)="openNew()">
       + Adicionar Documento
     </button>
@@ -238,49 +249,209 @@
 
 <!-- ══ MODAL PDF ══ -->
 <div class="modal-backdrop" *ngIf="showPdfModal">
-  <div class="mode-modal" role="dialog" aria-modal="true">
+  <div class="mode-modal pdf-batch-modal" role="dialog" aria-modal="true">
     <div class="modal-header">
       <h3>📄 Registrar por PDF</h3>
-      <button class="modal-close" type="button" (click)="closePdfModal()">✕</button>
+      <button class="modal-close" type="button" (click)="closePdfModal()" [disabled]="pdfBatchProcessing">✕</button>
     </div>
     <div class="mode-body">
 
-      <!-- Procesando PDF -->
-      <div class="qr-loading" *ngIf="pdfLoadingFactura">
-        <div class="qr-loading-spinner"></div>
-        <p class="qr-loading-text">Leyendo QR del PDF...</p>
-        <p class="qr-loading-sub">Consultando datos en el SIAT</p>
-      </div>
+      <!-- Lista de archivos con progreso -->
+      <ng-container *ngIf="pdfBatchResults.length > 0">
+        <div class="pdf-batch-list">
+          <div class="pdf-batch-item" *ngFor="let item of pdfBatchResults; let i = index" 
+               [class.processing]="item.status === 'processing'"
+               [class.completed]="item.status === 'completed'"
+               [class.error]="item.status === 'error'">
+            
+            <div class="pdf-batch-icon">
+              <span *ngIf="item.status === 'pending'">⏳</span>
+              <span *ngIf="item.status === 'processing'" class="spinner-small">⟳</span>
+              <span *ngIf="item.status === 'completed'">✅</span>
+              <span *ngIf="item.status === 'error'">❌</span>
+            </div>
+            
+            <div class="pdf-batch-info">
+              <span class="pdf-batch-name" [title]="item.file.name">{{ item.file.name }}</span>
+              <div class="pdf-batch-progress" *ngIf="item.status === 'processing'">
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="item.progress"></div>
+                </div>
+                <span class="progress-text">{{ item.progress }}%</span>
+              </div>
+              <span class="pdf-batch-status" *ngIf="item.status === 'completed' && item.result">
+                <span class="source-badge" [class.siat]="item.result.source === 'siat'" [class.ai]="item.result.source === 'ai_claude'">
+                  {{ item.result.source === 'siat' ? 'SIAT' : 'IA' }}
+                </span>
+                <span *ngIf="getItemNumeroFactura(item) !== '—'">
+                  N° {{ getItemNumeroFactura(item) }}
+                </span>
+              </span>
+              <span class="pdf-batch-error" *ngIf="item.status === 'error'">{{ item.error }}</span>
+              <span class="pdf-batch-cuf" *ngIf="item.cuf">🔖 CUF: {{ item.cuf | slice:0:16 }}...</span>
+            </div>
+            
+            <div class="pdf-batch-actions" *ngIf="!pdfBatchProcessing">
+              <button class="btn-icon" *ngIf="item.status === 'completed'" 
+                      (click)="revisarBatchItem(item, i)" title="Revisar">
+                👁️
+              </button>
+              <button class="btn-icon" *ngIf="item.status === 'error'" 
+                      (click)="reprocesarBatchItem(i)" title="Reintentar">
+                🔄
+              </button>
+              <button class="btn-icon" (click)="eliminarBatchItem(i)" title="Eliminar">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
 
-      <!-- Formulario -->
-      <ng-container *ngIf="!pdfLoadingFactura">
-        <p class="mode-subtitle">Subí el PDF de la factura — se leerá el código QR automáticamente</p>
+        <!-- Stats del batch -->
+        <div class="pdf-batch-stats" *ngIf="pdfBatchProcessing || batchStats.completed > 0 || batchStats.errors > 0">
+          <span>📊 {{ batchStats.completed }} completados</span>
+          <span *ngIf="batchStats.errors > 0" class="stat-error">{{ batchStats.errors }} errores</span>
+          <span *ngIf="batchStats.processing > 0">⏳ {{ batchStats.processing }} procesando...</span>
+        </div>
+      </ng-container>
+
+      <!-- Formulario de selección -->
+      <ng-container *ngIf="pdfBatchResults.length === 0">
+        <p class="mode-subtitle">Subí los PDFs de las facturas — se leerán los códigos QR automáticamente</p>
 
         <div class="qr-error" *ngIf="pdfError" style="margin-bottom:12px">
           <span class="qr-error-icon">⚠️</span>
           <p>{{ pdfError }}</p>
         </div>
 
-        <label class="pdf-drop-zone" [class.has-file]="!!pdfFile">
-          <input type="file" accept="application/pdf" (change)="onPdfSelected($event)" style="display:none" />
-          <span class="pdf-drop-icon">{{ pdfFile ? '✅' : '📁' }}</span>
-          <span class="pdf-drop-label">{{ pdfFileName || 'Tocar para seleccionar PDF' }}</span>
-          <span class="pdf-drop-hint" *ngIf="!pdfFile">Solo archivos .pdf — se extraerá el QR</span>
+        <label class="pdf-drop-zone" [class.has-file]="pdfFiles.length > 0">
+          <input type="file" accept="application/pdf" multiple (change)="onPdfSelected($event)" style="display:none" />
+          <span class="pdf-drop-icon">{{ pdfFiles.length > 0 ? '✅' : '📁' }}</span>
+          <span class="pdf-drop-label">{{ pdfFileNames || 'Tocar para seleccionar PDFs' }}</span>
+          <span class="pdf-drop-hint" *ngIf="pdfFiles.length === 0">Solo archivos .pdf — se extraerá el QR y CUF</span>
+          <span class="pdf-drop-hint" *ngIf="pdfFiles.length > 0">{{ pdfFiles.length }} archivo(s) seleccionado(s)</span>
         </label>
-
-        <div class="mode-footer-actions">
-          <button class="btn btn-ghost" type="button" (click)="closePdfModal()">Cancelar</button>
-          <button class="btn btn-primary" type="button"
-            [disabled]="!pdfFile"
-            (click)="confirmarPdf()">
-            Leer QR del PDF
-          </button>
-        </div>
       </ng-container>
+
+      <div class="mode-footer-actions">
+        <button class="btn btn-ghost" type="button" (click)="closePdfModal()" [disabled]="pdfBatchProcessing">
+          {{ pdfBatchResults.length > 0 ? 'Cerrar' : 'Cancelar' }}
+        </button>
+        
+        <button class="btn btn-primary" type="button"
+          *ngIf="pdfBatchResults.length === 0"
+          [disabled]="pdfFiles.length === 0"
+          (click)="confirmarPdf()">
+          Procesar {{ pdfFiles.length > 1 ? pdfFiles.length + ' PDFs' : 'PDF' }}
+        </button>
+        
+        <button class="btn btn-success" type="button"
+          *ngIf="pdfBatchResults.length > 0 && !pdfBatchProcessing"
+          [disabled]="batchStats.completed === 0"
+          (click)="confirmarBatch()">
+          Confirmar {{ batchStats.completed }} factura(s)
+        </button>
+      </div>
 
     </div>
   </div>
 </div>
+
+<!-- ══ MODAL BATCH RESULTADOS ══ -->
+<div class="modal-backdrop" *ngIf="showPdfBatchModal">
+  <div class="mode-modal pdf-batch-review-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h3>📋 Revisar Facturas Procesadas ({{ batchStats.completed }} de {{ batchStats.total }})</h3>
+      <button class="modal-close" type="button" (click)="closePdfBatchModal()">✕</button>
+    </div>
+    <div class="mode-body">
+      
+      <div class="batch-review-list">
+        <div class="batch-review-item" *ngFor="let item of pdfBatchResults; let i = index" 
+             [class.error]="item.status === 'error'">
+          
+          <div class="batch-review-header">
+            <span class="file-name">{{ item.file.name }}</span>
+            <span class="source-badge" *ngIf="item.result?.source"
+                  [class.siat]="item.result?.source === 'siat'"
+                  [class.ai]="item.result?.source === 'ai_claude'"
+                  [class.manual]="item.result?.source === 'manual'">
+              {{ item.result?.source === 'siat' ? 'SIAT ✅' : item.result?.source === 'ai_claude' ? 'IA 🤖' : 'Manual' }}
+            </span>
+          </div>
+          
+          <div class="batch-review-data" *ngIf="item.status === 'completed' && item.result">
+            <div class="data-row">
+              <span class="data-label">NIT:</span>
+              <span class="data-value">{{ getItemNit(item) }}</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Razón Social:</span>
+              <span class="data-value">{{ getItemRazonSocial(item) }}</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">N° Factura:</span>
+              <span class="data-value">{{ getItemNumeroFactura(item) }}</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Fecha:</span>
+              <span class="data-value">{{ getItemFecha(item) | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Monto:</span>
+              <span class="data-value amount">{{ getItemMonto(item) | number:'1.2-2' }} Bs</span>
+            </div>
+            <div class="data-row" *ngIf="getItemCuf(item)">
+              <span class="data-label">CUF:</span>
+              <span class="data-value cuf">{{ getItemCuf(item) | slice:0:20 }}...</span>
+            </div>
+          </div>
+          
+          <div class="batch-review-error" *ngIf="item.status === 'error'">
+            ⚠️ {{ item.error }}
+          </div>
+          
+          <div class="batch-review-actions">
+            <button class="btn btn-ghost btn-sm" (click)="revisarBatchItem(item, i)" *ngIf="item.status === 'completed'">
+              ✏️ Editar
+            </button>
+            <button class="btn btn-ghost btn-sm" (click)="reprocesarBatchItem(i)" *ngIf="item.status === 'error'">
+              🔄 Reintentar
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="eliminarBatchItem(i)">
+              🗑️ Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mode-footer-actions">
+        <button class="btn btn-ghost" type="button" (click)="closePdfBatchModal()">Cancelar</button>
+        <button class="btn btn-success" type="button"
+          [disabled]="batchStats.completed === 0"
+          (click)="confirmarBatch()">
+          ✅ Confirmar {{ batchStats.completed }} factura(s)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PREVIEW IA (single - legacy) ══ -->
+<app-ai-factura-preview
+  *ngIf="showAiPreviewModal && aiPreviewResult"
+  [result]="aiPreviewResult"
+  (confirm)="onAiPreviewConfirm($event)"
+  (cancel)="onAiPreviewCancel()">
+</app-ai-factura-preview>
+
+<!-- ══ MODAL REVISIÓN ITEM BATCH ══ -->
+<app-ai-factura-preview
+  *ngIf="showBatchItemReviewModal && batchItemBeingReviewed?.result"
+  [result]="batchItemBeingReviewed!.result!"
+  (confirm)="onBatchItemConfirm($event)"
+  (cancel)="closeBatchItemReviewModal()">
+</app-ai-factura-preview>
 
 <!-- ══ MODAL ESCÁNER QR ══ -->
 <div class="modal-backdrop" *ngIf="showQrScanner">
@@ -418,10 +589,10 @@
             <div class="form-field col-span-2 toggle-field">
               <label class="toggle-label">
                 <span class="toggle-label-text">Facturación en Línea</span>
-                <button type="button" class="toggle-btn" [class.active]="facturaLinea"
-                  (click)="toggleFacturaLinea()">
-                  <span class="toggle-knob"></span>
-                </button>
+                <label class="u-toggle">
+                  <input type="checkbox" [checked]="facturaLinea" (change)="toggleFacturaLinea()" />
+                  <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+                </label>
               </label>
             </div>
 
@@ -437,7 +608,7 @@
             <div class="form-field col-span-2" [class.field-changed]="fieldChanged('prov')">
               <label>Proveedor</label>
               <div class="prov-row">
-                <app-proveedor-search
+                <app-proveedor-search #provSearch
                   [proCar]="proCar"
                   [proTexto]="proTexto"
                   [initialCode]="form.get('codProv')?.value"
@@ -464,10 +635,38 @@
               <input type="text" formControlName="ctrl" maxlength="25" placeholder="0" autocomplete="off" />
             </div>
 
-            <div class="form-field col-span-4" [class.field-changed]="fieldChanged('concepto')">
+            <div class="form-field col-span-4 concepto-field" [class.field-changed]="fieldChanged('concepto')">
               <label>Concepto <span class="required">*</span></label>
-              <input type="text" formControlName="concepto" maxlength="200" placeholder="Descripción del gasto" autocomplete="off" />
+              <div class="concepto-input-wrapper">
+                <input type="text" formControlName="concepto" maxlength="200" placeholder="Descripción del gasto" autocomplete="off" />
+                
+                <!-- Botón flotante de ayuda IA -->
+                <button 
+                  type="button"
+                  class="btn-ayuda-ia"
+                  *ngIf="mostrarBotonAyudaIA && !iaSugerencia && !iaSugerenciaLoading"
+                  (click)="solicitarSugerenciaIA()"
+                  title="¿Necesitas ayuda para clasificar este gasto?">
+                  <span class="ia-icon">🤖</span>
+                  <span class="ia-text">Sugerir cuenta</span>
+                </button>
+              </div>
+              
               <span class="field-error" *ngIf="form.get('concepto')?.invalid && form.get('concepto')?.touched">Obligatorio</span>
+              
+              <!-- Sugerencia de IA -->
+              <app-ai-suggestion
+                [sugerencia]="iaSugerencia"
+                [isLoading]="iaSugerenciaLoading"
+                [loadingMessage]="iaLoadingMessage"
+                [visible]="!!iaSugerencia || iaSugerenciaLoading"
+                (aplicar)="aplicarSugerenciaIA($event)"
+                (ignorar)="ignorarSugerenciaIA()">
+              </app-ai-suggestion>
+              
+              <!-- Notificación cuando IA no está habilitada -->
+              <app-ai-disabled-notice [visible]="!iaEnabled && form.get('concepto')?.value?.length > 10">
+              </app-ai-disabled-notice>
             </div>
 
           </div>
@@ -486,10 +685,10 @@
             <div class="form-field" [class.field-changed]="fieldChanged('descuento')">
               <label class="label-with-toggle">
                 Descuento
-                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="descuentoActivo"
-                  (click)="toggleDescuento()">
-                  <span class="toggle-knob"></span>
-                </button>
+                <label class="u-toggle u-toggle-sm">
+                  <input type="checkbox" [checked]="descuentoActivo" (change)="toggleDescuento()" />
+                  <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+                </label>
               </label>
               <input *ngIf="descuentoActivo" type="number" formControlName="descuento" min="0" step="0.01" />
               <div *ngIf="!descuentoActivo" class="calc-display calc-zero-display">—</div>
@@ -504,11 +703,10 @@
                   {{ configDocActivo?.U_EXENTOpercent }}%
                 </span>
                 <!-- Toggle solo cuando es variable (-1) -->
-                <button *ngIf="exentoEsVariable"
-                  type="button" class="toggle-btn toggle-btn-sm" [class.active]="exentoActivo"
-                  (click)="toggleExento()">
-                  <span class="toggle-knob"></span>
-                </button>
+                <label *ngIf="exentoEsVariable" class="u-toggle u-toggle-sm">
+                  <input type="checkbox" [checked]="exentoActivo" (change)="toggleExento()" />
+                  <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+                </label>
               </label>
               <!-- Variable (-1): toggle activo → input, toggle apagado → dash -->
               <ng-container *ngIf="exentoEsVariable">
@@ -543,10 +741,10 @@
             <div class="form-field" [class.field-changed]="fieldChanged('giftCard')">
               <label class="label-with-toggle">
                 GIFTCARD
-                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="giftCardActivo"
-                  (click)="toggleGiftCard()">
-                  <span class="toggle-knob"></span>
-                </button>
+                <label class="u-toggle u-toggle-sm">
+                  <input type="checkbox" [checked]="giftCardActivo" (change)="toggleGiftCard()" />
+                  <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+                </label>
               </label>
               <input *ngIf="giftCardActivo" type="number" formControlName="giftCard" min="0" step="0.01" />
               <div *ngIf="!giftCardActivo" class="calc-display calc-zero-display">—</div>
@@ -555,10 +753,10 @@
             <div class="form-field" [class.field-changed]="fieldChanged('tasaCero')">
               <label class="label-with-toggle">
                 Tasa Cero
-                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="tasaCeroActivo"
-                  (click)="toggleTasaCero()">
-                  <span class="toggle-knob"></span>
-                </button>
+                <label class="u-toggle u-toggle-sm">
+                  <input type="checkbox" [checked]="tasaCeroActivo" (change)="toggleTasaCero()" />
+                  <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+                </label>
               </label>
               <input *ngIf="tasaCeroActivo" type="number" formControlName="tasaCero" min="0" step="0.01" />
               <div *ngIf="!tasaCeroActivo" class="calc-display calc-zero-display">—</div>
@@ -587,12 +785,16 @@
             <div class="form-field col-span-2" [class.field-changed]="fieldChanged('proyecto')">
               <label class="label-with-toggle">
                 Proyecto
-                <button type="button" class="toggle-btn toggle-btn-sm" [class.active]="proyectoActivo"
-                  (click)="toggleProyecto()">
-                  <span class="toggle-knob"></span>
-                </button>
+                <label class="u-toggle u-toggle-sm">
+                  <input type="checkbox" [checked]="proyectoActivo" (change)="toggleProyecto()" />
+                  <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+                </label>
               </label>
-              <input *ngIf="proyectoActivo" type="text" formControlName="proyecto" maxlength="100" autocomplete="off" />
+              <app-project-search
+                *ngIf="proyectoActivo"
+                [initialCode]="form.get('proyecto')?.value"
+                (projectChange)="onProjectSelected($event)">
+              </app-project-search>
               <div *ngIf="!proyectoActivo" class="calc-display calc-zero-display">—</div>
             </div>
 
@@ -823,6 +1025,12 @@
   <table class="data-table" *ngIf="documentos.length > 0 && tablaActiva === 'documentos'">
     <thead>
       <tr>
+        <th class="text-center col-acciones-adjuntos" title="Acciones y Adjuntos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </th>
         <th class="col-sticky">Concepto · Cuenta</th>
         <th>Fecha</th>
         <th>Tipo Doc.</th>
@@ -836,11 +1044,74 @@
         <th class="text-right col-base">Base Imp.</th>
         <th class="text-right">Imp/Ret</th>
         <th class="text-right col-total">Total</th>
-        <th class="actions">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let d of paged">
+        <!-- ACCIONES + ADJUNTOS (columna combinada) -->
+        <td class="text-center col-acciones-adjuntos" data-label="Acciones">
+          <div class="acciones-adjuntos-wrap">
+            <!-- Menú de acciones (3 puntos verticales) -->
+            <div class="row-menu-wrap" 
+                 [class.open]="openMenuId === d.U_RD_IdRD"
+                 dropdownPosition
+                 *ngIf="!isReadonly">
+              <button class="btn-more btn-more-vertical" 
+                      (click)="toggleMenu(d, $event)"
+                      title="Acciones">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="6" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="18" r="2"/>
+                </svg>
+              </button>
+              <div class="row-dropdown">
+                <button class="row-item" (click)="onMenuAction(d, 'edit')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  <span>Editar</span>
+                </button>
+                <button class="row-item" (click)="onMenuAction(d, 'dist')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="12" r="3"/>
+                    <path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+                  </svg>
+                  <span>Distribuir</span>
+                </button>
+                <div class="row-divider"></div>
+                <button class="row-item item-danger" (click)="onMenuAction(d, 'delete')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                  <span>Eliminar</span>
+                </button>
+              </div>
+            </div>
+            <!-- Solo botón de distribuir en modo readonly -->
+            <button class="btn btn-sm btn-ghost btn-dist" 
+                    *ngIf="isReadonly"
+                    title="Distribución porcentual"
+                    (click)="abrirPrctjModal(d)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="12" r="3"/><path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+              </svg>
+            </button>
+            <!-- Botón adjuntos -->
+            <button class="btn btn-sm btn-ghost btn-adjuntos" 
+              title="Ver adjuntos"
+              (click)="abrirAdjuntosModal(d)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+              </svg>
+              <span class="adjuntos-badge" *ngIf="getAdjuntosCount(d.U_RD_IdRD)">{{ getAdjuntosCount(d.U_RD_IdRD) }}</span>
+            </button>
+          </div>
+        </td>
+        
+        <!-- RESTO DE COLUMNAS -->
         <td class="col-sticky" data-label="Concepto">
           <span class="sticky-id">{{ d.U_RD_IdRD }} · {{ d.U_RD_Concepto }}</span>
           <span class="sticky-concepto" *ngIf="d.U_RD_Cuenta">
@@ -850,7 +1121,7 @@
           <span class="sticky-concepto text-muted-cell" *ngIf="!d.U_RD_Cuenta">Sin cuenta</span>
         </td>
         <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
-        <td data-label="Tipo"><span class="type-tag">{{ d.U_RD_TipoDoc }}</span></td>
+        <td data-label="Tipo"><span class="type-tag">{{ getTipoDocName(d.U_RD_TipoDoc) }}</span></td>
         <td class="mono-cell"   data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
         <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
         <td class="text-right mono-cell col-reduccion" data-label="Exento">{{ (d.U_RD_Exento ?? 0) | number:'1.2-2' }}</td>
@@ -863,21 +1134,11 @@
         </td>
         <td class="text-right mono-cell" data-label="Imp/Ret">{{ (d.U_RD_ImpRet ?? 0) | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell col-total" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
-        <td class="actions">
-          <button class="btn btn-sm btn-ghost" (click)="openEdit(d)">Editar</button>
-          <!-- Botón distribución porcentual -->
-          <button class="btn btn-sm btn-ghost btn-dist"
-            title="Distribución porcentual entre centros de costo"
-            (click)="abrirPrctjModal(d)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="12" r="3"/><path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
-            Distribuir
-          </button>
-          <button class="btn btn-sm btn-danger-soft" *ngIf="!isReadonly" (click)="confirmDelete(d)">Eliminar</button>
-        </td>
       </tr>
     </tbody>
     <tfoot>
       <tr class="totals-row">
+        <td class="totals-label"></td>
         <td colspan="4" class="totals-label">Totales</td>
         <td class="text-right mono-cell total-cell">{{ totalImporte   | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell col-reduccion">{{ totalExento    | number:'1.2-2' }}</td>
@@ -888,7 +1149,6 @@
         <td class="text-right mono-cell total-cell col-base">{{ totalBaseImp   | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell">{{ totalImpRet    | number:'1.2-2' }}</td>
         <td class="text-right mono-cell total-cell col-total">{{ totalGeneral   | number:'1.2-2' }}</td>
-        <td></td>
       </tr>
     </tfoot>
   </table>
@@ -989,5 +1249,39 @@
   (saved)="onPrctjSaved()"
   (cancelled)="cerrarPrctjModal()">
 </app-prctj-modal>
+
+<!-- ── Modal Vista Preliminar PDF ── -->
+<app-rendicion-pdf-preview
+  *ngIf="showPdfPreview && cabecera"
+  [rend]="cabecera"
+  [docs]="pdfPreviewDocs"
+  mode="reprint"
+  (cancel)="cerrarVistaPreliminar()">
+</app-rendicion-pdf-preview>
+
+<!-- ── Modal Adjuntos ── -->
+<div class="modal-backdrop" *ngIf="showAdjuntosModal && adjuntosDoc" (click)="cerrarAdjuntosModal()">
+  <div class="modal adjuntos-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        📎 Adjuntos - Documento N° {{ adjuntosDoc.U_RD_IdRD }}
+        <small>{{ adjuntosDoc.U_RD_Concepto }}</small>
+      </h3>
+      <button class="modal-close" (click)="cerrarAdjuntosModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="adjuntosLoading" class="loading">Cargando adjuntos...</div>
+      <app-adjuntos-list
+        *ngIf="!adjuntosLoading"
+        [idRendicion]="idRendicion"
+        [idRD]="adjuntosDoc.U_RD_IdRD"
+        [adjuntos]="adjuntosList"
+        [canEdit]="!isReadonly"
+        (adjuntoSubido)="onAdjuntoSubido($event)"
+        (adjuntoEliminado)="onAdjuntoEliminado($event)">
+      </app-adjuntos-list>
+    </div>
+  </div>
+</div>
 
 </div>

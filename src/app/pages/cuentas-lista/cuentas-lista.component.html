@@ -75,12 +75,13 @@
     </div>
     <div class="filter-field" *ngIf="selectedPerfilId">
       <label>Buscar</label>
-      <div class="filter-search">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="search-input" placeholder="Buscar por código o nombre..."
-          [(ngModel)]="search" (input)="applyFilter()" />
-        <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
-      </div>
+      <app-search-input
+        placeholder="Buscar por código o nombre..."
+        [debounceTime]="300"
+        [(search)]="search"
+        (valueChange)="applyFilter()"
+        (cleared)="applyFilter()">
+      </app-search-input>
     </div>
   </div>
   <span class="filter-count" *ngIf="selectedPerfilId && !loading">

@@ -1,14 +1,30 @@
 .layout {
   display: flex;
   min-height: 100vh;
+  flex-direction: column;
+}
+
+.app-header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 240px;
+  right: 0;
+  z-index: 1000;
+  transition: left 0.22s cubic-bezier(.4,0,.2,1);
+}
+
+.app-header-wrapper:has(+ app-sidebar.collapsed),
+:host-context(.sidebar-collapsed) .app-header-wrapper {
+  left: 72px;
 }
 
 .content {
   flex: 1;
   margin-left: 240px;
+  margin-top: 60px; /* Espacio para el header fijo */
   padding: 28px 32px;
   background: var(--bg-page);
-  min-height: 100vh;
+  min-height: calc(100vh - 60px);
   transition: margin-left 0.22s cubic-bezier(.4,0,.2,1);
   box-sizing: border-box;
   min-width: 0;
@@ -75,8 +91,13 @@
 }
 
 @media (max-width: 768px) {
+  .app-header-wrapper {
+    left: 0;
+  }
+  
   .content {
     margin-left: 0;
+    margin-top: 60px;
     --sidebar-width: 0px;
     /* 60px para el botón hamburguesa fixed + 16px margen superior */
     padding: 64px 16px 24px;

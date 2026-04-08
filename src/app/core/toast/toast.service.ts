@@ -3,40 +3,97 @@ import { Injectable, signal } from '@angular/core';
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Toast {
-  id: number;
-  type: ToastType;
-  message: string;
-  duration: number;
+  id: string;
+  mensaje: string;
+  tipo: ToastType;
+  duracion: number;
 }
 
-@Injectable({ providedIn: 'root' })
+/**
+ * Servicio de notificaciones toast
+ * Muestra mensajes temporales en la esquina superior derecha
+ * 
+ * Uso:
+ * toastService.exito('Operación completada');
+ * toastService.error('No se pudo guardar');
+ * toastService.info('Sincronizando...', 5000);
+ */
+@Injectable({
+  providedIn: 'root'
+})
 export class ToastService {
-  private _counter = 0;
-  readonly toasts = signal<Toast[]>([]);
+  private toasts = signal<Toast[]>([]);
+  readonly toasts$ = this.toasts.asReadonly();
 
-  success(message: string, duration = 3500) {
-    this.add('success', message, duration);
+  private generateId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  error(message: string, duration = 5000) {
-    this.add('error', message, duration);
+  /**
+   * Muestra un toast genérico
+   */
+  mostrar(mensaje: string, tipo: ToastType = 'info', duracion: number = 3000): void {
+    const toast: Toast = {
+      id: this.generateId(),
+      mensaje,
+      tipo,
+      duracion
+    };
+
+    this.toasts.update(current => [...current, toast]);
+
+    // Auto-eliminar después de la duración
+    if (duracion > 0) {
+      setTimeout(() => this.eliminar(toast.id), duracion);
+    }
   }
 
-  warning(message: string, duration = 4000) {
-    this.add('warning', message, duration);
+  /**
+   * Toast de éxito
+   */
+  exito(mensaje: string, duracion: number = 3000): void {
+    this.mostrar(mensaje, 'success', duracion);
   }
 
-  info(message: string, duration = 3500) {
-    this.add('info', message, duration);
+  /**
+   * Toast de error
+   */
+  error(mensaje: string, duracion: number = 5000): void {
+    this.mostrar(mensaje, 'error', duracion);
   }
 
-  dismiss(id: number) {
-    this.toasts.update(list => list.filter(t => t.id !== id));
+  /**
+   * Toast de advertencia
+   */
+  advertencia(mensaje: string, duracion: number = 4000): void {
+    this.mostrar(mensaje, 'warning', duracion);
   }
 
-  private add(type: ToastType, message: string, duration: number) {
-    const id = ++this._counter;
-    this.toasts.update(list => [...list, { id, type, message, duration }]);
-    setTimeout(() => this.dismiss(id), duration);
+  /**
+   * Alias en inglés para advertencia
+   */
+  warning(mensaje: string, duracion: number = 4000): void {
+    this.advertencia(mensaje, duracion);
+  }
+
+  /**
+   * Toast informativo
+   */
+  info(mensaje: string, duracion: number = 3000): void {
+    this.mostrar(mensaje, 'info', duracion);
+  }
+
+  /**
+   * Elimina un toast específico
+   */
+  eliminar(id: string): void {
+    this.toasts.update(current => current.filter(t => t.id !== id));
+  }
+
+  /**
+   * Elimina todos los toasts
+   */
+  limpiar(): void {
+    this.toasts.set([]);
   }
 }

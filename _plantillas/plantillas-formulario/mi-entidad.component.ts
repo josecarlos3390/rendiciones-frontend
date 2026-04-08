@@ -255,7 +255,7 @@ export class MiEntidadComponent implements OnInit {
     req$.subscribe({
       next: () => {
         this.isSaving = false;
-        this.toast.success(this.isEditing ? 'Registro actualizado' : 'Registro creado');
+        this.toast.exito(this.isEditing ? 'Registro actualizado' : 'Registro creado');
         this.closeForm();
         this.load();
         // No hace falta markForCheck() aquí porque load() ya lo llama.
@@ -284,7 +284,7 @@ export class MiEntidadComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(item.id).subscribe({
-        next:  () => { this.toast.success('Registro eliminado'); this.load(); },
+        next:  () => { this.toast.exito('Registro eliminado'); this.load(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');

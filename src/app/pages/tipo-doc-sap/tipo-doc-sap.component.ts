@@ -136,7 +136,7 @@ export class TipoDocSapComponent implements OnInit {
       next: () => {
         this.isSaving = false;
         this.closeForm();
-        this.toast.success(this.editingItem ? 'Tipo actualizado' : 'Tipo creado');
+        this.toast.exito(this.editingItem ? 'Tipo actualizado' : 'Tipo creado');
         this.load();
       },
       error: (err) => {
@@ -155,7 +155,7 @@ export class TipoDocSapComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.svc.remove(item.U_IdTipo).subscribe({
-        next:  () => { this.toast.success('Tipo eliminado'); this.load(); },
+        next:  () => { this.toast.exito('Tipo eliminado'); this.load(); },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al eliminar'),
       });
     });

@@ -14,6 +14,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, UsuarioSearchComponent, AppSelectComponent],
   changeDetection: ChangeDetectionStrategy.Default,
+  styleUrls: ['./user-form.component.scss'],
   template: `
 <div class="modal-backdrop" *ngIf="visible">
   <div class="user-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
@@ -98,8 +99,12 @@ import { DimensionWithRules } from '../../../services/sap.service';
           <div class="toggle-row">
             <div class="toggle-info">
               <span class="toggle-title">Fijar Norma Reparto</span>
+              <span class="toggle-desc">Asigna automáticamente las normas al crear documentos</span>
             </div>
             <div class="toggle-wrap">
+              <span class="toggle-status" [class.is-on]="form.get('fijarNr')?.value == '1'">
+                {{ form.get('fijarNr')?.value == '1' ? 'ON' : 'OFF' }}
+              </span>
               <label class="u-toggle">
                 <input type="checkbox"
                   [checked]="form.get('fijarNr')?.value == '1'"
@@ -149,10 +154,15 @@ import { DimensionWithRules } from '../../../services/sap.service';
               <span class="perm-name">Rendiciones</span>
               <span class="perm-desc">Acceso al módulo de rendiciones de gastos</span>
             </div>
-            <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appRend')?.value == '1'" (change)="onCheckToggle('appRend', $event)" />
-              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-            </label>
+            <div class="perm-toggle-wrap">
+              <span class="perm-status" [class.is-on]="form.get('appRend')?.value == '1'">
+                {{ form.get('appRend')?.value == '1' ? 'ON' : 'OFF' }}
+              </span>
+              <label class="u-toggle">
+                <input type="checkbox" [checked]="form.get('appRend')?.value == '1'" (change)="onCheckToggle('appRend', $event)" />
+                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+              </label>
+            </div>
           </div>
 
           <div class="perm-row" [class.perm-row--changed]="fieldChanged('appConf')">
@@ -160,10 +170,15 @@ import { DimensionWithRules } from '../../../services/sap.service';
               <span class="perm-name">Configuraciones</span>
               <span class="perm-desc">Ver y editar configuraciones del sistema</span>
             </div>
-            <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('appConf')?.value == '1'" (change)="onCheckToggle('appConf', $event)" />
-              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-            </label>
+            <div class="perm-toggle-wrap">
+              <span class="perm-status" [class.is-on]="form.get('appConf')?.value == '1'">
+                {{ form.get('appConf')?.value == '1' ? 'ON' : 'OFF' }}
+              </span>
+              <label class="u-toggle">
+                <input type="checkbox" [checked]="form.get('appConf')?.value == '1'" (change)="onCheckToggle('appConf', $event)" />
+                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+              </label>
+            </div>
           </div>
 
           <div class="perm-row" [class.perm-row--changed]="fieldChanged('genDocPre')">
@@ -171,10 +186,15 @@ import { DimensionWithRules } from '../../../services/sap.service';
               <span class="perm-name">Genera Preliminar</span>
               <span class="perm-desc">Permite generar documentos en estado borrador</span>
             </div>
-            <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('genDocPre')?.value == '1'" (change)="onCheckToggle('genDocPre', $event)" />
-              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-            </label>
+            <div class="perm-toggle-wrap">
+              <span class="perm-status" [class.is-on]="form.get('genDocPre')?.value == '1'">
+                {{ form.get('genDocPre')?.value == '1' ? 'ON' : 'OFF' }}
+              </span>
+              <label class="u-toggle">
+                <input type="checkbox" [checked]="form.get('genDocPre')?.value == '1'" (change)="onCheckToggle('genDocPre', $event)" />
+                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+              </label>
+            </div>
           </div>
 
           <div class="perm-row" [class.perm-row--changed]="fieldChanged('fijarSaldo')">
@@ -182,10 +202,15 @@ import { DimensionWithRules } from '../../../services/sap.service';
               <span class="perm-name">Fijar Saldo</span>
               <span class="perm-desc">Permite fijar manualmente el saldo en rendiciones</span>
             </div>
-            <label class="u-toggle">
-              <input type="checkbox" [checked]="form.get('fijarSaldo')?.value == '1'" (change)="onCheckToggle('fijarSaldo', $event)" />
-              <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
-            </label>
+            <div class="perm-toggle-wrap">
+              <span class="perm-status" [class.is-on]="form.get('fijarSaldo')?.value == '1'">
+                {{ form.get('fijarSaldo')?.value == '1' ? 'ON' : 'OFF' }}
+              </span>
+              <label class="u-toggle">
+                <input type="checkbox" [checked]="form.get('fijarSaldo')?.value == '1'" (change)="onCheckToggle('fijarSaldo', $event)" />
+                <span class="u-toggle__track"><span class="u-toggle__thumb"></span></span>
+              </label>
+            </div>
           </div>
         </div>
 

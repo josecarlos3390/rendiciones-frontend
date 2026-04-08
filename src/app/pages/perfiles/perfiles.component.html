@@ -41,13 +41,23 @@
 
         <div class="form-row">
           <div class="form-field">
-            <label>Moneda de Trabajo <span class="label-muted">(Perfil Trabaja)</span></label>
+            <label>Moneda de Trabajo</label>
             <app-select
-              label="Perfil Trabaja"
+              label="Moneda"
               [searchable]="false"
               [options]="monedaOptions"
               [value]="form.get('trabaja')?.value"
               (valueChange)="form.get('trabaja')?.setValue($event)">
+            </app-select>
+          </div>
+          <div class="form-field">
+            <label>Máx. Líneas <span class="label-muted">(por documento)</span></label>
+            <app-select
+              label="Líneas"
+              [searchable]="false"
+              [options]="lineasOptions"
+              [value]="form.get('cntLineas')?.value"
+              (valueChange)="form.get('cntLineas')?.setValue($event)">
             </app-select>
           </div>
         </div>
@@ -56,13 +66,24 @@
           <div class="form-field">
             <label>Permitir Cuenta Vacía</label>
             <app-select
-              label="Permitir Cuenta Vacía"
+              label="Permitir vacía"
               [searchable]="false"
               [options]="siNoOptions"
               [value]="form.get('perCtaBl')?.value"
               (valueChange)="form.get('perCtaBl')?.setValue($event)">
             </app-select>
-            <span class="field-hint">Si Sí, el documento puede guardarse sin cuenta contable asignada.</span>
+            <span class="field-hint">Si Sí, el documento puede guardarse sin cuenta asignada.</span>
+          </div>
+          <div class="form-field">
+            <label>Control de Partida</label>
+            <app-select
+              label="Control partida"
+              [searchable]="false"
+              [options]="siNoOptions"
+              [value]="form.get('controlPartida')?.value"
+              (valueChange)="form.get('controlPartida')?.setValue($event)">
+            </app-select>
+            <span class="field-hint">Valida que la partida esté configurada.</span>
           </div>
         </div>
 
@@ -72,7 +93,7 @@
       <div class="modal-body modal-col">
 
         <div class="form-section-label">Filtro Proveedores</div>
-        <p class="field-hint" style="margin: -6px 0 10px;">Restringe los proveedores visibles al crear documentos. Dejá en blanco para no filtrar.</p>
+        <p class="field-hint" style="margin: -6px 0 10px;">Restringe los proveedores visibles al crear documentos.</p>
 
         <div class="form-row">
           <div class="form-field">
@@ -86,13 +107,13 @@
             </app-select>
           </div>
           <div class="form-field">
-            <label>Texto <span class="label-muted">(valor a comparar)</span></label>
-            <input type="text" formControlName="proTexto" maxlength="25" placeholder="PL, P, ..." />
+            <label>Texto <span class="label-muted">(filtro)</span></label>
+            <input type="text" formControlName="proTexto" maxlength="25" placeholder="Ej: PL, P, ..." />
           </div>
         </div>
 
         <div class="form-section-label">Filtro Cuentas</div>
-        <p class="field-hint" style="margin: -6px 0 10px;">Restringe las cuentas contables disponibles en el detalle. Dejá en blanco para mostrar todas.</p>
+        <p class="field-hint" style="margin: -6px 0 10px;">Restringe las cuentas contables disponibles.</p>
 
         <div class="form-row">
           <div class="form-field">
@@ -106,13 +127,13 @@
             </app-select>
           </div>
           <div class="form-field">
-            <label>Texto <span class="label-muted">(valor a comparar)</span></label>
-            <input type="text" formControlName="cueTexto" maxlength="30" placeholder="/1/2/5/6/8" />
+            <label>Texto <span class="label-muted">(filtro)</span></label>
+            <input type="text" formControlName="cueTexto" maxlength="30" placeholder="Ej: /1/2/5/6/8" />
           </div>
         </div>
 
         <div class="form-section-label">Filtro Empleados</div>
-        <p class="field-hint" style="margin: -6px 0 10px;">Restringe los empleados seleccionables al crear la cabecera. Dejá en blanco para no filtrar.</p>
+        <p class="field-hint" style="margin: -6px 0 10px;">Restringe los empleados seleccionables.</p>
 
         <div class="form-row">
           <div class="form-field">
@@ -126,8 +147,8 @@
             </app-select>
           </div>
           <div class="form-field">
-            <label>Texto <span class="label-muted">(valor a comparar)</span></label>
-            <input type="text" formControlName="empTexto" maxlength="10" placeholder="EL, ..." />
+            <label>Texto <span class="label-muted">(filtro)</span></label>
+            <input type="text" formControlName="empTexto" maxlength="10" placeholder="Ej: EL, ..." />
           </div>
         </div>
 
@@ -158,12 +179,13 @@
   <div class="filter-left">
     <div class="filter-field">
       <label>Buscar</label>
-      <div class="filter-search">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="search-input" placeholder="Buscar perfil..."
-          [(ngModel)]="search" (input)="applyFilter()" />
-        <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
-      </div>
+      <app-search-input
+        placeholder="Buscar perfil..."
+        [debounceTime]="300"
+        [(search)]="search"
+        (valueChange)="applyFilter()"
+        (cleared)="applyFilter()">
+      </app-search-input>
     </div>
   </div>
   <span class="filter-count" *ngIf="!loading">
@@ -185,35 +207,43 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th>Cód.</th>
+        <th class="text-center">Cód.</th>
         <th>Nombre Perfil</th>
-        <th>Moneda</th>
+        <th class="text-center">Moneda</th>
+        <th class="text-center">Líneas</th>
         <th>Proveedores</th>
         <th>Cuentas</th>
         <th>Empleados</th>
-        <th class="text-center">Líneas</th>
-        <th class="actions">Acciones</th>
+        <th class="actions text-center">Acciones</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let p of paged">
-        <td class="text-center" data-label="Cód.">{{ p.U_CodPerfil }}</td>
+        <td class="text-center" data-label="Cód.">
+          <span class="cod-badge">{{ p.U_CodPerfil }}</span>
+        </td>
         <td class="col-nombre" data-label="Nombre Perfil">{{ p.U_NombrePerfil }}</td>
-        <td data-label="Moneda">{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</td>
+        <td class="text-center" data-label="Moneda">
+          <span class="moneda-badge" [class.moneda-bs]="p.U_Trabaja === '0'" [class.moneda-usd]="p.U_Trabaja === '1'">
+            {{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}
+          </span>
+        </td>
+        <td class="text-center" data-label="Líneas">
+          <span class="lineas-badge">{{ p.U_CntLineas || 10 }}</span>
+        </td>
         <td data-label="Proveedores">
           <span class="carac-badge">{{ p.U_PRO_CAR }}</span>
-          <span class="carac-text" *ngIf="p.U_PRO_Texto"> {{ p.U_PRO_Texto }}</span>
+          <span class="carac-text" *ngIf="p.U_PRO_Texto">{{ p.U_PRO_Texto }}</span>
         </td>
         <td data-label="Cuentas">
           <span class="carac-badge">{{ p.U_CUE_CAR }}</span>
-          <span class="carac-text" *ngIf="p.U_CUE_Texto"> {{ p.U_CUE_Texto }}</span>
+          <span class="carac-text" *ngIf="p.U_CUE_Texto">{{ p.U_CUE_Texto }}</span>
         </td>
         <td data-label="Empleados">
           <span class="carac-badge">{{ p.U_EMP_CAR }}</span>
-          <span class="carac-text" *ngIf="p.U_EMP_TEXTO"> {{ p.U_EMP_TEXTO }}</span>
+          <span class="carac-text" *ngIf="p.U_EMP_TEXTO">{{ p.U_EMP_TEXTO }}</span>
         </td>
-        <td class="text-center" data-label="Líneas">{{ p.U_CntLineas }}</td>
-        <td class="actions">
+        <td class="actions text-center">
           <button *ngIf="auth.puedeEditarConf" class="btn btn-icon btn-sm btn-ghost" title="Editar perfil" (click)="openEdit(p)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>

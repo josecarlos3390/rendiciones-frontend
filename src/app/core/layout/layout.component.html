@@ -1,4 +1,10 @@
 <div class="layout">
+  <!-- Loading indicator global -->
+  <app-loading-indicator></app-loading-indicator>
+  
+  <!-- Header con indicador de IA -->
+  <app-header class="app-header-wrapper"></app-header>
+
   <!-- Botón flotante para expandir sidebar colapsado -->
   <button 
     class="sidebar-expand-btn" 
@@ -44,3 +50,9 @@
     (cancelled)="confirm.resolve(false)">
   </app-confirm-dialog>
 }
+
+<!-- Indicador de procesamiento de IA -->
+<app-ai-processing-indicator></app-ai-processing-indicator>
+
+<!-- Chatbot de IA -->
+<app-ai-chatbot></app-ai-chatbot>

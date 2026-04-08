@@ -1,6 +1,6 @@
 import {
   Component, Input, Output, EventEmitter,
-  OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef,
+  OnInit, OnDestroy, OnChanges, ChangeDetectionStrategy, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -27,6 +27,18 @@ import { RendicionPdfService } from './rendicion-pdf.service';
         <span class="pdf-subtitle">{{ rend.U_Objetivo }}</span>
       </div>
       <div class="pdf-header-actions">
+        <button class="btn btn-ghost btn-sm" 
+          [class.active]="pdfOrientation === 'portrait'"
+          (click)="pdfOrientation = 'portrait'"
+          title="Vista vertical">
+          📄 Vertical
+        </button>
+        <button class="btn btn-ghost btn-sm"
+          [class.active]="pdfOrientation === 'landscape'"
+          (click)="pdfOrientation = 'landscape'"
+          title="Vista horizontal">
+          📑 Horizontal
+        </button>
         <button class="btn btn-ghost btn-sm" (click)="descargar()" [disabled]="generating" title="Descargar PDF">
           ⬇ Descargar
         </button>
@@ -100,15 +112,15 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   styles: [`
 .pdf-backdrop {
   position: fixed; inset: 0; z-index: 1100;
-  background: rgba(0,0,0,.65);
+  background: rgba(0, 0, 0, 0.65);
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
 }
 
 .pdf-modal {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 25px 60px rgba(0,0,0,.4);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
   width: min(920px, 96vw);
   height: min(92vh, 820px);
   display: flex;
@@ -122,10 +134,10 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #e2e8f0;
   gap: 12px;
   flex-shrink: 0;
-  background: var(--color-surface);
+  background: #f8fafc;
 }
 
 .pdf-header-info {
@@ -134,14 +146,14 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 
 .pdf-title {
   font-size: 15px;
-  font-weight: var(--weight-semibold);
-  color: var(--color-text);
+  font-weight: 600;
+  color: #1e293b;
   margin: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .pdf-subtitle {
-  font-size: 12px; color: var(--color-text-secondary);
+  font-size: 12px; color: #64748b;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -151,16 +163,16 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 
 .pdf-close {
   background: none; border: none; cursor: pointer;
-  color: var(--color-text-secondary);
+  color: #64748b;
   font-size: 18px; padding: 4px 8px;
-  border-radius: var(--radius-sm); line-height: 1;
-  &:hover { background: var(--color-hover); }
+  border-radius: 6px; line-height: 1;
 }
+.pdf-close:hover { background: #f1f5f9; }
 
 /* ── Body ── */
 .pdf-body {
   flex: 1; min-height: 0; position: relative;
-  background: #525659;   /* gris neutro típico de visores PDF */
+  background: #525659;
   display: flex; align-items: center; justify-content: center;
 }
 
@@ -178,14 +190,13 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 
 .pdf-spinner {
   width: 36px; height: 36px;
-  border: 3px solid rgba(255,255,255,.3);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin .7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* object tag cubre todo el body */
 .pdf-preview-wrap {
   width: 100%; height: 100%;
   display: flex; align-items: stretch;
@@ -196,15 +207,14 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   display: block; border: none;
 }
 
-/* Fallback cuando el objeto no renderiza */
 .pdf-fallback {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 12px;
-  color: var(--color-text);
+  color: #1e293b;
   padding: 40px;
   text-align: center;
-  background: var(--color-surface);
+  background: #ffffff;
   width: 100%;
 }
 
@@ -215,13 +225,13 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   display: flex; align-items: center;
   justify-content: space-between;
   padding: 12px 18px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid #e2e8f0;
   gap: 12px; flex-shrink: 0;
-  background: var(--color-surface);
+  background: #f8fafc;
 }
 
 .pdf-footer-note {
-  font-size: 12px; color: var(--color-text-secondary);
+  font-size: 12px; color: #64748b;
 }
 
 .pdf-footer-btns { display: flex; gap: 10px; }
@@ -233,13 +243,20 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 }
   `],
 })
-export class RendicionPdfPreviewComponent implements OnInit, OnDestroy {
+export class RendicionPdfPreviewComponent implements OnInit, OnDestroy, OnChanges {
   @Input()  rend!: RendM;
   @Input()  docs:  RendD[] = [];
   @Input()  mode:  'envio' | 'reprint' = 'envio';
+  @Input()  orientation: 'portrait' | 'landscape' = 'portrait';
 
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel  = new EventEmitter<void>();
+
+  get pdfOrientation(): 'portrait' | 'landscape' { return this.orientation; }
+  set pdfOrientation(v: 'portrait' | 'landscape') { 
+    this.orientation = v; 
+    this.generarPdf(); 
+  }
 
   generating = true;
   confirming = false;
@@ -257,6 +274,12 @@ export class RendicionPdfPreviewComponent implements OnInit, OnDestroy {
 
   ngOnInit() { this.generarPdf(); }
 
+  ngOnChanges() { 
+    if (this.docs && this.docs.length > 0 && this.rend) {
+      this.generarPdf();
+    }
+  }
+
   ngOnDestroy() { this._revokeUrl(); }
 
   private _revokeUrl() {
@@ -273,7 +296,7 @@ export class RendicionPdfPreviewComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
 
     try {
-      const result   = await this.pdfSvc.generarPDF(this.rend, this.docs);
+      const result   = await this.pdfSvc.generarPDF(this.rend, this.docs, this.orientation);
       this.blob      = result.blob;
       this._revokeUrl();
       this.objectUrl = result.url;

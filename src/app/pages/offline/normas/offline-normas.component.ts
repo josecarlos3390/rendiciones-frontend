@@ -128,7 +128,7 @@ export class OfflineNormasComponent implements OnInit {
 
     const onSuccess = () => {
       this.isSaving = false;
-      this.toast.success(this.editingItem ? 'Norma actualizada' : 'Norma creada');
+      this.toast.exito(this.editingItem ? 'Norma actualizada' : 'Norma creada');
       this.closeForm(); this.load();
     };
     const onError = (err: any) => {
@@ -153,7 +153,7 @@ export class OfflineNormasComponent implements OnInit {
       confirmLabel: 'Sí, eliminar', type: 'danger',
     }, () => {
       this.svc.remove(n.NR_FACTOR_CODE).subscribe({
-        next: () => { this.toast.success('Norma eliminada'); this.load(); },
+        next: () => { this.toast.exito('Norma eliminada'); this.load(); },
         error: (err: any) => this.toast.error(err?.error?.message || 'Error al eliminar'),
       });
     });

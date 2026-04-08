@@ -28,11 +28,14 @@
       <button class="modal-close" type="button" (click)="cancelPerfilPicker()">✕</button>
     </div>
     <div class="modal-body">
-      <app-skeleton-loader *ngIf="loading" variant="table" [rows]="5">
+      <app-skeleton-loader *ngIf="loadingMisPerfiles" variant="table" [rows]="5">
       </app-skeleton-loader>
-      <div class="empty-state" *ngIf="!loadingMisPerfiles && misPermisos.length === 0" style="padding: 32px 0">
-        🔒 No tenés perfiles asignados. Contactá al administrador.
-      </div>
+      <app-empty-state
+        *ngIf="!loadingMisPerfiles && misPermisos.length === 0"
+        icon="users"
+        title="Sin perfiles asignados"
+        message="No tenés perfiles asignados. Contactá al administrador para que te asigne uno.">
+      </app-empty-state>
       <ng-container *ngIf="!loadingMisPerfiles && misPermisos.length > 0">
         <p style="margin: 0 0 12px; font-size: 0.875rem; color: var(--text-muted);">
           Seleccioná el perfil para ver y crear rendiciones:
@@ -85,6 +88,7 @@
             *ngIf="cuentaEsAsociada !== 'N'"
             [car]="filtroEmpleadoCar" [filtro]="filtroEmpleado"
             [initialCode]="form.get('empleado')?.value"
+            [initialName]="form.get('nombreEmpleado')?.value"
             [invalid]="!!form.get('empleado')?.invalid && !!form.get('empleado')?.touched"
             [placeholder_text]="filtroEmpleado ? '— Buscar y seleccionar empleado —' : 'Sin filtro de empleados configurado'"
             (empleadoChange)="onEmpleadoSelected($event)">
@@ -168,11 +172,13 @@
       <div class="modal-footer modal-2col-footer">
         <ng-container *ngIf="isDirty; else noChanges">
           <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-          <button type="submit" [class]="editingRend ? 'btn btn-save-changes' : 'btn btn-primary'"
-            [disabled]="form.invalid || isSaving">
-            <span *ngIf="isSaving">Guardando...</span>
-            <span *ngIf="!isSaving">{{ editingRend ? '💾 Guardar cambios' : '➕ Crear Rendición' }}</span>
-          </button>
+          <app-loading-button
+            type="primary"
+            buttonType="submit"
+            [loading]="isSaving"
+            [disabled]="form.invalid">
+            {{ editingRend ? '💾 Guardar cambios' : '➕ Crear Rendición' }}
+          </app-loading-button>
         </ng-container>
         <ng-template #noChanges>
           <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
@@ -249,6 +255,11 @@
             <span class="chip-dot chip-dot--open"></span> Pendientes
           </button>
           <button type="button" class="estado-chip"
+            [class.estado-chip--active]="estadoFiltro === 'cerradas'"
+            (click)="onEstadoFiltroChange('cerradas')">
+            <span class="chip-dot chip-dot--sent"></span> Cerradas
+          </button>
+          <button type="button" class="estado-chip"
             [class.estado-chip--active]="estadoFiltro === 'enviadas'"
             (click)="onEstadoFiltroChange('enviadas')">
             <span class="chip-dot chip-dot--sent"></span> Enviadas
@@ -274,12 +285,13 @@
       <!-- Búsqueda -->
       <div class="filter-field">
         <label>Buscar</label>
-        <div class="filter-search">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" placeholder="Objetivo, empleado, cuenta..."
-            [(ngModel)]="search" (input)="applyFilter()" />
-          <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
-        </div>
+        <app-search-input
+          placeholder="Objetivo, empleado, cuenta..."
+          [debounceTime]="300"
+          [(search)]="search"
+          (valueChange)="applyFilter()"
+          (cleared)="applyFilter()">
+        </app-search-input>
       </div>
 
     </div>
@@ -290,38 +302,78 @@
     </span>
   </div>
 
-  <div *ngIf="loading" class="empty-state">⏳ Cargando rendiciones...</div>
-  <div *ngIf="!loading && loadError" class="empty-state">
-    No se pudo cargar la lista. <a (click)="load()">Reintentar</a>
-  </div>
-  <div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-    <ng-container [ngSwitch]="estadoFiltro">
-      <ng-container *ngSwitchCase="'abiertas'">
-        No tenés rendiciones pendientes en este perfil. <a (click)="openNew()">Crear la primera</a>
-      </ng-container>
-      <ng-container *ngSwitchCase="'enviadas'">
-        No tenés rendiciones enviadas en este perfil.
-      </ng-container>
-      <ng-container *ngSwitchCase="'aprobadas'">
-        No tenés rendiciones aprobadas en este perfil.
-      </ng-container>
-      <ng-container *ngSwitchCase="'sincronizadas'">
-        No tenés rendiciones sincronizadas con SAP en este perfil.
-      </ng-container>
-      <ng-container *ngSwitchDefault>
-        No hay rendiciones en este perfil. <a (click)="openNew()">Crear la primera</a>
-      </ng-container>
-    </ng-container>
-  </div>
+  <!-- Estado de carga -->
+  <app-skeleton-loader *ngIf="loading" variant="table" [rows]="5"></app-skeleton-loader>
+  
+  <!-- Error de carga -->
+  <app-empty-state
+    *ngIf="!loading && loadError"
+    icon="inbox"
+    title="Error al cargar"
+    message="No se pudo cargar la lista de rendiciones. Intentá de nuevo."
+    [showAction]="true"
+    actionText="Reintentar"
+    (action)="load()">
+  </app-empty-state>
+  
+  <!-- Estado vacío según filtro -->
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'abiertas'"
+    icon="folder"
+    title="No hay rendiciones abiertas"
+    message="No tenés rendiciones pendientes en este perfil."
+    [showAction]="true"
+    actionText="Crear la primera"
+    (action)="openNew()">
+  </app-empty-state>
+  
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'cerradas'"
+    icon="check"
+    title="No hay rendiciones cerradas"
+    message="No tenés rendiciones cerradas en este perfil.">
+  </app-empty-state>
+  
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'enviadas'"
+    icon="inbox"
+    title="No hay rendiciones enviadas"
+    message="No tenés rendiciones enviadas para aprobación.">
+  </app-empty-state>
+  
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'aprobadas'"
+    icon="check"
+    title="No hay rendiciones aprobadas"
+    message="No tenés rendiciones aprobadas en este perfil.">
+  </app-empty-state>
+  
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'sincronizadas'"
+    icon="chart"
+    title="No hay rendiciones sincronizadas"
+    message="No tenés rendiciones sincronizadas con SAP.">
+  </app-empty-state>
+  
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'error'"
+    icon="inbox"
+    title="No hay rendiciones con error"
+    message="No tenés rendiciones con error de sincronización.">
+  </app-empty-state>
+  
+  <app-empty-state
+    *ngIf="!loading && !loadError && filtered.length === 0 && estadoFiltro === 'todas'"
+    icon="folder"
+    title="No hay rendiciones"
+    message="Este perfil aún no tiene rendiciones creadas."
+    [showAction]="true"
+    actionText="Crear la primera"
+    (action)="openNew()">
+  </app-empty-state>
 
   <!-- ── Tabla principal (propias / todas) ─────────────────────────── -->
-  <ng-container *ngIf="verFiltro !== 'subordinados'">
-
-    <div *ngIf="loading" class="empty-state">⏳ Cargando...</div>
-
-    <div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-      No hay rendiciones que coincidan con los filtros seleccionados.
-    </div>
+  <ng-container *ngIf="verFiltro !== 'subordinados' && !loading && !loadError && filtered.length > 0">
 
     <div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
       <table class="data-table">
@@ -338,8 +390,13 @@
             <th class="actions">Acciones</th>
           </tr>
         </thead>
-        <tbody>
-          <tr *ngFor="let r of paged">
+        <app-virtual-table-body 
+          [items]="paged" 
+          [itemHeight]="64"
+          [maxItems]="15"
+          [colspan]="9"
+          [trackByFn]="trackByRendicion">
+          <ng-template #rowTemplate let-r>
             <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
             <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
             <td class="col-cuenta" data-label="Cuenta">
@@ -375,13 +432,18 @@
                   ✈ Enviar
                 </button>
               </ng-container>
+              <button *ngIf="canReprint(r)"
+                class="btn btn-icon btn-sm btn-ghost" title="Ver/Imprimir comprobante"
+                (click)="reimprimir(r)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              </button>
               <button class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar rendición"
                 *ngIf="canDelete(r)" (click)="confirmDelete(r)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               </button>
             </td>
-          </tr>
-        </tbody>
+          </ng-template>
+        </app-virtual-table-body>
       </table>
       <app-paginator [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
         (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
@@ -397,11 +459,15 @@
       <span>Rendiciones de subordinados</span>
     </div>
 
-    <div *ngIf="loadingSubordinados" class="empty-state">⏳ Cargando subordinados...</div>
+    <app-skeleton-loader *ngIf="loadingSubordinados" variant="table" [rows]="3"></app-skeleton-loader>
 
-    <div *ngIf="!loadingSubordinados && rendicionesSubordinados.length === 0" class="empty-state">
-      No hay rendiciones de subordinados con los filtros seleccionados.
-    </div>
+    <app-empty-state
+      *ngIf="!loadingSubordinados && rendicionesSubordinados.length === 0"
+      icon="users"
+      title="No hay rendiciones de subordinados"
+      message="No se encontraron rendiciones de tus subordinados con los filtros seleccionados."
+      [compact]="true">
+    </app-empty-state>
 
     <div class="table-wrapper" *ngIf="!loadingSubordinados && rendicionesSubordinados.length > 0">
       <table class="data-table">

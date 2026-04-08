@@ -222,8 +222,44 @@ html, body {
 a  { text-decoration: none; color: inherit; }
 button { font-family: inherit; }
 :focus { outline: none; }
-:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-a:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: 3px; }
+:focus-visible { 
+  outline: 2px solid var(--color-primary); 
+  outline-offset: 2px; 
+}
+a:focus-visible { 
+  outline: none; 
+  box-shadow: var(--shadow-focus); 
+  border-radius: 3px; 
+}
+
+/* Mejoras de accesibilidad para botones y elementos interactivos */
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-color: var(--border-focus);
+}
+
+/* Saltar al contenido - para navegación por teclado */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: white;
+  padding: 8px 16px;
+  z-index: 10000;
+  transition: top 0.2s;
+  
+  &:focus {
+    top: 0;
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+}
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
@@ -780,5 +816,115 @@ th.th-net { color: var(--text-heading); font-weight: var(--weight-bold); }
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     padding: 14px 16px;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   PREFERS-REDUCED-MOTION - Accesibilidad
+   Respetamos las preferencias del usuario sobre animaciones
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .modal-backdrop,
+  .modal-card,
+  .user-modal,
+  .preview-modal,
+  .preview-content {
+    animation: none !important;
+  }
+  
+  .spinner,
+  .pdf-spinner {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MEJORAS DE FOCUS PARA NAVEGACIÓN POR TECLADO
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Focus visible mejorado para tablas */
+.data-table {
+  tbody tr:focus-within {
+    background: var(--bg-subtle);
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+  
+  td:focus,
+  th:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+}
+
+/* Focus para botones de icono */
+.btn-icon:focus-visible,
+.btn-more:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Focus para enlaces en tablas */
+.data-table a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Focus para inputs deshabilitados (lectura) */
+input:read-only:focus-visible,
+select:disabled:focus-visible {
+  outline: 2px dashed var(--text-muted);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN READER ONLY - Texto solo para lectores de pantalla
+   ═══════════════════════════════════════════════════════════════ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HIGH CONTRAST MODE - Soporte para modo alto contraste
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-body: #000000;
+    --text-heading: #000000;
+  }
+  
+  [data-theme="dark"] {
+    --border-color: #ffffff;
+    --text-body: #ffffff;
+    --text-heading: #ffffff;
+    --bg-surface: #000000;
+  }
+  
+  .btn-primary {
+    border: 2px solid currentColor;
+  }
+  
+  :focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 3px;
   }
 }

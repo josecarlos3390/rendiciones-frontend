@@ -8,6 +8,7 @@ import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-
 import { AuthService } from '../../auth/auth.service';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
+import { SearchInputComponent } from '../../shared/debounce';
 import { User } from '../../models/user.model';
 import { SapService, DimensionWithRules } from '../../services/sap.service';
 import { UserFormComponent } from './user-form/user-form.component';
@@ -19,6 +20,7 @@ import { UserFormComponent } from './user-form/user-form.component';
     CommonModule, FormsModule,
     ConfirmDialogComponent, PaginatorComponent,
     SkeletonLoaderComponent, UserFormComponent,
+    SearchInputComponent,
   ],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
@@ -192,7 +194,7 @@ export class UsersComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.load(() => {
-            this.toast.success('Usuario actualizado');
+            this.toast.exito('Usuario actualizado');
             this.closeForm();
           });
           this.cdr.markForCheck();
@@ -210,7 +212,7 @@ export class UsersComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.load(() => {
-            this.toast.success('Usuario creado');
+            this.toast.exito('Usuario creado');
             this.closeForm();
           });
           this.cdr.markForCheck();
@@ -239,7 +241,7 @@ export class UsersComponent implements OnInit {
     }, () => {
       this.usersService.toggleStatus(u.U_IdU, isActive ? '0' : '1', u).subscribe({
         next:  () => {
-          this.toast.success(isActive ? 'Usuario inactivado' : 'Usuario activado');
+          this.toast.exito(isActive ? 'Usuario inactivado' : 'Usuario activado');
           this.load();
           this.cdr.markForCheck();
         },

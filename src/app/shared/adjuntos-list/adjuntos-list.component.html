@@ -1,0 +1,108 @@
+<div class="adjuntos-container">
+  
+  <!-- Lista de adjuntos -->
+  <div *ngIf="adjuntos.length > 0" class="adjuntos-lista">
+    <div *ngFor="let adjunto of adjuntos" class="adjunto-item">
+      <div class="adjunto-icono">{{ getFileIcon(adjunto.tipo) }}</div>
+      
+      <div class="adjunto-info">
+        <span class="adjunto-nombre" [title]="adjunto.nombre">{{ adjunto.nombre }}</span>
+        <span class="adjunto-meta">{{ formatFileSize(adjunto.tamano) }} • {{ adjunto.fecha | date:'short' }}</span>
+        <span *ngIf="adjunto.descripcion" class="adjunto-desc">{{ adjunto.descripcion }}</span>
+      </div>
+      
+      <div class="adjunto-acciones">
+        <button 
+          class="btn-icon" 
+          [title]="isPreviewable(adjunto.tipo) ? 'Ver' : 'Descargar'"
+          (click)="verPreview(adjunto)">
+          <svg *ngIf="isPreviewable(adjunto.tipo)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg *ngIf="!isPreviewable(adjunto.tipo)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
+        
+        <button 
+          class="btn-icon btn-danger" 
+          title="Eliminar"
+          *ngIf="canEdit"
+          (click)="eliminar(adjunto)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drag & Drop / Upload -->
+  <div 
+    *ngIf="canEdit"
+    class="upload-zone"
+    [class.dragover]="false"
+    (drop)="onDrop($event)"
+    (dragover)="onDragOver($event)"
+    (click)="fileInput.click()">
+    
+    <input 
+      #fileInput
+      type="file" 
+      hidden
+      (change)="onFileSelected($event)"
+      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"/>
+    
+    <div *ngIf="!uploading" class="upload-content">
+      <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <span class="upload-text">
+        <strong>Arrastra archivos aquí</strong> o haz clic para subir
+      </span>
+      <span class="upload-hint">PDF, imágenes, Word, Excel (max 10MB)</span>
+    </div>
+    
+    <div *ngIf="uploading" class="upload-progress">
+      <div class="spinner"></div>
+      <span>Subiendo archivo...</span>
+    </div>
+  </div>
+
+  <!-- Sin adjuntos -->
+  <div *ngIf="adjuntos.length === 0 && !canEdit" class="sin-adjuntos">
+    <span>No hay archivos adjuntos</span>
+  </div>
+</div>
+
+<!-- Modal Preview -->
+<div *ngIf="previewUrl" class="preview-modal" (click)="cerrarPreview()">
+  <div class="preview-content" (click)="$event.stopPropagation()">
+    <div class="preview-header">
+      <span class="preview-titulo">{{ previewNombre }}</span>
+      <button class="btn-cerrar" (click)="cerrarPreview()">✕</button>
+    </div>
+    <div class="preview-body">
+      <!-- PDF con object (más compatible que iframe) -->
+      <object 
+        *ngIf="previewTipo?.includes('pdf')" 
+        [data]="previewUrl" 
+        type="application/pdf"
+        class="preview-frame">
+        <div style="text-align: center; padding: 40px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+          <p>No se puede mostrar el PDF en el navegador.</p>
+          <button class="btn btn-primary" (click)="descargarDesdePreview()">Descargar PDF</button>
+        </div>
+      </object>
+      <!-- Imágenes -->
+      <img *ngIf="!previewTipo?.includes('pdf')" [src]="previewUrl" class="preview-img" />
+    </div>
+  </div>
+</div>

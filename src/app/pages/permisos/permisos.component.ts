@@ -149,7 +149,7 @@ export class PermisosComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.selectedPerfilId = null;
-          this.toast.success('Permiso asignado correctamente');
+          this.toast.exito('Permiso asignado correctamente');
           this.loadPermisos();
           this.cdr.markForCheck();
         },
@@ -173,7 +173,7 @@ export class PermisosComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(p.U_IDUSUARIO, p.U_IDPERFIL).subscribe({
-        next:  () => { this.toast.success('Permiso eliminado'); this.loadPermisos(); this.cdr.markForCheck(); },
+        next:  () => { this.toast.exito('Permiso eliminado'); this.loadPermisos(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');

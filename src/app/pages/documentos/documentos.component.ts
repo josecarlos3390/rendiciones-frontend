@@ -12,13 +12,14 @@ import { Perfil } from '../../models/perfil.model';
 import { AppSelectComponent } from '../../shared/app-select/app-select.component';
 import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
 import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search.component';
+import { SearchInputComponent } from '../../shared/debounce';
 import { AuthService }            from '../../auth/auth.service';
 import { ChartOfAccount }         from '../../services/sap.service';
 
 @Component({
   standalone: true,
   selector: 'app-documentos',
-  imports: [CommonModule, TipoDocSapSelectComponent, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent],
+  imports: [CommonModule, TipoDocSapSelectComponent, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent, SearchInputComponent],
   templateUrl: './documentos.component.html',
   styleUrls: ['./documentos.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -213,7 +214,7 @@ export class DocumentosComponent implements OnInit {
         this.isSaving = false;
         const msg = this.isEditing ? 'Documento actualizado' : 'Documento creado';
         this.loadDocumentos(() => {
-          this.toast.success(msg);
+          this.toast.exito(msg);
           this.closeForm();
         });
         this.cdr.markForCheck();
@@ -238,7 +239,7 @@ export class DocumentosComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(doc.U_IdDocumento).subscribe({
-        next:  () => { this.toast.success('Documento eliminado'); this.loadDocumentos(); this.cdr.markForCheck(); },
+        next:  () => { this.toast.exito('Documento eliminado'); this.loadDocumentos(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');

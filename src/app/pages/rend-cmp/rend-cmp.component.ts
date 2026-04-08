@@ -124,7 +124,7 @@ export class RendCmpComponent implements OnInit {
       next: () => {
         this.isSaving = false;
         this.closeForm();
-        this.toast.success(this.editingItem ? 'Campo actualizado' : 'Campo creado');
+        this.toast.exito(this.editingItem ? 'Campo actualizado' : 'Campo creado');
         this.load();
       },
       error: (err) => {
@@ -143,7 +143,7 @@ export class RendCmpComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.svc.remove(item.U_IdCampo).subscribe({
-        next:  () => { this.toast.success('Campo eliminado'); this.load(); },
+        next:  () => { this.toast.exito('Campo eliminado'); this.load(); },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al eliminar'),
       });
     });

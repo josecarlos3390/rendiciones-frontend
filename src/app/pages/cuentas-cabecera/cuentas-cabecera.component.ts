@@ -156,7 +156,7 @@ export class CuentasCabeceraComponent implements OnInit {
       next: () => {
         this.isSaving = false;
         this.loadCuentas(() => {
-          this.toast.success('Cuenta agregada');
+          this.toast.exito('Cuenta agregada');
           this.closeForm();
         });
         this.cdr.markForCheck();
@@ -181,7 +181,7 @@ export class CuentasCabeceraComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.service.remove(c.U_IdPerfil, c.U_CuentaSys).subscribe({
-        next:  () => { this.toast.success('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
+        next:  () => { this.toast.exito('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');

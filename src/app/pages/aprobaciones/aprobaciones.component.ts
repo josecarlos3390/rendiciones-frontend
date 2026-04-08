@@ -4,24 +4,30 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AprobacionesService, AprobacionPendiente } from '../../services/aprobaciones.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
+import { VirtualTableBodyComponent } from '../../shared/virtual-table';
 
 @Component({
   selector:        'app-aprobaciones',
   standalone:      true,
   changeDetection: ChangeDetectionStrategy.Default,
-  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent],
+  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent, VirtualTableBodyComponent],
   templateUrl: './aprobaciones.component.html',
   styleUrls:  ['./aprobaciones.component.scss'],
 })
 export class AprobacionesComponent implements OnInit {
 
-  pendientes:  AprobacionPendiente[] = [];
-  loading      = false;
-  loadError    = false;
+  pendientes:       AprobacionPendiente[] = [];
+  loading          = false;
+  loadError        = false;
+
+  // Filtro dinámico por nivel
+  nivelFiltro: number | 'todas' = 'todas';
 
   // Modal acción
   showAccionModal  = false;
@@ -43,9 +49,16 @@ export class AprobacionesComponent implements OnInit {
     this.loadError = false;
     this.cdr.markForCheck();
 
-    this.svc.getPendientes().subscribe({
-      next: (data) => {
-        this.pendientes = data;
+    forkJoin({
+      nivel1: this.svc.getPendientes().pipe(catchError(() => of([]))),
+      nivel2: this.svc.getPendientesNivel2().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ nivel1, nivel2 }) => {
+        // Unificar ambas listas y eliminar duplicados por U_IdRendicion
+        const mapa = new Map<number, AprobacionPendiente>();
+        for (const p of nivel1) mapa.set(p.U_IdRendicion, p);
+        for (const p of nivel2) if (!mapa.has(p.U_IdRendicion)) mapa.set(p.U_IdRendicion, p);
+        this.pendientes = Array.from(mapa.values()).sort((a, b) => b.U_IdRendicion - a.U_IdRendicion);
         this.loading    = false;
         this.cdr.markForCheck();
       },
@@ -55,6 +68,26 @@ export class AprobacionesComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  cambiarNivelFiltro(nivel: number | 'todas') {
+    this.nivelFiltro = nivel;
+    this.cdr.markForCheck();
+  }
+
+  get nivelesDisponibles(): number[] {
+    const niveles = new Set<number>();
+    for (const p of this.pendientes) niveles.add(p.U_Nivel);
+    return Array.from(niveles).sort((a, b) => a - b);
+  }
+
+  get pendientesActivos(): AprobacionPendiente[] {
+    if (this.nivelFiltro === 'todas') return this.pendientes;
+    return this.pendientes.filter(p => p.U_Nivel === this.nivelFiltro);
+  }
+
+  get hayPendientes(): boolean {
+    return this.pendientes.length > 0;
   }
 
   openAprobar(rend: AprobacionPendiente) {
@@ -95,12 +128,10 @@ export class AprobacionesComponent implements OnInit {
       next: (res) => {
         this.isSaving = false;
         this.closeModal();
-        this.toast.success(res.message);
+        this.toast.exito(res.message);
 
-        // Feedback optimista — quitar la fila inmediatamente
-        this.pendientes = this.pendientes.filter(
-          p => p.U_IdRendicion !== idRend
-        );
+        // Feedback optimista — quitar la fila de la lista
+        this.pendientes = this.pendientes.filter(p => p.U_IdRendicion !== idRend);
         this.cdr.markForCheck();
 
         // Recargar en background para sincronizar con el servidor
@@ -116,7 +147,7 @@ export class AprobacionesComponent implements OnInit {
 
   estadoRendTexto(estado: number): string {
     const map: Record<number, string> = {
-      1: 'ABIERTO', 2: 'CERRADO', 3: 'APROBADO', 4: 'ENVIADO',
+      1: 'ABIERTO', 2: 'CERRADO', 3: 'ELIMINADO', 4: 'ENVIADO', 7: 'APROBADO',
     };
     return map[estado] ?? `Estado ${estado}`;
   }
@@ -129,5 +160,9 @@ export class AprobacionesComponent implements OnInit {
       4: 'status-badge status-sent',
     };
     return map[estado] ?? 'status-badge';
+  }
+
+  trackByPendiente(index: number, p: AprobacionPendiente): number {
+    return p.U_IdRendicion;
   }
 }

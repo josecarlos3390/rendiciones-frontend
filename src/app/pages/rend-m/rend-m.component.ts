@@ -1,5 +1,5 @@
 import { RouterModule, Router } from '@angular/router';
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule, ReactiveFormsModule,
@@ -25,6 +25,11 @@ import { CuentaCabeceraSelectComponent }     from '../../shared/cuenta-cabecera-
 import { DdmmyyyyPipe }           from '../../shared/ddmmyyyy.pipe';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
 import { RendicionPdfPreviewComponent } from '../../shared/rendicion-pdf/rendicion-pdf-preview.component';
+import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
+import { LoadingButtonComponent } from '../../shared/loading-button/loading-button.component';
+import { SearchInputComponent } from '../../shared/debounce';
+import { VirtualTableBodyComponent } from '../../shared/virtual-table';
+import { RendicionFilterService } from '../../services/rendicion-filter.service';
 import {
   RendM, CreateRendMPayload,
   ESTADO_LABEL, ESTADO_CLASS,
@@ -37,7 +42,7 @@ import { RendD } from '../../models/rend-d.model';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
             ConfirmDialogComponent, PaginatorComponent, EmpleadoSearchComponent,
             CuentaCabeceraSelectComponent, DdmmyyyyPipe, SkeletonLoaderComponent,
-            RendicionPdfPreviewComponent],
+            RendicionPdfPreviewComponent, EmptyStateComponent, LoadingButtonComponent, SearchInputComponent, VirtualTableBodyComponent],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -67,12 +72,8 @@ export class RendMComponent implements OnInit {
   loadingPerfilesPaso1 = false;
 
   // ── Filtros unificados ───────────────────────────────────────
-  // "ver": qué rendiciones mostrar
-  //   'propias'      → solo las del usuario logueado
-  //   'subordinados' → solo las de su equipo
-  //   'todas'        → propias + subordinados juntos (paginados por separado, mostrados juntos)
   verFiltro:    'propias' | 'subordinados' | 'todas' = 'propias';
-  estadoFiltro: 'todas' | 'abiertas' | 'enviadas' | 'aprobadas' | 'sincronizadas' | 'error' = 'todas';
+  estadoFiltro: 'todas' | 'abiertas' | 'cerradas' | 'enviadas' | 'aprobadas' | 'sincronizadas' | 'error' = 'todas';
 
   // Datos combinados en la vista
   rendicionesSubordinados: RendM[] = [];
@@ -136,6 +137,7 @@ export class RendMComponent implements OnInit {
     private permisosService:        PermisosService,
     private cuentasCabeceraService: CuentasCabeceraService,
     private aprobSvc:               AprobacionesService,
+    private filterService:         RendicionFilterService,
   ) {}
 
   ngOnInit() {
@@ -212,6 +214,7 @@ export class RendMComponent implements OnInit {
 
     this.rendMService.getAll({
       idPerfil: this.perfilActivo?.U_CodPerfil,
+      estados:  this.filterService.estadosNumericos(),
       page:     this.page,
       limit:    this.limit,
     }).subscribe({
@@ -221,7 +224,11 @@ export class RendMComponent implements OnInit {
         this.paged       = result.data;
         this.totalPages  = result.totalPages;
         this.loading     = false;
+        
+        // Sincronizar con el servicio de filtros
+        this.filterService.setRendiciones(result.data);
         this.applyLocalFilter();
+        
         this.cdr.markForCheck();
         onComplete?.();
       },
@@ -242,7 +249,7 @@ export class RendMComponent implements OnInit {
     this.cdr.markForCheck();
 
     this.rendMService.getSubordinados({
-      estados:  this._estadosNumericos(),
+      estados:  this.filterService.estadosNumericos(),
       idPerfil: this.perfilActivo?.U_CodPerfil,
       page:     this.pageSubordinados,
       limit:    this.limit,
@@ -252,6 +259,10 @@ export class RendMComponent implements OnInit {
         this.totalSubordinados       = result.total;
         this.totalPagesSubordinados  = result.totalPages;
         this.loadingSubordinados     = false;
+        
+        // Sincronizar con el servicio de filtros
+        this.filterService.setRendicionesSubordinados(result.data);
+        
         this.cdr.markForCheck();
         onComplete?.();
       },
@@ -267,6 +278,7 @@ export class RendMComponent implements OnInit {
   private _estadosNumericos(): number[] {
     switch (this.estadoFiltro) {
       case 'abiertas':     return [1];
+      case 'cerradas':     return [2];
       case 'enviadas':     return [4];
       case 'aprobadas':    return [3];
       case 'sincronizadas':return [5];
@@ -277,7 +289,8 @@ export class RendMComponent implements OnInit {
 
   /** Cambia el filtro "Ver" y recarga los datos necesarios */
   onVerFiltroChange(ver: 'propias' | 'subordinados' | 'todas') {
-    this.verFiltro        = ver;
+    this.verFiltro = ver;
+    this.filterService.setVerFiltro(ver);
     this.page             = 1;
     this.pageSubordinados = 1;
     if (ver === 'propias')       { this.load(); }
@@ -288,7 +301,8 @@ export class RendMComponent implements OnInit {
 
   /** Cambia el filtro de estado y recarga según vista activa */
   onEstadoFiltroChange(estado: string) {
-    this.estadoFiltro     = estado as any;
+    this.estadoFiltro = estado as any;
+    this.filterService.setEstadoFiltro(estado as any);
     this.page             = 1;
     this.pageSubordinados = 1;
     if (this.verFiltro !== 'subordinados') this.load();
@@ -302,8 +316,9 @@ export class RendMComponent implements OnInit {
     const q = this.search.toLowerCase();
     let base = this.rendiciones;
     if      (this.estadoFiltro === 'abiertas')      base = base.filter(r => r.U_Estado === 1);
+    else if (this.estadoFiltro === 'cerradas')       base = base.filter(r => r.U_Estado === 2);
     else if (this.estadoFiltro === 'enviadas')       base = base.filter(r => r.U_Estado === 4);
-    else if (this.estadoFiltro === 'aprobadas')      base = base.filter(r => r.U_Estado === 3);
+    else if (this.estadoFiltro === 'aprobadas')      base = base.filter(r => r.U_Estado === 7);
     else if (this.estadoFiltro === 'sincronizadas')  base = base.filter(r => r.U_Estado === 5);
     else if (this.estadoFiltro === 'error')          base = base.filter(r => r.U_Estado === 6);
     this.filtered = base.filter(r =>
@@ -369,6 +384,8 @@ export class RendMComponent implements OnInit {
     this.filtroEmpleadoCar = this.perfilActivo?.U_EMP_CAR   ?? 'EMPIEZA';
     this.estadoFiltro      = 'todas';
     this.verFiltro         = 'propias';
+    this.filterService.setEstadoFiltro('todas');
+    this.filterService.setVerFiltro('propias');
     this.search            = '';
     this.applyFilter();
     this.cdr.markForCheck();
@@ -383,6 +400,8 @@ export class RendMComponent implements OnInit {
     this.showPerfilPicker  = false;
     this.estadoFiltro      = 'todas';
     this.verFiltro         = 'propias';
+    this.filterService.setEstadoFiltro('todas');
+    this.filterService.setVerFiltro('propias');
     this.search            = '';
     this.load();
     this.cdr.markForCheck();
@@ -612,7 +631,7 @@ export class RendMComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.load(() => {
-            this.toast.success('Rendición actualizada');
+            this.toast.exito('Rendición actualizada');
             this.closeForm();
           });
           this.cdr.markForCheck();
@@ -626,7 +645,7 @@ export class RendMComponent implements OnInit {
       this.rendMService.create(payload).subscribe({
         next: (rendicion) => {
           this.isSaving = false;
-          this.toast.success('Rendición creada');
+          this.toast.exito('Rendición creada');
           this.closeForm();
           this.router.navigate(['/rend-m', rendicion.U_IdRendicion, 'detalle']);
           this.cdr.markForCheck();
@@ -647,8 +666,8 @@ export class RendMComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.rendMService.remove(r.U_IdRendicion).subscribe({
-        next:  () => { this.toast.success('Rendición eliminada'); this.load(); },
-        error: () => { this.cdr.markForCheck(); },
+        next:  () => { this.toast.exito('Rendición eliminada'); this.load(); },
+        error: () => { this.toast.error('Error al eliminar la rendición'); this.cdr.markForCheck(); }
       });
     });
   }
@@ -675,7 +694,7 @@ export class RendMComponent implements OnInit {
     }, () => {
       this.aprobSvc.aprobar(r.U_IdRendicion).subscribe({
         next: (res) => {
-          this.toast.success(res.message ?? 'Rendición aprobada');
+          this.toast.exito(res.message ?? 'Rendición aprobada');
           this.loadSubordinados();
         },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al aprobar'),
@@ -692,7 +711,7 @@ export class RendMComponent implements OnInit {
     }, () => {
       this.aprobSvc.rechazar(r.U_IdRendicion).subscribe({
         next: (res) => {
-          this.toast.success(res.message ?? 'Rendición rechazada — vuelve a ABIERTO');
+          this.toast.exito(res.message ?? 'Rendición rechazada — vuelve a ABIERTO');
           this.loadSubordinados();
         },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al rechazar'),
@@ -711,7 +730,7 @@ export class RendMComponent implements OnInit {
     }, () => {
       this.aprobSvc.enviar(r.U_IdRendicion).subscribe({
         next: (res) => {
-          this.toast.success(res.message ?? 'Rendición enviada para aprobación');
+          this.toast.exito(res.message ?? 'Rendición enviada para aprobación');
           this.load();
         },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al enviar'),
@@ -728,7 +747,7 @@ export class RendMComponent implements OnInit {
     }, () => {
       this.aprobSvc.enviar(r.U_IdRendicion).subscribe({
         next: (res) => {
-          this.toast.success(res.message ?? 'Preliminar generado — rendición aprobada');
+          this.toast.exito(res.message ?? 'Preliminar generado — rendición aprobada');
           this.load();
         },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al generar preliminar'),
@@ -794,5 +813,10 @@ export class RendMComponent implements OnInit {
   /** Muestra el botón reimprimir para rendiciones ya enviadas/aprobadas/sync */
   canReprint(r: RendM): boolean {
     return [2, 3, 4, 5, 6].includes(r.U_Estado);
+  }
+
+  // ── Track by para virtual scroll ───────────────────────────────────────
+  trackByRendicion(index: number, r: RendM): number {
+    return r.U_IdRendicion;
   }
 }

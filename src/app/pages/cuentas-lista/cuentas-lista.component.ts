@@ -8,6 +8,7 @@ import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-
 import { PaginatorComponent }    from '../../shared/paginator/paginator.component';
 import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
 import { CuentaSearchComponent } from '../../shared/cuenta-search/cuenta-search.component';
+import { SearchInputComponent } from '../../shared/debounce';
 import { CuentaLista }           from '../../models/cuenta-lista.model';
 import { Perfil }                from '../../models/perfil.model';
 import { ChartOfAccount }        from '../../services/sap.service';
@@ -23,6 +24,7 @@ import { AuthService } from '../../auth/auth.service';
     PaginatorComponent,
     PerfilSelectComponent,
     CuentaSearchComponent,
+    SearchInputComponent,
   ],
   templateUrl: './cuentas-lista.component.html',
   styleUrls: ['./cuentas-lista.component.scss'],
@@ -155,7 +157,7 @@ export class CuentasListaComponent implements OnInit {
       next: () => {
         this.isSaving = false;
         this.loadCuentas(() => {
-          this.toast.success('Cuenta agregada');
+          this.toast.exito('Cuenta agregada');
           this.closeForm();
         });
         this.cdr.markForCheck();
@@ -178,7 +180,7 @@ export class CuentasListaComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.cuentasService.remove(c.U_IdPerfil, c.U_CuentaSys).subscribe({
-        next:  () => { this.toast.success('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
+        next:  () => { this.toast.exito('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
         error: (err: any) => { this.toast.error(err?.error?.message || 'Error al eliminar'); this.cdr.markForCheck(); },
       });
     });

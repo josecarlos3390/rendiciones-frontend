@@ -20,13 +20,13 @@
 
   <!-- Barra de búsqueda -->
   <div class="filter-bar">
-    <div class="filter-search">
-      <span class="search-icon">🔍</span>
-      <input type="text" class="search-input"
-        placeholder="Buscar por N°, usuario, perfil u objetivo..."
-        [(ngModel)]="search" (input)="applyFilter()" />
-      <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
-    </div>
+    <app-search-input
+      placeholder="Buscar por N°, usuario, perfil u objetivo..."
+      [debounceTime]="300"
+      [(search)]="search"
+      (valueChange)="applyFilter()"
+      (cleared)="applyFilter()">
+    </app-search-input>
     <span class="filter-count">
       {{ filtered.length }} rendición{{ filtered.length !== 1 ? 'es' : '' }}
     </span>
@@ -34,19 +34,19 @@
 
   <!-- Sin resultados -->
   <div *ngIf="filtered.length === 0 && !search" class="empty-state">
-    <div class="empty-icon">{{ isAdmin ? '✅' : '📋' }}</div>
-    <p *ngIf="isAdmin">No hay rendiciones pendientes de sincronización</p>
-    <p *ngIf="!isAdmin">No tenés rendiciones aprobadas o sincronizadas aún</p>
-    <span class="empty-hint" *ngIf="isAdmin">Las rendiciones aprobadas aparecerán aquí para ser enviadas al ERP</span>
-    <span class="empty-hint" *ngIf="!isAdmin">Cuando tu rendición sea aprobada y sincronizada, aparecerá aquí con el número de documento SAP</span>
+    <div class="empty-icon">{{ (isAdmin || puedeSync) ? '✅' : '📋' }}</div>
+    <p *ngIf="isAdmin || puedeSync">No hay rendiciones pendientes de sincronización</p>
+    <p *ngIf="!isAdmin && !puedeSync">No tenés rendiciones aprobadas o sincronizadas aún</p>
+    <span class="empty-hint" *ngIf="isAdmin || puedeSync">Las rendiciones aprobadas aparecerán aquí para ser enviadas al ERP</span>
+    <span class="empty-hint" *ngIf="!isAdmin && !puedeSync">Cuando tu rendición sea aprobada y sincronizada, aparecerá aquí con el número de documento SAP</span>
   </div>
 
   <div *ngIf="filtered.length === 0 && search" class="empty-state">
     Sin resultados para "{{ search }}"
   </div>
 
-  <!-- ══ VISTA ADMIN: tabla con acciones de sincronización ══ -->
-  <div class="table-wrapper" *ngIf="isAdmin && filtered.length > 0">
+  <!-- ══ VISTA ADMIN/SYNC: tabla con acciones de sincronización ══ -->
+  <div class="table-wrapper" *ngIf="(isAdmin || puedeSync) && filtered.length > 0">
     <table class="data-table">
       <thead>
         <tr>
@@ -101,7 +101,7 @@
   </div>
 
   <!-- ══ VISTA USER: tabla de solo lectura con doc SAP ══ -->
-  <div class="table-wrapper" *ngIf="!isAdmin && filtered.length > 0">
+  <div class="table-wrapper" *ngIf="!isAdmin && !puedeSync && filtered.length > 0">
     <table class="data-table">
       <thead>
         <tr>

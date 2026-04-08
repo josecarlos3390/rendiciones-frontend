@@ -30,6 +30,13 @@ export interface CuentaDto {
 export interface ProveedorDto {
   cardCode: string;
   cardName: string;
+  licTradNum?: string;
+}
+
+export interface EmpleadoDto {
+  cardCode: string;
+  cardName: string;
+  licTradNum?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -82,6 +89,41 @@ export class SapService {
     if (params.filtro)   httpParams = httpParams.set('filtro',   params.filtro);
     if (params.busqueda) httpParams = httpParams.set('busqueda', params.busqueda);
     return this.http.get<ProveedorDto[]>(`${this.api}/proveedores`, { params: httpParams });
+  }
+
+  getProveedoresAll(params: {
+    car:     string;
+    filtro?: string;
+  }): Observable<ProveedorDto[]> {
+    let httpParams = new HttpParams().set('car', params.car);
+    if (params.filtro) httpParams = httpParams.set('filtro', params.filtro);
+    return this.http.get<ProveedorDto[]>(`${this.api}/proveedores-all`, { params: httpParams });
+  }
+
+  getEmpleadosAll(params: {
+    car:     string;
+    filtro?: string;
+  }): Observable<EmpleadoDto[]> {
+    let httpParams = new HttpParams().set('car', params.car);
+    if (params.filtro) httpParams = httpParams.set('filtro', params.filtro);
+    return this.http.get<EmpleadoDto[]>(`${this.api}/empleados-all`, { params: httpParams });
+  }
+
+  getCuentasAll(params: {
+    cueCar:        string;
+    cueTexto?:     string;
+    listaCuentas?: CuentaDto[];
+  }): Observable<CuentaDto[]> {
+    let httpParams = new HttpParams().set('cueCar', params.cueCar);
+    if (params.cueTexto)  httpParams = httpParams.set('cueTexto', params.cueTexto);
+    if (params.cueCar === 'LISTA' && params.listaCuentas?.length) {
+      httpParams = httpParams.set('lista', JSON.stringify(params.listaCuentas));
+    }
+    return this.http.get<CuentaDto[]>(`${this.api}/cuentas-all`, { params: httpParams });
+  }
+
+  getProjects(): Observable<{ code: string; name: string }[]> {
+    return this.http.get<{ code: string; name: string }[]>(`${this.api}/projects`);
   }
 
   /**

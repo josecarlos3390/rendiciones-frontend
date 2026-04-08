@@ -25,8 +25,13 @@
 <div class="filter-bar">
   <div class="filter-search">
     <span class="search-icon">🔍</span>
-    <input type="text" class="search-input" placeholder="Buscar por nombre o usuario..."
-      [(ngModel)]="search" (input)="applyFilter()" />
+    <app-search-input
+      placeholder="Buscar por nombre o usuario..."
+      [debounceTime]="300"
+      [(search)]="search"
+      (valueChange)="applyFilter()"
+      (cleared)="applyFilter()">
+    </app-search-input>
     <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
   </div>
   <span class="filter-count" *ngIf="!loading">{{ filtered.length }} usuario{{ filtered.length !== 1 ? 's' : '' }}</span>

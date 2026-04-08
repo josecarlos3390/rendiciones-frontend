@@ -13,13 +13,14 @@ import { ToastService }            from '../../core/toast/toast.service';
 import { DdmmyyyyPipe }            from '../../shared/ddmmyyyy.pipe';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
 import { PaginatorComponent }      from '../../shared/paginator/paginator.component';
+import { SearchInputComponent } from '../../shared/debounce';
 
 
 @Component({
   selector: 'app-integracion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Default,
-  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent, PaginatorComponent],
+  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent, PaginatorComponent, SearchInputComponent],
   templateUrl: './integracion.component.html',
   styleUrls: ['./integracion.component.scss'],
 })
@@ -27,6 +28,7 @@ export class IntegracionComponent implements OnInit {
 
   // ── Vista según rol ───────────────────────────────────
   get isAdmin(): boolean { return this.auth.isAdmin; }
+  get puedeSync(): boolean { return this.auth.puedeSync; }
 
   // ── Estado general ────────────────────────────────────
   // ADMIN: lista de pendientes para sincronizar
@@ -79,7 +81,7 @@ export class IntegracionComponent implements OnInit {
     this.loadError = false;
     this.cdr.markForCheck();
 
-    if (this.isAdmin) {
+    if (this.isAdmin || this.puedeSync) {
       this.svc.getPendientes().subscribe({
         next: (data) => {
           this.pendientes = data;
@@ -105,7 +107,7 @@ export class IntegracionComponent implements OnInit {
   // ── Búsqueda y paginación ─────────────────────────────
   applyFilter() {
     const q      = this.search.toLowerCase().trim();
-    const source = this.isAdmin ? this.pendientes : this.misRend;
+    const source = (this.isAdmin || this.puedeSync) ? this.pendientes : this.misRend;
     this.filtered = q
       ? source.filter((r: any) =>
           (r.U_NomUsuario   ?? '').toLowerCase().includes(q) ||
@@ -208,7 +210,7 @@ export class IntegracionComponent implements OnInit {
         this.sapPassword = '';
         this.closeConfirmSync();
         if (res.success) {
-          this.toast.success(`Rendición N° ${id} sincronizada — Doc. SAP: ${res.nroDocERP ?? '—'}`);
+          this.toast.exito(`Rendición N° ${id} sincronizada — Doc. SAP: ${res.nroDocERP ?? '—'}`);
         } else {
           this.toast.error(`Error al sincronizar N° ${id}: ${res.mensaje}`);
         }
@@ -252,14 +254,14 @@ export class IntegracionComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────
   estadoTexto(estado: number): string {
     const map: Record<number, string> = {
-      3: 'APROBADO', 5: 'SINCRONIZADO', 6: 'ERROR SYNC',
+      5: 'SINCRONIZADO', 6: 'ERROR SYNC', 7: 'APROBADO',
     };
     return map[estado] ?? `Estado ${estado}`;
   }
 
   estadoCss(estado: number): string {
     const map: Record<number, string> = {
-      3: 'badge-aprobado', 5: 'badge-sync-ok', 6: 'badge-sync-error',
+      5: 'badge-sync-ok', 6: 'badge-sync-error', 7: 'badge-aprobado',
     };
     return map[estado] ?? '';
   }

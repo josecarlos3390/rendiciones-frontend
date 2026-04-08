@@ -1,0 +1,192 @@
+<div class="container">
+  <header class="page-header">
+    <h1>Tipo de Cambio</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openCreate()">
+        <i class="icon">+</i>
+        Nueva Tasa
+      </button>
+    </div>
+  </header>
+
+  <!-- Estado OFFLINE -->
+  <div *ngIf="isOffline" class="alert alert-info">
+    <strong>Modo OFFLINE:</strong> Gestión de tasas de cambio locales.
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Moneda:</label>
+      <select [(ngModel)]="filterMoneda" (change)="applyFilters()">
+        <option value="">Todas</option>
+        <option *ngFor="let m of monedas" [value]="m">{{ m }}</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Fecha desde:</label>
+      <input 
+        type="date" 
+        [(ngModel)]="filterFechaDesde" 
+        (change)="applyFilters()"
+      />
+    </div>
+
+    <div class="filter-group">
+      <label>Fecha hasta:</label>
+      <input 
+        type="date" 
+        [(ngModel)]="filterFechaHasta" 
+        (change)="applyFilters()"
+      />
+    </div>
+
+    <button class="btn btn-secondary" (click)="resetFilters()">
+      Limpiar
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    Cargando tasas de cambio...
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="loadError" class="error-state">
+    <p>Error al cargar los datos.</p>
+    <button class="btn btn-primary" (click)="loadTasas()">
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="!loading && !loadError" class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Moneda</th>
+          <th>Tasa (BOB)</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let tasa of filtered" [class.inactive]="tasa.activo !== 'Y'">
+          <td>{{ tasa.fecha | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <span class="badge badge-moneda">{{ tasa.moneda }}</span>
+          </td>
+          <td class="numeric">{{ formatTasa(tasa.tasa) }}</td>
+          <td>
+            <span 
+              class="badge"
+              [class.badge-success]="tasa.activo === 'Y'"
+              [class.badge-inactive]="tasa.activo !== 'Y'"
+            >
+              {{ tasa.activo === 'Y' ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button 
+              class="btn-icon" 
+              title="Editar"
+              (click)="openEdit(tasa)"
+            >
+              ✏️
+            </button>
+            <button 
+              class="btn-icon btn-danger" 
+              title="Eliminar"
+              (click)="confirmDelete(tasa)"
+            >
+              🗑️
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filtered.length === 0">
+          <td colspan="5" class="no-data">
+            No se encontraron tasas de cambio.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Paginador -->
+    <app-paginator
+      [total]="filtered.length"
+      (pageChange)="applyFilters()"
+    />
+  </div>
+</div>
+
+<!-- Modal Crear/Editar -->
+<div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2>{{ editingId ? 'Editar' : 'Nueva' }} Tasa de Cambio</h2>
+      <button class="btn-close" (click)="closeModal()">×</button>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="form-group">
+        <label>Fecha *</label>
+        <input 
+          type="date" 
+          formControlName="fecha"
+          [readonly]="editingId !== null"
+        />
+        <div *ngIf="form.get('fecha')?.touched && form.get('fecha')?.errors" class="error">
+          Fecha requerida
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Moneda *</label>
+        <select formControlName="moneda" [disabled]="editingId !== null">
+          <option *ngFor="let m of monedas" [value]="m">{{ m }}</option>
+        </select>
+        <div *ngIf="form.get('moneda')?.touched && form.get('moneda')?.errors" class="error">
+          Moneda requerida
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tasa (BOB) *</label>
+        <input 
+          type="number" 
+          formControlName="tasa"
+          step="0.0001"
+          min="0.0001"
+          placeholder="Ej: 6.96"
+        />
+        <small>Cuántos BOB equivalen a 1 {{ form.get('moneda')?.value || 'USD' }}</small>
+        <div *ngIf="form.get('tasa')?.touched && form.get('tasa')?.errors" class="error">
+          Tasa válida requerida (mayor a 0)
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button 
+          type="submit" 
+          class="btn btn-primary"
+          [disabled]="saving"
+        >
+          {{ saving ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<app-confirm-dialog
+  *ngIf="confirmVisible"
+  [config]="confirmConfig"
+  (confirm)="onConfirmDelete()"
+  (cancel)="closeConfirm()"
+/>

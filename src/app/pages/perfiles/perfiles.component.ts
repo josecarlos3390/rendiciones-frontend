@@ -6,6 +6,7 @@ import { PerfilesService } from './perfiles.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
+import { SearchInputComponent } from '../../shared/debounce';
 import {
   Perfil, CreatePerfilPayload,
   PRO_CAR_OPTIONS, CUE_CAR_OPTIONS, EMP_CAR_OPTIONS,
@@ -17,7 +18,7 @@ import { AuthService } from '../../auth/auth.service';
 @Component({
   standalone: true,
   selector: 'app-perfiles',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, SearchInputComponent],
   templateUrl: './perfiles.component.html',
   styleUrls: ['./perfiles.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -68,6 +69,17 @@ export class PerfilesComponent implements OnInit {
     { value: 1, label: 'SÍ', icon: '✓' },
   ];
 
+  readonly lineasOptions: SelectOption[] = [
+    { value: 3, label: '3 líneas' },
+    { value: 5, label: '5 líneas' },
+    { value: 10, label: '10 líneas' },
+    { value: 15, label: '15 líneas' },
+    { value: 20, label: '20 líneas' },
+    { value: 25, label: '25 líneas' },
+    { value: 30, label: '30 líneas' },
+    { value: 50, label: '50 líneas' },
+  ];
+
   constructor(
     public  auth: AuthService,
     private perfilesService: PerfilesService,
@@ -108,6 +120,8 @@ export class PerfilesComponent implements OnInit {
       nombrePerfil:   ['', [Validators.required, Validators.maxLength(300)]],
       trabaja:        ['0'],
       perCtaBl:       [0],
+      cntLineas:      [10],
+      controlPartida: [0],
       proCar:         ['TODOS'],
       proTexto:       ['', Validators.maxLength(25)],
       cueCar:         ['TODOS'],
@@ -169,6 +183,7 @@ export class PerfilesComponent implements OnInit {
     this.initialValues = null; // isDirty retorna true cuando editingPerfil es null
     this.form.reset({
       nombrePerfil: '', trabaja: '0', perCtaBl: 0,
+      cntLineas: 10, controlPartida: 0,
       proCar: 'TODOS', proTexto: '',
       cueCar: 'TODOS', cueTexto: '',
       empCar: 'EMPIEZA', empTexto: '',
@@ -185,6 +200,8 @@ export class PerfilesComponent implements OnInit {
       nombrePerfil:   p.U_NombrePerfil   ?? '',
       trabaja:        p.U_Trabaja         ?? '0',
       perCtaBl:       p.U_Per_CtaBl      ?? 0,
+      cntLineas:      p.U_CntLineas      ?? 10,
+      controlPartida: p.U_ControlPartida ?? 0,
       proCar:         p.U_PRO_CAR        ?? 'TODOS',
       proTexto:       p.U_PRO_Texto      ?? '',
       cueCar:         p.U_CUE_CAR        ?? 'TODOS',
@@ -216,6 +233,8 @@ export class PerfilesComponent implements OnInit {
       nombrePerfil:   raw.nombrePerfil,
       trabaja:        raw.trabaja,
       perCtaBl:       Number(raw.perCtaBl),
+      cntLineas:      Number(raw.cntLineas),
+      controlPartida: Number(raw.controlPartida),
       proCar:         raw.proCar,
       proTexto:       raw.proTexto ?? '',
       cueCar:         raw.cueCar,
@@ -231,7 +250,7 @@ export class PerfilesComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.load(() => {
-            this.toast.success('Perfil actualizado');
+            this.toast.exito('Perfil actualizado');
             this.closeForm();
           });
           this.cdr.markForCheck();
@@ -249,7 +268,7 @@ export class PerfilesComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.load(() => {
-            this.toast.success('Perfil creado');
+            this.toast.exito('Perfil creado');
             this.closeForm();
           });
           this.cdr.markForCheck();
@@ -275,7 +294,7 @@ export class PerfilesComponent implements OnInit {
       type:         'danger',
     }, () => {
       this.perfilesService.remove(p.U_CodPerfil).subscribe({
-        next:  () => { this.toast.success('Perfil eliminado'); this.load(); this.cdr.markForCheck(); },
+        next:  () => { this.toast.exito('Perfil eliminado'); this.load(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar perfil');

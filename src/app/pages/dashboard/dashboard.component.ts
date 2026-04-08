@@ -54,8 +54,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadData() {
     this.loadingStats = true;
+    const idPerfil = typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem('rendiciones_perfil_activo')
+      : null;
+    const statsUrl = idPerfil
+      ? `${environment.apiUrl}/rend-m/stats?idPerfil=${idPerfil}`
+      : `${environment.apiUrl}/rend-m/stats`;
     this.sub = forkJoin({
-      stats:      this.http.get<RendStats>(`${environment.apiUrl}/rend-m/stats`).pipe(catchError(() => of(null))),
+      stats:      this.http.get<RendStats>(statsUrl).pipe(catchError(() => of(null))),
       pendientes: this.aprobSvc.countPendientes().pipe(catchError(() => of({ count: 0 }))),
     }).subscribe({
       next: ({ stats, pendientes }) => {

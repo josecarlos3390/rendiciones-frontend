@@ -5,11 +5,12 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, catchError, of, takeUntil } from 'rxjs';
+import { Subject, catchError, of, takeUntil } from 'rxjs';
 import { SapService, CuentaDto } from '../../services/sap.service';
 
 /**
  * CuentaSearchComponent — selector de cuentas contables filtrado por perfil.
+ * Carga todas las cuentas de una vez y filtra localmente (patrón proveedor-search).
  *
  * Uso:
  *   <app-cuenta-search
@@ -52,6 +53,7 @@ import { SapService, CuentaDto } from '../../services/sap.service';
         border-style: solid; border-color: var(--border-color);
         &:hover { border-color: var(--color-primary); }
       }
+      &:disabled { cursor: not-allowed; opacity: 0.6; background: var(--bg-subtle); }
     }
 
     .cs-trigger-left { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; overflow: hidden; }
@@ -155,7 +157,7 @@ import { SapService, CuentaDto } from '../../services/sap.service';
   `],
   template: `
     <!-- Trigger -->
-    <button type="button" class="cs-trigger" [class.has-value]="selected" (click)="open()">
+    <button type="button" class="cs-trigger" [class.has-value]="selected" [disabled]="disabled" (click)="open()">
       <ng-container *ngIf="selected; else placeholderTpl">
         <div class="cs-trigger-left">
           <span class="cs-trigger-code">{{ selected.code }}</span>
@@ -178,7 +180,10 @@ import { SapService, CuentaDto } from '../../services/sap.service';
 
         <div class="cs-header">
           <h3>📒 Buscar Cuenta Contable</h3>
-          <button type="button" class="cs-close" (click)="close()">✕</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="cs-close" (click)="reloadAll()" title="Recargar cuentas">🔄</button>
+            <button type="button" class="cs-close" (click)="close()">✕</button>
+          </div>
         </div>
 
         <div class="cs-search-bar">
@@ -195,28 +200,18 @@ import { SapService, CuentaDto } from '../../services/sap.service';
         </div>
 
         <div class="cs-count">
-          <span *ngIf="loading">Buscando cuentas...</span>
-          <span *ngIf="!loading && searchTerm">
-            {{ resultados.length }} resultado{{ resultados.length !== 1 ? 's' : '' }}
-          </span>
-          <span *ngIf="!loading && !searchTerm">Escribe para buscar cuentas</span>
+          <span *ngIf="loading && !loaded">Cargando cuentas desde SAP...</span>
+          <span *ngIf="loading && loaded">Actualizando...</span>
+          <span *ngIf="!loading">{{ resultados.length }} resultado{{ resultados.length !== 1 ? 's' : '' }}</span>
         </div>
 
         <div class="cs-body">
 
-          <div class="cs-empty" *ngIf="loading">
-            <span class="cs-empty-icon">⏳</span>
-            <p>Buscando...</p>
-          </div>
+          <div class="cs-empty" *ngIf="loading && !loaded"><span class="cs-empty-icon">⏳</span><p>Cargando cuentas...</p></div>
 
-          <div class="cs-empty" *ngIf="!loading && resultados.length === 0 && searchTerm">
+          <div class="cs-empty" *ngIf="!loading && resultados.length === 0">
             <span class="cs-empty-icon">🔎</span>
-            <p>Sin resultados para "<strong>{{ searchTerm }}</strong>"</p>
-          </div>
-
-          <div class="cs-empty" *ngIf="!loading && !searchTerm">
-            <span class="cs-empty-icon">📒</span>
-            <p>Escribe el código o nombre de la cuenta</p>
+            <p>Sin resultados</p>
           </div>
 
           <ul class="cs-list" *ngIf="!loading && resultados.length > 0">
@@ -248,6 +243,7 @@ export class CuentaSearchComponent implements OnInit, OnDestroy, OnChanges {
   @Input() cueCar:       string = 'TODOS';
   @Input() cueTexto:     string = '';
   @Input() listaCuentas: CuentaDto[] = [];
+  @Input() disabled      = false;
 
   /** Emite { code, name } al seleccionar, null al limpiar */
   @Output() cuentaChange = new EventEmitter<CuentaDto | null>();
@@ -257,47 +253,40 @@ export class CuentaSearchComponent implements OnInit, OnDestroy, OnChanges {
 
   isOpen     = false;
   loading    = false;
+  loaded     = false;
   searchTerm = '';
   resultados: CuentaDto[] = [];
+  allItems:   CuentaDto[] = [];
   selected:   CuentaDto | null = null;
 
-  private search$ = new Subject<string>();
   private destroy$ = new Subject<void>();
   private sap = inject(SapService);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
-    this.search$.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap(busqueda => {
-        this.loading = true;
-        this.cdr.markForCheck();
-        return this.sap.getCuentas({
-          cueCar:      this.cueCar,
-          cueTexto:    this.cueTexto,
-          busqueda,
-          listaCuentas: this.listaCuentas,
-        }).pipe(catchError(() => of([])));
-      }),
-      takeUntil(this.destroy$),
-    ).subscribe(res => {
-      this.resultados = res;
-      this.loading    = false;
-      this.cdr.markForCheck();
-    });
-
     // Pre-seleccionar si viene initialCode
     if (this.initialCode) {
-      this.selected = { code: this.initialCode, name: this.initialName ?? '' };
+      // Intentar buscar el nombre en listaCuentas si está disponible
+      const found = this.listaCuentas.find(c => c.code === this.initialCode);
+      this.selected = {
+        code: this.initialCode,
+        name: found?.name ?? this.initialName ?? ''
+      };
     }
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['initialCode'] || changes['initialName']) {
-      this.selected = this.initialCode
-        ? { code: this.initialCode, name: this.initialName ?? '' }
-        : null;
+    if (changes['initialCode'] || changes['initialName'] || changes['listaCuentas']) {
+      if (this.initialCode) {
+        // Intentar buscar el nombre en listaCuentas si está disponible
+        const found = this.listaCuentas.find(c => c.code === this.initialCode);
+        this.selected = {
+          code: this.initialCode,
+          name: found?.name ?? this.initialName ?? ''
+        };
+      } else {
+        this.selected = null;
+      }
       this.cdr.markForCheck();
     }
   }
@@ -305,23 +294,83 @@ export class CuentaSearchComponent implements OnInit, OnDestroy, OnChanges {
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 
   open() {
-    this.isOpen    = true;
+    if (this.disabled) return;
+    this.isOpen = true;
     this.searchTerm = '';
-    this.resultados = [];
     this.cdr.markForCheck();
+    if (!this.loaded) {
+      this.loadAll();
+    } else {
+      this.filterLocal('');
+    }
+  }
+
+  reloadAll() {
+    this.loaded = false;
+    this.allItems = [];
+    this.resultados = [];
+    this.loadAll();
   }
 
   close() { this.isOpen = false; this.cdr.markForCheck(); }
 
   onSearch(term: string) {
     this.searchTerm = term;
-    if (term.length >= 1) {
-      this.search$.next(term);
-    } else {
-      this.resultados = [];
-      this.loading    = false;
-      this.cdr.markForCheck();
+    if (this.loaded) {
+      this.filterLocal(term);
     }
+  }
+
+  private loadAll() {
+    this.loading = true;
+    this.cdr.markForCheck();
+
+    this.sap.getCuentasAll({
+      cueCar: this.cueCar,
+      cueTexto: this.cueTexto,
+      listaCuentas: this.listaCuentas,
+    })
+    .pipe(
+      catchError(() => of([])),
+      takeUntil(this.destroy$),
+    )
+    .subscribe(cuentas => {
+      // Eliminar duplicados por código
+      const map = new Map<string, CuentaDto>();
+      cuentas.forEach(c => {
+        if (!map.has(c.code)) {
+          map.set(c.code, c);
+        }
+      });
+
+      this.allItems = Array.from(map.values());
+
+      // Si hay una cuenta seleccionada solo con código (sin nombre), buscar y completar
+      if (this.selected?.code && (!this.selected.name || this.selected.name === '')) {
+        const found = this.allItems.find(c => c.code === this.selected!.code);
+        if (found) {
+          this.selected = { ...found };
+        }
+      }
+
+      this.loaded = true;
+      this.filterLocal(this.searchTerm);
+      this.loading = false;
+      this.cdr.markForCheck();
+    });
+  }
+
+  private filterLocal(term: string) {
+    const q = term.toLowerCase().trim();
+    if (!q) {
+      this.resultados = [...this.allItems];
+    } else {
+      this.resultados = this.allItems.filter(c =>
+        c.code.toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q),
+      );
+    }
+    this.cdr.markForCheck();
   }
 
   select(c: CuentaDto) {

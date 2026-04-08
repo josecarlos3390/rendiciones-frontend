@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -16,11 +16,16 @@ import { PaginatorComponent }   from '../../shared/paginator/paginator.component
 import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 import { CuentaSearchComponent } from '../../shared/cuenta-search/cuenta-search.component';
 import { ProveedorSearchComponent } from '../../shared/proveedor-search/proveedor-search.component';
+import { ProjectSearchComponent, ProjectDto } from '../../shared/project-search/project-search.component';
 import { ProvService, ProvEventual } from '../../services/prov.service';
+import { AdjuntosService } from '../../services/adjuntos.service';
+import { AdjuntosListComponent } from '../../shared/adjuntos-list/adjuntos-list.component';
+import { Adjunto } from '../../models/adjunto.model';
 import { DdmmyyyyPipe }       from '../../shared/ddmmyyyy.pipe';
+import { DatePipe, SlicePipe, DecimalPipe } from '@angular/common';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
 import { AuthService }        from '../../auth/auth.service';
-import { FacturaService, FacturaSiat } from '../../services/factura.service';
+import { FacturaService, FacturaSiat, FacturaResult } from '../../services/factura.service';
 import QrScanner from 'qr-scanner';
 import * as XLSX from 'xlsx';
 import { RendM }              from '../../models/rend-m.model';
@@ -28,12 +33,29 @@ import { RendD, CreateRendDPayload } from '../../models/rend-d.model';
 import { Documento }          from '../../models/documento.model';
 import { Perfil }             from '../../models/perfil.model';
 import { PrctjModalComponent }          from './prctj-modal/prctj-modal.component';
+import { RendicionPdfPreviewComponent } from '../../shared/rendicion-pdf/rendicion-pdf-preview.component';
+import { AiFacturaPreviewComponent } from '../../shared/ai-factura-preview/ai-factura-preview.component';
+import { AiService, ClasificacionSugeridaResponse } from '../../services/ai.service';
+import { AiSuggestionComponent, AiDisabledNoticeComponent } from '../../shared/ai-suggestion';
+import { DropdownPositionDirective }    from '../../shared/dropdown-position.directive';
 
 
 interface NormaActiva {
   slot:      number;
   dimension: DimensionWithRules;
   rules:     SelectOption[];
+}
+
+/** Estado de un PDF en procesamiento batch */
+interface PdfBatchItem {
+  id: string;
+  file: File;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  progress: number; // 0-100
+  result?: FacturaResult;
+  error?: string;
+  qrUrl?: string;
+  cuf?: string; // CUF extraído del QR
 }
 
 
@@ -43,8 +65,11 @@ interface NormaActiva {
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     ConfirmDialogComponent, PaginatorComponent, AppSelectComponent,
-    CuentaSearchComponent, ProveedorSearchComponent, DdmmyyyyPipe,
-    SkeletonLoaderComponent, PrctjModalComponent,
+    CuentaSearchComponent, ProveedorSearchComponent, ProjectSearchComponent, DdmmyyyyPipe,
+    SkeletonLoaderComponent, PrctjModalComponent, RendicionPdfPreviewComponent, AiFacturaPreviewComponent,
+    AdjuntosListComponent, DropdownPositionDirective,
+    AiSuggestionComponent, AiDisabledNoticeComponent,
+    DatePipe, SlicePipe, DecimalPipe,
   ],
   templateUrl: './rend-d.component.html',
   styleUrls:   ['./rend-d.component.scss'],
@@ -68,7 +93,9 @@ export class RendDComponent implements OnInit {
   // Config proveedores del perfil
   proCar:    string = 'TODOS';
   proTexto:  string = '';
-  proveedorSeleccionado: { cardCode: string; cardName: string } | null = null;
+  proveedorSeleccionado: { cardCode: string; cardName: string; licTradNum?: string } | null = null;
+
+  @ViewChild('provSearch') provSearch!: any;
 
   // Fecha actual en formato yyyy-MM-dd para input type=date
   private get hoy(): string {
@@ -104,8 +131,23 @@ export class RendDComponent implements OnInit {
 
   // Modal PDF
   showPdfModal  = false;
-  pdfFile:      File | null = null;
-  pdfFileName   = '';
+  pdfFiles:     File[] = [];
+  pdfFileNames  = '';
+
+  // Modal Preview IA (single - legacy)
+  showAiPreviewModal = false;
+  aiPreviewResult: FacturaResult | null = null;
+
+  // ══ Procesamiento Batch de PDFs ══
+  pdfBatchProcessing = false;
+  pdfBatchResults: PdfBatchItem[] = [];
+  showPdfBatchModal = false;
+  currentProcessingIndex = -1;
+
+  // Modal de revisión individual del batch
+  showBatchItemReviewModal = false;
+  batchItemBeingReviewed: PdfBatchItem | null = null;
+  batchItemReviewIndex = -1;
 
   // Modal escáner QR
   showQrScanner   = false;
@@ -127,6 +169,18 @@ export class RendDComponent implements OnInit {
   proyectoActivo  = false;
   // Toggle Exento variable
   exentoActivo    = false;
+  
+  // ══ Funcionalidades IA ══
+  /** Estado de habilitación de IA */
+  iaEnabled = false;
+  /** Indicador de carga de sugerencia IA */
+  iaSugerenciaLoading = false;
+  /** Sugerencia actual de IA */
+  iaSugerencia: ClasificacionSugeridaResponse | null = null;
+  /** Mensaje de carga de IA */
+  iaLoadingMessage = 'Analizando...';
+  /** Timer para debounce de sugerencias IA */
+  private iaDebounceTimer: any = null;
   // Flag: preserva el exento guardado al abrir edición con % fijo
   private _preservarExento = false;
 
@@ -152,7 +206,9 @@ export class RendDComponent implements OnInit {
   get isAdmin():    boolean { return this.auth.isAdmin; }
   get isReadonly(): boolean {
     if (this.isAdmin) return false;
-    return this.cabecera?.U_Estado !== 1;
+    if (this.cabecera?.U_Estado === 1) return false;
+    if (this.auth.esAprobador && this.cabecera?.U_Estado === 4) return false;
+    return true;
   }
   get isDirty(): boolean {
     if (!this.editingDoc || !this.initialValues) return true;
@@ -206,7 +262,15 @@ export class RendDComponent implements OnInit {
   }
 
   get tipoDocOptions(): SelectOption[] {
-    return this.tiposDocs.map(d => ({ value: d.U_TipDoc, label: d.U_TipDoc }));
+    return this.tiposDocs.map(d => ({ value: String(d.U_IdDocumento), label: d.U_TipDoc }));
+  }
+
+  /**
+   * Obtiene el nombre del tipo de documento basado en su ID
+   */
+  getTipoDocName(idDocumento: number | string): string {
+    const doc = this.tiposDocs.find(d => String(d.U_IdDocumento) === String(idDocumento));
+    return doc?.U_TipDoc || String(idDocumento);
   }
 
   /** true cuando el exento lo digita el usuario (-1); false cuando es % fijo de config */
@@ -264,15 +328,106 @@ export class RendDComponent implements OnInit {
 
   // ── Vista preliminar / impresión ──────────────────────────────────────
   showPdfPreview = false;
+  pdfPreviewDocs: RendD[] = [];
 
   abrirVistaPreliminar() {
     if (!this.cabecera) return;
+    this.pdfPreviewDocs = [];
     this.showPdfPreview = true;
     this.cdr.markForCheck();
+
+    this.rendDSvc.getAll(this.idRendicion).subscribe({
+      next: (docs) => {
+        this.pdfPreviewDocs = docs;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   cerrarVistaPreliminar() {
     this.showPdfPreview = false;
+    this.pdfPreviewDocs = [];
+    this.cdr.markForCheck();
+  }
+
+  // ── Adjuntos / Archivos ────────────────────────────────────────────────
+  showAdjuntosModal = false;
+  adjuntosDoc: RendD | null = null;
+  adjuntosList: Adjunto[] = [];
+  adjuntosLoading = false;
+  adjuntosCountMap: Map<number, number> = new Map(); // Mapa de contadores por idRD
+
+  // ── Menú de acciones por fila ──────────────────────────────────────────
+  openMenuId: number | null = null;  // ID del documento con menú abierto
+
+  toggleMenu(d: RendD, event: Event) {
+    event.stopPropagation();
+    this.openMenuId = this.openMenuId === d.U_RD_IdRD ? null : d.U_RD_IdRD;
+    this.cdr.markForCheck();
+  }
+
+  closeMenu() {
+    this.openMenuId = null;
+    this.cdr.markForCheck();
+  }
+
+  onMenuAction(d: RendD, action: 'edit' | 'dist' | 'delete') {
+    this.openMenuId = null;
+    this.cdr.markForCheck();
+    
+    switch (action) {
+      case 'edit':
+        this.openEdit(d);
+        break;
+      case 'dist':
+        this.abrirPrctjModal(d);
+        break;
+      case 'delete':
+        this.confirmDelete(d);
+        break;
+    }
+  }
+
+  abrirAdjuntosModal(d: RendD) {
+    this.adjuntosDoc = d;
+    this.showAdjuntosModal = true;
+    this.cargarAdjuntos();
+    this.cdr.markForCheck();
+  }
+
+  cerrarAdjuntosModal() {
+    this.showAdjuntosModal = false;
+    this.adjuntosDoc = null;
+    this.adjuntosList = [];
+    this.cdr.markForCheck();
+  }
+
+  cargarAdjuntos() {
+    if (!this.adjuntosDoc) return;
+    this.adjuntosLoading = true;
+    this.adjuntosSvc.getAdjuntos(this.idRendicion, this.adjuntosDoc.U_RD_IdRD).subscribe({
+      next: (list) => {
+        this.adjuntosList = list;
+        this.adjuntosLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.adjuntosLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  onAdjuntoSubido(adjunto: Adjunto) {
+    this.adjuntosList.push(adjunto);
+    this.cdr.markForCheck();
+  }
+
+  onAdjuntoEliminado(id: number) {
+    this.adjuntosList = this.adjuntosList.filter(a => a.id !== id);
     this.cdr.markForCheck();
   }
 
@@ -286,17 +441,157 @@ export class RendDComponent implements OnInit {
     private cuentasListaSvc: CuentasListaService,
     private sapSvc:         SapService,
     private provSvc:        ProvService,
+    private adjuntosSvc:    AdjuntosService,
     private toast:          ToastService,
     private fb:             FormBuilder,
     public  auth:           AuthService,
     private cdr:            ChangeDetectorRef,
     private facturaSvc:     FacturaService,
+    private aiService:      AiService,
   ) {}
 
   ngOnInit() {
     this.idRendicion = Number(this.route.snapshot.paramMap.get('id'));
     this.buildForm();
+    this.inicializarIA();
     Promise.resolve().then(() => this.loadAll());
+  }
+  
+  // ══ Funcionalidades IA ═════════════════════════════════════════
+  
+  /** Muestra el botón flotante de ayuda IA cuando hay texto suficiente */
+  mostrarBotonAyudaIA = false;
+  
+  /**
+   * Inicializa el servicio de IA y suscripciones
+   */
+  private inicializarIA(): void {
+    // Cargar estado de IA
+    this.aiService.cargarStatus().subscribe({
+      next: (status: import('../../services/ai.service').AiStatus) => {
+        this.iaEnabled = this.aiService.estaHabilitada;
+        console.log('🤖 IA inicializada:', this.iaEnabled ? 'HABILITADA' : 'DESHABILITADA');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.iaEnabled = false;
+        this.cdr.markForCheck();
+      }
+    });
+    
+    // Escuchar cambios en el concepto para mostrar/ocultar botón de ayuda
+    this.form.get('concepto')?.valueChanges.subscribe((valor) => {
+      this.onConceptoChange(valor);
+    });
+  }
+  
+  /**
+   * Maneja cambios en el campo concepto
+   * Muestra/oculta el botón de ayuda IA según el contenido
+   */
+  onConceptoChange(concepto: string): void {
+    // Limpiar sugerencia si el concepto cambió significativamente
+    if (this.iaSugerencia && concepto !== this.iaSugerenciaTextoPrevio) {
+      this.iaSugerencia = null;
+    }
+    
+    // Mostrar botón de ayuda si hay texto suficiente (mínimo 10 caracteres) y IA está habilitada
+    this.mostrarBotonAyudaIA = this.iaEnabled && !!concepto && concepto.trim().length >= 10;
+    this.cdr.markForCheck();
+  }
+  
+  /** Guarda el texto del concepto previo para comparar cambios */
+  private iaSugerenciaTextoPrevio = '';
+  
+  /**
+   * Solicita sugerencia de clasificación a la IA (llamado manualmente por el usuario)
+   */
+  solicitarSugerenciaIA(): void {
+    const concepto = this.form.get('concepto')?.value || '';
+    const importe = this.form.get('importe')?.value || 0;
+    const proveedor = this.form.get('prov')?.value || '';
+    
+    if (!concepto || concepto.trim().length < 10) {
+      this.toast.warning('Escribe una descripción más detallada del gasto para obtener mejores sugerencias');
+      return;
+    }
+    
+    // Guardar texto previo para evitar re-solicitar si no cambió
+    this.iaSugerenciaTextoPrevio = concepto;
+    
+    this.iaSugerenciaLoading = true;
+    this.iaLoadingMessage = 'Analizando gasto con IA...';
+    this.mostrarBotonAyudaIA = false; // Ocultar botón mientras carga
+    this.cdr.markForCheck();
+    
+    this.aiService.sugerirClasificacion({
+      concepto: concepto.trim(),
+      monto: importe,
+      proveedor,
+      usuarioId: String(this.auth.user?.sub || ''),
+      idRendicion: this.idRendicion,
+    }).subscribe({
+      next: (sugerencia: ClasificacionSugeridaResponse | null) => {
+        this.iaSugerencia = sugerencia;
+        this.iaSugerenciaLoading = false;
+        this.cdr.markForCheck();
+        
+        if (sugerencia) {
+          this.toast.info(
+            `💡 IA sugiere: ${sugerencia.cuentaContable.codigo} (${Math.round(sugerencia.cuentaContable.confianza * 100)}% confianza)`,
+            3000
+          );
+        }
+      },
+      error: (error: any) => {
+        console.error('Error obteniendo sugerencia IA:', error);
+        this.iaSugerenciaLoading = false;
+        this.iaSugerencia = null;
+        this.mostrarBotonAyudaIA = true; // Mostrar botón nuevamente para reintentar
+        this.cdr.markForCheck();
+        this.toast.error('No se pudo obtener la sugerencia. Intenta de nuevo.');
+      }
+    });
+  }
+  
+  /**
+   * Aplica la sugerencia de IA al formulario
+   */
+  aplicarSugerenciaIA(sugerencia: ClasificacionSugeridaResponse): void {
+    if (!sugerencia) return;
+    
+    const patchValue: any = {};
+    
+    // Aplicar cuenta contable
+    if (sugerencia.cuentaContable) {
+      patchValue.cuenta = sugerencia.cuentaContable.codigo;
+      patchValue.nombreCuenta = sugerencia.cuentaContable.nombre;
+    }
+    
+    // Aplicar proyecto si existe
+    if (sugerencia.proyecto) {
+      patchValue.proyecto = sugerencia.proyecto.codigo;
+      this.proyectoActivo = true;
+    }
+    
+    // En modo ONLINE: aplicar dimensión
+    // En modo OFFLINE: aplicar norma (si hay campos para ello)
+    
+    this.form.patchValue(patchValue);
+    
+    // Limpiar sugerencia aplicada
+    this.iaSugerencia = null;
+    
+    this.toast.exito('Sugerencia aplicada correctamente');
+    this.cdr.markForCheck();
+  }
+  
+  /**
+   * Ignora la sugerencia actual de IA
+   */
+  ignorarSugerenciaIA(): void {
+    this.iaSugerencia = null;
+    this.cdr.markForCheck();
   }
 
   // ── Carga ─────────────────────────────────────────────────────
@@ -324,6 +619,10 @@ export class RendDComponent implements OnInit {
               })),
             ],
           }));
+          // Si el formulario está abierto y es nuevo documento, aplicar normas preconfiguradas
+          if (this.showForm && !this.editingDoc) {
+            this._aplicarNormasPreconfiguradas();
+          }
           this.cdr.markForCheck();
         },
       });
@@ -384,6 +683,8 @@ export class RendDComponent implements OnInit {
         this.documentos  = data;
         this.loadingDocs = false;
         this.updatePaging();
+        // Cargar contadores después de un pequeño delay para asegurar que paged está actualizado
+        setTimeout(() => this.cargarContadoresAdjuntos(), 0);
         this.cdr.markForCheck();
         onComplete?.();
       },
@@ -396,6 +697,33 @@ export class RendDComponent implements OnInit {
     });
   }
 
+  /**
+   * Carga los contadores de adjuntos para todas las líneas visibles
+   */
+  private cargarContadoresAdjuntos() {
+    this.adjuntosCountMap.clear();
+    
+    // Cargar contadores para cada línea de la página actual
+    this.paged.forEach(d => {
+      this.adjuntosSvc.getAdjuntos(this.idRendicion, d.U_RD_IdRD).subscribe({
+        next: (adjuntos) => {
+          this.adjuntosCountMap.set(d.U_RD_IdRD, adjuntos.length);
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.adjuntosCountMap.set(d.U_RD_IdRD, 0);
+        }
+      });
+    });
+  }
+
+  /**
+   * Obtiene el contador de adjuntos para una línea
+   */
+  getAdjuntosCount(idRD: number): number {
+    return this.adjuntosCountMap.get(idRD) || 0;
+  }
+
   // ── Formulario ─────────────────────────────────────────────────
 
   private buildForm() {
@@ -405,12 +733,14 @@ export class RendDComponent implements OnInit {
       nombreCuenta:  ['', Validators.maxLength(250)],
       fecha:         ['', Validators.required],
       tipoDoc:       ['', Validators.required],
+      tipoDocName:   [''],
       idTipoDoc:     [1],
       numDocumento:  ['', Validators.maxLength(20)],
       nroAutor:      ['', Validators.maxLength(250)],
       cuf:           ['', Validators.maxLength(250)],
       ctrl:          ['', Validators.maxLength(25)],
       prov:          ['', Validators.maxLength(200)],
+      codProv:       ['', Validators.maxLength(25)],
       concepto:      ['', [Validators.required, Validators.maxLength(200)]],
       // Tab 2
       importe:       [0, [Validators.required, Validators.min(0)]],
@@ -446,11 +776,12 @@ export class RendDComponent implements OnInit {
     return this.form.get(name)?.value !== this.initialValues[name];
   }
 
-  onTipoDocChange(tipDoc: string) {
-    const doc = this.tiposDocs.find(d => d.U_TipDoc === tipDoc);
+  onTipoDocChange(idDocumento: string) {
+    const doc = this.tiposDocs.find(d => String(d.U_IdDocumento) === idDocumento);
     if (!doc) return;
     this.form.patchValue({
       idTipoDoc:  doc.U_IdTipoDoc,
+      tipoDocName: doc.U_TipDoc,
       ctaExento:  doc.U_CTAEXENTO,
       // Si TASA en config es -1, mantener el valor que tiene el usuario; si no, usar el de la config
       tasa:       Number(doc.U_TASA) === -1 ? this.form.get('tasa')?.value : (Number(doc.U_TASA) ?? 0),
@@ -731,9 +1062,10 @@ export class RendDComponent implements OnInit {
         this.guardandoProv = false;
         this.showNuevoProv = false;
         // Auto-seleccionar el proveedor recién creado
-        this.form.patchValue({ codProv: prov.U_NIT, prov: prov.U_RAZON_SOCIAL });
-        this.proveedorSeleccionado = { cardCode: prov.U_NIT, cardName: prov.U_RAZON_SOCIAL };
-        this.toast.success(`Proveedor "${prov.U_RAZON_SOCIAL}" registrado`);
+        this.form.patchValue({ codProv: 'PL999999', prov: prov.U_RAZON_SOCIAL, nit: prov.U_NIT });
+        this.proveedorSeleccionado = { cardCode: 'PL999999', cardName: prov.U_RAZON_SOCIAL, licTradNum: prov.U_NIT };
+        this.provSearch?.refreshProvEventuales?.();
+        this.toast.exito(`Proveedor "${prov.U_RAZON_SOCIAL}" registrado`);
         this.cdr.markForCheck();
       },
       error: (_err: any) => {
@@ -743,12 +1075,19 @@ export class RendDComponent implements OnInit {
     });
   }
 
-  onProveedorSelected(prov: { cardCode: string; cardName: string } | null) {
+  onProveedorSelected(prov: { cardCode: string; cardName: string; licTradNum?: string } | null) {
     this.form.patchValue({
       codProv: prov?.cardCode ?? '',
       prov:    prov?.cardName ?? '',
+      nit:     prov?.licTradNum ?? '',
     });
     this.proveedorSeleccionado = prov ?? null;
+  }
+
+  onProjectSelected(project: ProjectDto | null) {
+    this.form.patchValue({
+      proyecto: project?.code ?? '',
+    });
   }
 
   // ── Modal ───────────────────────────────────────────────────────
@@ -818,16 +1157,16 @@ export class RendDComponent implements OnInit {
 
   elegirPdf() {
     this.showModeSelector = false;
-    this.pdfFile = null;
-    this.pdfFileName = '';
+    this.pdfFiles = [];
+    this.pdfFileNames = '';
     this.showPdfModal = true;
     this.cdr.markForCheck();
   }
 
   closePdfModal() {
     this.showPdfModal     = false;
-    this.pdfFile          = null;
-    this.pdfFileName      = '';
+    this.pdfFiles         = [];
+    this.pdfFileNames     = '';
     this.pdfLoadingFactura = false;
     this.pdfError         = null;
     this.cdr.markForCheck();
@@ -835,66 +1174,522 @@ export class RendDComponent implements OnInit {
 
   onPdfSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    this.pdfFile = file;
-    this.pdfFileName = file?.name ?? '';
+    const files = Array.from(input.files || []);
+    this.pdfFiles = files;
+    this.pdfFileNames = files.map(f => f.name).join(', ');
     this.cdr.markForCheck();
   }
 
   async confirmarPdf() {
-    if (!this.pdfFile) return;
+    if (this.pdfFiles.length === 0) return;
 
-    this.pdfLoadingFactura = true;
-    this.pdfError          = null;
+    // Iniciar modo batch
+    this.pdfBatchProcessing = true;
+    this.pdfError = null;
+    this.cdr.markForCheck();
+
+    // Inicializar items del batch
+    this.pdfBatchResults = this.pdfFiles.map((file, index) => ({
+      id: `pdf-${Date.now()}-${index}`,
+      file,
+      status: 'pending' as const,
+      progress: 0
+    }));
+
+    // Cargar pdf.js una sola vez
+    let pdfjsLib: any;
+    try {
+      pdfjsLib = await this._loadPdfJs();
+    } catch (err: any) {
+      this.pdfError = 'Error cargando PDF.js: ' + err.message;
+      this.pdfBatchProcessing = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // Procesar cada PDF secuencialmente
+    for (let i = 0; i < this.pdfBatchResults.length; i++) {
+      this.currentProcessingIndex = i;
+      const item = this.pdfBatchResults[i];
+      item.status = 'processing';
+      item.progress = 10;
+      this.cdr.markForCheck();
+
+      try {
+        // 1. Leer el PDF como ArrayBuffer
+        const arrayBuffer = await item.file.arrayBuffer();
+        item.progress = 30;
+        this.cdr.markForCheck();
+
+        // 2. Renderizar la primera página como canvas
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
+        item.progress = 50;
+        this.cdr.markForCheck();
+
+        // 3. Escanear QR en el canvas con QrScanner
+        let qrUrl: string | undefined;
+        let cuf: string | undefined;
+        try {
+          const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+          qrUrl = result?.data;
+          // Extraer CUF del QR URL del SIAT
+          if (qrUrl) {
+            cuf = this._extractCufFromQrUrl(qrUrl);
+          }
+        } catch {
+          // No se encontró QR, continuar sin URL
+        }
+        item.qrUrl = qrUrl;
+        item.cuf = cuf;
+        item.progress = 70;
+        this.cdr.markForCheck();
+
+        // 4. Procesar con el servicio (SIAT primero, luego IA)
+        await new Promise<void>((resolve) => {
+          this.facturaSvc.processFacturaPdf(item.file!, qrUrl, cuf).subscribe({
+            next: (result) => {
+              item.status = result.success ? 'completed' : 'error';
+              item.result = result;
+              item.error = result.error;
+              // Si tenemos CUF del QR pero no de la respuesta, agregarlo
+              if (cuf && result.success && result.data) {
+                (result.data as any).cuf = cuf;
+              }
+              item.progress = 100;
+              this.cdr.markForCheck();
+              resolve();
+            },
+            error: (err) => {
+              item.status = 'error';
+              item.error = err?.message ?? 'Error al procesar';
+              item.progress = 100;
+              this.cdr.markForCheck();
+              resolve();
+            }
+          });
+        });
+
+      } catch (err: any) {
+        item.status = 'error';
+        item.error = err?.message ?? 'Error al procesar el PDF';
+        item.progress = 100;
+        this.cdr.markForCheck();
+      }
+    }
+
+    this.pdfBatchProcessing = false;
+    this.currentProcessingIndex = -1;
+    
+    // Mostrar modal con resultados batch
+    this.showPdfModal = false;
+    this.showPdfBatchModal = true;
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Extrae el CUF de una URL de QR del SIAT boliviano
+   */
+  private _extractCufFromQrUrl(url: string): string | undefined {
+    try {
+      // URLs típicas del SIAT:
+      // https://pilotosiat.impuestos.gob.bo/consulta/QR?nit=...&cuf=...&numero=...&t=2
+      // https://siat.impuestos.gob.bo/consulta/QR?nit=...&cuf=...&numero=...
+      const urlObj = new URL(url);
+      const cuf = urlObj.searchParams.get('cuf');
+      if (cuf) return cuf;
+      
+      // También puede estar en path: /consulta/QR/CUF...
+      const match = url.match(/QR\/([A-F0-9]{32,})/i);
+      if (match) return match[1];
+      
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Maneja la confirmación del modal de preview IA (single)
+   * Crea el documento directamente con cálculo automático de impuestos
+   */
+  async onAiPreviewConfirm(data: any) {
+    // Mapear datos del modal al formato de factura
+    const factura: FacturaSiat = {
+      cuf: data.cuf || '',
+      nit: data.nit || '',
+      invoiceNumber: data.numeroFactura || '',
+      companyName: data.razonSocial || '',
+      clientName: '',
+      clientDoc: '',
+      status: 'VALIDA',
+      datetime: data.fecha || null,
+      total: data.monto || 0,
+      concepto: data.concepto || ''  // ✅ INCLUIR CONCEPTO DEL USUARIO
+    };
+
+    this.showAiPreviewModal = false;
+    this.aiPreviewResult = null;
+    this.pdfFiles = [];
+    this.pdfFileNames = '';
+
+    // Crear documento directamente
+    try {
+      await this._crearDocumentoDesdeFactura(factura);
+      this.toast.exito('Documento creado exitosamente');
+      this.loadDocs();
+    } catch (err: any) {
+      // Si falla, abrir el formulario manual con los datos prellenados
+      this.toast.warning('No se pudo crear automáticamente. Complete los datos manualmente.');
+      this._prefillFromFactura(factura);
+    }
+  }
+
+  /**
+   * Cancela el modal de preview IA (single)
+   */
+  onAiPreviewCancel() {
+    this.showAiPreviewModal = false;
+    this.aiPreviewResult = null;
+  }
+
+  // ══ MÉTODOS BATCH DE PDFs ══
+
+  closePdfBatchModal() {
+    this.showPdfBatchModal = false;
+    this.pdfBatchResults = [];
+    this.pdfFiles = [];
+    this.pdfFileNames = '';
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Abre el modal de revisión para un item específico del batch
+   */
+  revisarBatchItem(item: PdfBatchItem, index: number) {
+    this.batchItemBeingReviewed = item;
+    this.batchItemReviewIndex = index;
+    this.showBatchItemReviewModal = true;
+    this.cdr.markForCheck();
+  }
+
+  closeBatchItemReviewModal() {
+    this.showBatchItemReviewModal = false;
+    this.batchItemBeingReviewed = null;
+    this.batchItemReviewIndex = -1;
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Maneja la confirmación de un item individual del batch
+   * Crea el documento inmediatamente con los datos editados
+   */
+  async onBatchItemConfirm(data: any) {
+    if (this.batchItemBeingReviewed && this.batchItemBeingReviewed.result?.success) {
+      // Crear el documento directamente con los datos editados
+      const factura: FacturaSiat = {
+        cuf: data.cuf || this.batchItemBeingReviewed.cuf || '',
+        nit: data.nit || '',
+        invoiceNumber: data.numeroFactura || '',
+        companyName: data.razonSocial || '',
+        clientName: '',
+        clientDoc: '',
+        status: 'VALIDA',
+        datetime: data.fecha || null,
+        total: data.monto || 0,
+        concepto: data.concepto || ''  // ✅ INCLUIR CONCEPTO DEL USUARIO
+      };
+
+      try {
+        await this._crearDocumentoDesdeFactura(factura);
+        this.toast.exito('Documento creado exitosamente');
+        // Eliminar el item del batch
+        this.eliminarBatchItem(this.batchItemReviewIndex);
+        this.loadDocs();
+        
+        // ✅ CERRAR MODAL BATCH SI NO QUEDAN ITEMS
+        const completadosRestantes = this.pdfBatchResults.filter(i => i.status === 'completed').length;
+        if (completadosRestantes === 0) {
+          this.closePdfBatchModal();
+        }
+      } catch (err: any) {
+        this.toast.error('Error al crear documento: ' + (err?.error?.message || err?.message || 'Error desconocido'));
+      }
+    }
+    this.closeBatchItemReviewModal();
+  }
+
+  /**
+   * Elimina un item del batch
+   */
+  eliminarBatchItem(index: number) {
+    this.pdfBatchResults.splice(index, 1);
+    
+    // ✅ CERRAR MODAL BATCH SI NO QUEDAN ITEMS
+    if (this.pdfBatchResults.length === 0) {
+      this.closePdfBatchModal();
+    }
+    
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Reprocesa un item del batch
+   */
+  async reprocesarBatchItem(index: number) {
+    const item = this.pdfBatchResults[index];
+    item.status = 'processing';
+    item.progress = 50;
+    item.error = undefined;
     this.cdr.markForCheck();
 
     try {
-      // 1. Cargar pdf.js desde CDN
-      const pdfjsLib = await this._loadPdfJs();
-
-      // 2. Leer el PDF como ArrayBuffer
-      const arrayBuffer = await this.pdfFile.arrayBuffer();
-
-      // 3. Renderizar la primera página como canvas
-      const pdf      = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const page     = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 2.0 }); // escala 2x para mejor detección
-
-      const canvas  = document.createElement('canvas');
-      canvas.width  = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
-
-      // 4. Escanear QR en el canvas con QrScanner
-      const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
-      const url    = result?.data;
-
-      if (!url) throw new Error('No se encontró ningún código QR en el PDF');
-
-      // 5. Mismo flujo que URL/QR
-      this.facturaSvc.getFromSiat(url).subscribe({
-        next: (factura) => {
-          this.pdfLoadingFactura = false;
-          this.showPdfModal      = false;
-          this.pdfFile           = null;
-          this.pdfFileName       = '';
-          this._prefillFromFactura(factura);
-        },
-        error: (err) => {
-          this.pdfLoadingFactura = false;
-          this.pdfError = err?.error?.message
-            ?? 'Se encontró el QR pero no se pudo consultar el SIAT.';
-          this.cdr.markForCheck();
-        },
+      await new Promise<void>((resolve) => {
+        this.facturaSvc.processFacturaPdf(item.file!, item.qrUrl, item.cuf).subscribe({
+          next: (result) => {
+            item.status = result.success ? 'completed' : 'error';
+            item.result = result;
+            item.error = result.error;
+            if (item.cuf && result.success && result.data) {
+              (result.data as any).cuf = item.cuf;
+            }
+            item.progress = 100;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: (err) => {
+            item.status = 'error';
+            item.error = err?.message ?? 'Error al reprocesar';
+            item.progress = 100;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
       });
-
     } catch (err: any) {
-      this.pdfLoadingFactura = false;
-      this.pdfError = err?.message?.includes('No QR code found')
-        ? 'No se encontró ningún código QR en el PDF. Verificá que sea una factura electrónica.'
-        : (err?.message ?? 'Error al procesar el PDF');
+      item.status = 'error';
+      item.error = err?.message ?? 'Error al reprocesar';
+      item.progress = 100;
       this.cdr.markForCheck();
     }
+  }
+
+  /**
+   * Confirma todos los items completados del batch y crea los documentos
+   */
+  async confirmarBatch() {
+    const completados = this.pdfBatchResults.filter(i => i.status === 'completed' && i.result?.success);
+    
+    if (completados.length === 0) {
+      this.toast.warning('No hay facturas válidas para confirmar');
+      return;
+    }
+
+    let creados = 0;
+    let errores = 0;
+    
+    for (const item of completados) {
+      const data = item.result!.data!;
+      const factura: FacturaSiat = {
+        cuf: (data as any).cuf || item.cuf || '',
+        nit: (data as any).nit || '',
+        invoiceNumber: (data as any).numeroFactura || (data as any).invoiceNumber || '',
+        companyName: (data as any).razonSocial || (data as any).companyName || '',
+        clientName: '',
+        clientDoc: '',
+        status: 'VALIDA',
+        datetime: (data as any).fecha || (data as any).datetime || null,
+        total: (data as any).monto || (data as any).total || 0
+      };
+
+      // Crear el documento
+      try {
+        await this._crearDocumentoDesdeFactura(factura);
+        creados++;
+      } catch (err) {
+        console.error('Error creando documento:', err);
+        errores++;
+      }
+    }
+
+    if (creados > 0) {
+      this.toast.exito(`${creados} documento(s) creado(s) exitosamente`);
+    }
+    if (errores > 0) {
+      this.toast.error(`${errores} documento(s) con error`);
+    }
+    
+    this.closePdfBatchModal();
+    this.loadDocs();
+  }
+
+  /**
+   * Crea un documento REND_D desde datos de factura
+   * Calcula impuestos automáticamente según configuración del tipo de documento
+   */
+  private async _crearDocumentoDesdeFactura(factura: FacturaSiat): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const primerTipo = this.tiposDocs[0];
+      const config = primerTipo; // Config del tipo de documento
+      
+      let fecha = this.hoy;
+      if (factura.datetime) {
+        try { fecha = factura.datetime.substring(0, 10); } catch { }
+      }
+
+      const importe = factura.total || 0;
+      
+      // Calcular impuestos según configuración del tipo de documento
+      // Similar al motor de cálculo _recalcular() pero simplificado
+      const idTipoDoc = Number(config?.U_IdTipoDoc ?? 1);
+      const esRecibo = idTipoDoc === 4 || idTipoDoc === 10;
+      const tipoCalc = String(config?.U_TipoCalc ?? '1');
+      
+      // Por defecto: factura (tipo 1) - cálculo normal sobre base imponible
+      let montoIVA = 0, montoIT = 0, montoIUE = 0, montoRCIVA = 0;
+      
+      if (idTipoDoc === 1) {
+        // Factura: calcular sobre importe (simplificado sin exento/ice/tasa)
+        montoIVA = this._calcImpuestoSimple(importe, config?.U_IVApercent);
+        montoIT = this._calcImpuestoSimple(importe, config?.U_ITpercent);
+        montoIUE = this._calcImpuestoSimple(importe, config?.U_IUEpercent);
+        montoRCIVA = this._calcImpuestoSimple(importe, config?.U_RCIVApercent);
+      } else if (esRecibo) {
+        if (tipoCalc === '1') {
+          // Grossing Down: sobre importe
+          montoIT = this._calcImpuestoSimple(importe, config?.U_ITpercent);
+          montoRCIVA = this._calcImpuestoSimple(importe, config?.U_RCIVApercent);
+          montoIVA = this._calcImpuestoSimple(importe, config?.U_IVApercent);
+          montoIUE = this._calcImpuestoSimple(importe, config?.U_IUEpercent);
+        } else {
+          // Grossing Up: calcular bruto primero (simplificado)
+          const tasaIUE = (Number(config?.U_IUEpercent) || 0) / 100;
+          const tasaIT = (Number(config?.U_ITpercent) || 0) / 100;
+          const tasaRCIVA = (Number(config?.U_RCIVApercent) || 0) / 100;
+          const tasaIVA = (Number(config?.U_IVApercent) || 0) / 100;
+          const sumaTasas = tasaIUE + tasaIT + tasaRCIVA + tasaIVA;
+          
+          const bruto = sumaTasas > 0 && sumaTasas < 1
+            ? Math.round((importe / (1 - sumaTasas)) * 100) / 100
+            : importe;
+          
+          montoIUE = Math.round(bruto * tasaIUE * 100) / 100;
+          montoIT = Math.round(bruto * tasaIT * 100) / 100;
+          montoRCIVA = Math.round(bruto * tasaRCIVA * 100) / 100;
+          montoIVA = Math.round(bruto * tasaIVA * 100) / 100;
+        }
+      }
+
+      const impRet = Math.round((montoIVA + montoIT + montoIUE + montoRCIVA) * 100) / 100;
+      const total = esRecibo && tipoCalc === '0'
+        ? Math.round((importe + impRet) * 100) / 100
+        : Math.round((importe - impRet) * 100) / 100;
+
+      // Payload según el DTO del backend (sin idRendicion, sin iva/it/iue/rciiva abreviados)
+      // ✅ USAR CONCEPTO DEL USUARIO si existe, sino generar uno genérico
+      const conceptoUsuario = (factura as any).concepto?.trim();
+      const conceptoFinal = conceptoUsuario 
+        ? conceptoUsuario.substring(0, 200)
+        : `Compra según factura N° ${factura.invoiceNumber}`.substring(0, 200);
+      
+      const payload = {
+        cuenta: '',
+        nombreCuenta: '',
+        concepto: conceptoFinal,
+        fecha,
+        idTipoDoc: config?.U_IdTipoDoc ?? 1,
+        tipoDoc: config?.U_IdDocumento ?? 1,
+        tipoDocName: config?.U_TipDoc ?? 'FACTURA',
+        numDocumento: factura.invoiceNumber || '',
+        nit: factura.nit || '0',
+        prov: factura.companyName || '',
+        codProv: '',
+        importe: importe,
+        descuento: 0,
+        exento: 0,
+        tasaCero: 0,
+        ice: 0,
+        tasa: Number(config?.U_TASA) === -1 ? 0 : (Number(config?.U_TASA) ?? 0),
+        giftCard: 0,
+        montoIVA,
+        montoIT,
+        montoIUE,
+        montoRCIVA,
+        impRet,
+        total,
+        cuf: factura.cuf || '',
+        nroAutor: '',
+        ctrl: '',
+        proyecto: '',
+        n1: this.auth.fijarNr ? this.auth.nr1 : '',
+        n2: this.auth.fijarNr ? this.auth.nr2 : '',
+        n3: this.auth.fijarNr ? this.auth.nr3 : '',
+        ctaExento: config?.U_CTAEXENTO || '',
+        // ✅ Importe en moneda local (Bs) - copia del importe original
+        importeBs: importe,
+        exentoBs: 0,
+        desctoBs: 0,
+      };
+
+      this.rendDSvc.create(this.idRendicion, payload as any).subscribe({
+        next: () => resolve(),
+        error: (err) => reject(err)
+      });
+    });
+  }
+
+  /** Helper para calcular impuestos simplificado */
+  private _calcImpuestoSimple(base: number, pct: number | null | undefined): number {
+    if (!pct || pct <= 0) return 0;
+    return Math.round(base * (pct / 100) * 100) / 100;
+  }
+
+  /**
+   * Obtiene el conteo de items por estado
+   */
+  get batchStats() {
+    const total = this.pdfBatchResults.length;
+    const completed = this.pdfBatchResults.filter(i => i.status === 'completed').length;
+    const errors = this.pdfBatchResults.filter(i => i.status === 'error').length;
+    const processing = this.pdfBatchResults.filter(i => i.status === 'processing').length;
+    const pending = this.pdfBatchResults.filter(i => i.status === 'pending').length;
+    return { total, completed, errors, processing, pending };
+  }
+
+  // ══ Helpers para templates (evitar errores de tipado) ══
+
+  getItemNit(item: PdfBatchItem): string {
+    return (item.result?.data as any)?.nit || '—';
+  }
+
+  getItemRazonSocial(item: PdfBatchItem): string {
+    const data = item.result?.data as any;
+    return data?.razonSocial || data?.companyName || '—';
+  }
+
+  getItemNumeroFactura(item: PdfBatchItem): string {
+    const data = item.result?.data as any;
+    return data?.numeroFactura || data?.invoiceNumber || '—';
+  }
+
+  getItemFecha(item: PdfBatchItem): string {
+    const data = item.result?.data as any;
+    return data?.fecha || data?.datetime || '';
+  }
+
+  getItemMonto(item: PdfBatchItem): number {
+    const data = item.result?.data as any;
+    return data?.monto || data?.total || 0;
+  }
+
+  getItemCuf(item: PdfBatchItem): string {
+    return item.cuf || (item.result?.data as any)?.cuf || '';
   }
 
   /** Carga pdf.js UMD desde CDN — expone window.pdfjsLib */
@@ -933,10 +1728,11 @@ export class RendDComponent implements OnInit {
     this.proveedorSeleccionado = null;
     const primer = this.tiposDocs[0];
     this.form.reset({
-      cuenta: '', fecha: this.hoy, tipoDoc: primer?.U_TipDoc ?? '',
+      cuenta: '', fecha: this.hoy, tipoDoc: String(primer?.U_IdDocumento) ?? '',
+      tipoDocName: primer?.U_TipDoc ?? '',
       idTipoDoc: primer?.U_IdTipoDoc ?? 1,
       numDocumento: '', nroAutor: '', cuf: '', ctrl: '',
-      prov: '', concepto: '',
+      prov: '', codProv: '', concepto: '',
       importe: 0, descuento: 0, exento: 0,
       tasa: Number(primer?.U_TASA) === -1 ? 0 : (Number(primer?.U_TASA) ?? 0),
       giftCard: 0, tasaCero: 0,
@@ -953,16 +1749,32 @@ export class RendDComponent implements OnInit {
       this._recalcular();
     }
     // Pre-cargar normas de reparto desde la configuración del usuario
-    if (this.auth.fijarNr) {
-      this.form.patchValue({
-        n1: this.auth.nr1,
-        n2: this.auth.nr2,
-        n3: this.auth.nr3,
-      }, { emitEvent: false });
-    }
+    this._aplicarNormasPreconfiguradas();
     this.showForm = true;
     this.aplicarEstadoCampos();
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Aplica las normas de reparto preconfiguradas del usuario al formulario.
+   * Se llama al crear un nuevo documento y después de cargar las dimensiones.
+   */
+  private _aplicarNormasPreconfiguradas(): void {
+    if (!this.auth.fijarNr) return;
+
+    const nr1 = this.auth.nr1?.trim() ?? '';
+    const nr2 = this.auth.nr2?.trim() ?? '';
+    const nr3 = this.auth.nr3?.trim() ?? '';
+
+    // Solo aplicar si hay valores configurados
+    const patch: any = {};
+    if (nr1) patch.n1 = nr1;
+    if (nr2) patch.n2 = nr2;
+    if (nr3) patch.n3 = nr3;
+
+    if (Object.keys(patch).length > 0) {
+      this.form.patchValue(patch, { emitEvent: false });
+    }
   }
 
   // ── Escáner QR ────────────────────────────────────────────────
@@ -1012,7 +1824,7 @@ export class RendDComponent implements OnInit {
     const rows = this.documentos.map(d => ({
       'N°':           d.U_RD_IdRD,
       'Fecha':        d.U_RD_Fecha ?? '',
-      'Tipo Doc':     d.U_RD_TipoDoc ?? '',
+      'Tipo Doc':     this.getTipoDocName(d.U_RD_TipoDoc) ?? '',
       'N° Documento': d.U_RD_NumDocumento ?? '',
       'NIT':          d.U_RD_NIT ?? '',
       'Proveedor':    d.U_RD_Prov ?? '',
@@ -1044,7 +1856,7 @@ export class RendDComponent implements OnInit {
 
     const nombreArchivo = `Rendicion_${this.cabecera?.U_IdRendicion ?? 0}_Documentos.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
-    this.toast.success(`Exportado: ${nombreArchivo}`);
+    this.toast.exito(`Exportado: ${nombreArchivo}`);
   }
 
   descargarFormato() {
@@ -1080,7 +1892,7 @@ export class RendDComponent implements OnInit {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Importar');
     XLSX.writeFile(wb, 'Formato_Importacion_Documentos.xlsx');
-    this.toast.success('Formato descargado');
+    this.toast.exito('Formato descargado');
   }
 
   onImportarFile(event: Event) {
@@ -1140,7 +1952,7 @@ export class RendDComponent implements OnInit {
   private _importarFila(rows: any[], idx: number, ok: number, tipoDoc: any) {
     if (idx >= rows.length) {
       this.importando = false;
-      this.toast.success(`${ok} documento${ok !== 1 ? 's' : ''} importado${ok !== 1 ? 's' : ''} correctamente`);
+      this.toast.exito(`${ok} documento${ok !== 1 ? 's' : ''} importado${ok !== 1 ? 's' : ''} correctamente`);
       this.loadDocs();
       return;
     }
@@ -1153,7 +1965,8 @@ export class RendDComponent implements OnInit {
     const payload = {
       idRendicion:  this.idRendicion,
       fecha,
-      tipoDoc:      r['Tipo Doc']     || tipoDoc?.U_TipDoc || '',
+      tipoDoc:      tipoDoc?.U_IdDocumento ?? r['Tipo Doc'] ?? '',
+      tipoDocName:  tipoDoc?.U_TipDoc ?? r['Tipo Doc'] ?? '',
       idTipoDoc:    tipoDoc?.U_IdTipoDoc ?? 1,
       numDocumento: String(r['N° Documento'] ?? ''),
       nit:          String(r['NIT']          ?? ''),
@@ -1197,6 +2010,15 @@ export class RendDComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  private buscarProveedorEnLista(nit: string): { cardCode: string; cardName: string; licTradNum?: string } | null {
+    if (!nit || !this.provSearch) return null;
+    const q = nit.toLowerCase().trim();
+    const found = this.provSearch.allItems.find(
+      (p: any) => p.licTradNum && p.licTradNum.toLowerCase().trim() === q,
+    );
+    return found ?? null;
+  }
+
   onQrCaptured(url: string) {
     // Detener el scanner pero mantener el modal abierto para mostrar el loader
     if (this.qrScannerInstance) {
@@ -1231,7 +2053,11 @@ export class RendDComponent implements OnInit {
       try { fecha = factura.datetime.substring(0, 10); } catch { /* mantener hoy */ }
     }
 
-    const concepto = `Compra según factura N° ${factura.invoiceNumber}`;
+    // ✅ USAR CONCEPTO DEL USUARIO si existe, sino generar uno genérico
+    const conceptoUsuario = (factura as any).concepto?.trim();
+    const concepto = conceptoUsuario 
+      ? conceptoUsuario 
+      : `Compra según factura N° ${factura.invoiceNumber}`;
 
     // Patchear campos básicos
     this.form.patchValue({
@@ -1243,34 +2069,52 @@ export class RendDComponent implements OnInit {
       importe:      factura.total,
       concepto:     concepto.substring(0, 250),
     });
+    
+    // ✅ DISPARAR SUGERENCIA DE IA si hay concepto y IA está habilitada
+    if (conceptoUsuario && this.iaEnabled) {
+      setTimeout(() => this.onConceptoChange(conceptoUsuario), 300);
+    }
 
-    // Buscar o crear proveedor en REND_PROV y pre-seleccionar en el selector
+    // Buscar o crear proveedor: primero en la lista maestra, luego en REND_PROV
     if (factura.nit && factura.companyName) {
-      this.provSvc.findOrCreate(factura.nit, factura.companyName).subscribe({
-        next: (prov) => {
-          // U_CODIGO es el cardCode que usa el selector de proveedor
-          const cardCode = (prov as any).U_CODIGO ?? factura.nit;
-          const cardName = (prov as any).U_RAZON_SOCIAL ?? factura.companyName;
-          this.proveedorSeleccionado = { cardCode, cardName };
-          this.form.patchValue({
-            prov:    cardName,
-            codProv: cardCode,
-          });
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          // Si falla, al menos mostrar los datos del QR
-          this.proveedorSeleccionado = {
-            cardCode: factura.nit,
-            cardName: factura.companyName,
-          };
-          this.cdr.markForCheck();
-        },
-      });
+      const existente = this.buscarProveedorEnLista(factura.nit);
+      if (existente) {
+        this.proveedorSeleccionado = existente;
+        this.form.patchValue({
+          prov:    existente.cardName,
+          codProv: existente.cardCode,
+          nit:     factura.nit,
+        });
+        this.cdr.markForCheck();
+      } else {
+        this.provSvc.findOrCreate(factura.nit, factura.companyName).subscribe({
+          next: (prov) => {
+            const cardName = (prov as any).U_RAZON_SOCIAL ?? factura.companyName;
+            this.proveedorSeleccionado = { cardCode: 'PL999999', cardName, licTradNum: factura.nit };
+            this.form.patchValue({
+              prov:    cardName,
+              codProv: 'PL999999',
+              nit:     factura.nit,
+            });
+            this.provSearch?.refreshProvEventuales?.();
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            // Si falla, al menos mostrar los datos del QR
+            this.proveedorSeleccionado = {
+              cardCode: 'PL999999',
+              cardName: factura.companyName,
+              licTradNum: factura.nit,
+            };
+            this.form.patchValue({ nit: factura.nit });
+            this.cdr.markForCheck();
+          },
+        });
+      }
     }
 
     this.cdr.markForCheck();
-    this.toast.success(`Factura N° ${factura.invoiceNumber} cargada — completá cuenta y otros datos`);
+    this.toast.exito(`Factura N° ${factura.invoiceNumber} cargada — completá cuenta y otros datos`);
   }
 
   openEdit(d: RendD) {
@@ -1285,18 +2129,21 @@ export class RendDComponent implements OnInit {
     this.proyectoActivo  = !!(d.U_RD_Proyecto ?? '').trim();
     this.exentoActivo    = Number(d.U_RD_Exento ?? 0) !== 0;
     this.proveedorSeleccionado = d.U_RD_CodProv
-      ? { cardCode: d.U_RD_CodProv, cardName: d.U_RD_Prov ?? '' }
-      : null;
+      ? { cardCode: d.U_RD_CodProv, cardName: d.U_RD_Prov ?? '', licTradNum: d.U_RD_NIT }
+      : (d.U_RD_Prov ? { cardCode: d.U_RD_NIT || '', cardName: d.U_RD_Prov, licTradNum: d.U_RD_NIT } : null);
     const values = {
       cuenta:       d.U_RD_Cuenta        ?? '',
+      nombreCuenta: d.U_RD_NombreCuenta  ?? '',
       fecha:        d.U_RD_Fecha?.substring(0, 10) ?? '',
-      tipoDoc:      d.U_RD_TipoDoc,
+      tipoDoc:      String(d.U_RD_TipoDoc),
+      tipoDocName:  d.U_RD_TipoDoc,
       idTipoDoc:    d.U_RD_IdTipoDoc,
       numDocumento: d.U_RD_NumDocumento  ?? '',
       nroAutor:     d.U_RD_NroAutor      ?? '',
       cuf:          d.U_CUF              ?? '',
       ctrl:         d.U_RD_Ctrl          ?? '',
       prov:         d.U_RD_Prov          ?? '',
+      codProv:      d.U_RD_CodProv       ?? '',
       concepto:     d.U_RD_Concepto,
       importe:      d.U_RD_Importe,
       descuento:    d.U_RD_Descuento,
@@ -1326,7 +2173,7 @@ export class RendDComponent implements OnInit {
     this.form.reset(values);
     this.initialValues = { ...values };
     // Enganchar motor con la config del tipo de doc del registro que se edita
-    this.configDocActivo = this.tiposDocs.find(td => td.U_TipDoc === values.tipoDoc) ?? null;
+    this.configDocActivo = this.tiposDocs.find(td => String(td.U_IdDocumento) === values.tipoDoc) ?? null;
     // Si exento es variable (-1), siempre mostrar el campo editable
     if (Number(this.configDocActivo?.U_EXENTOpercent) === -1) {
       this.exentoActivo = true;
@@ -1343,8 +2190,21 @@ export class RendDComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    // Cerrar menú de acciones si se hace clic fuera
+    if (this.openMenuId !== null) {
+      const target = event.target as HTMLElement;
+      const menuWrap = target.closest('.row-menu-wrap');
+      if (!menuWrap) {
+        this.closeMenu();
+      }
+    }
+  }
+
   @HostListener('document:keydown.escape')
   onEscape() {
+    if (this.openMenuId !== null)  { this.closeMenu(); return; }
     if (this.showQrScanner)   { this.cerrarQrScanner();  return; }
     if (this.showModeSelector){ this.closeModeSelector(); return; }
     if (this.showNuevoProv)   { this.cerrarNuevoProv();  return; }
@@ -1390,12 +2250,14 @@ export class RendDComponent implements OnInit {
       concepto:     r.concepto,
       fecha:        r.fecha,
       idTipoDoc:    Number(r.idTipoDoc),
-      tipoDoc:      r.tipoDoc,
+      tipoDoc:      Number(r.tipoDoc),
+      tipoDocName:  r.tipoDocName,
       numDocumento: r.numDocumento  || undefined,
       nroAutor:     r.nroAutor      || undefined,
       cuf:          r.cuf           || undefined,
       ctrl:         r.ctrl          || undefined,
       prov:         r.prov          || undefined,
+      codProv:      r.codProv       || undefined,
       nit:          r.nit           || '0',
       importe:      Number(r.importe),
       descuento:    Number(r.descuento),
@@ -1431,13 +2293,25 @@ export class RendDComponent implements OnInit {
         const msg = this.editingDoc ? 'Documento actualizado' : 'Documento agregado';
         // Primero recargar los datos, luego cerrar el formulario
         this.loadDocs(() => {
-          this.toast.success(msg);
+          this.toast.exito(msg);
           this.closeForm();
         });
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: any) => {
         this.isSaving = false;
+        // Manejar errores de validación de datos maestros (422)
+        if (err?.status === 422 && err?.error?.errors) {
+          const errores = err.error.errors;
+          const mensaje = Array.isArray(errores) 
+            ? 'Datos maestros inválidos:\n' + errores.join('\n')
+            : 'Datos maestros inválidos: ' + errores;
+          this.toast.error(mensaje);
+        } else if (err?.error?.message) {
+          this.toast.error(err.error.message);
+        } else {
+          this.toast.error('Error al guardar el documento');
+        }
         this.cdr.markForCheck();
       },
     });
@@ -1453,11 +2327,14 @@ export class RendDComponent implements OnInit {
     }, () => {
       this.rendDSvc.remove(this.idRendicion, d.U_RD_IdRD).subscribe({
         next:  () => {
-          this.toast.success('Documento eliminado');
+          this.toast.exito('Documento eliminado');
           this.loadDocs();
           this.cdr.markForCheck();
         },
-        error: () => { this.cdr.markForCheck(); },
+        error: (err: any) => { 
+          this.toast.error(err?.error?.message || 'Error al eliminar el documento'); 
+          this.cdr.markForCheck(); 
+        },
       });
     });
   }
@@ -1468,9 +2345,11 @@ export class RendDComponent implements OnInit {
     this.totalPages = Math.max(1, Math.ceil(this.documentos.length / this.limit));
     const start = (this.page - 1) * this.limit;
     this.paged  = this.documentos.slice(start, start + this.limit);
+    // Recargar contadores de adjuntos para la nueva página
+    setTimeout(() => this.cargarContadoresAdjuntos(), 0);
   }
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
+  onPageChange(p: number)  { this.page = p;  this.updatePaging(); this.cdr.markForCheck(); }
+  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); this.cdr.markForCheck(); }
 
   // ── Dialog ──────────────────────────────────────────────────────
 
