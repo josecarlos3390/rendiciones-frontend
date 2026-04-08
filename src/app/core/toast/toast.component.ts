@@ -72,29 +72,29 @@ import { ToastService, Toast } from './toast.service';
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-width: 400px;
+      max-width: 450px;
       pointer-events: none;
     }
 
     .toast {
       pointer-events: auto;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
-      padding: 14px 16px;
+      padding: 16px;
       border-radius: 12px;
       background: white;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);
       border-left: 4px solid;
       min-width: 300px;
-      max-width: 400px;
+      max-width: 450px;
       cursor: pointer;
       position: relative;
       overflow: hidden;
       animation: slideInRight 0.3s ease-out;
       transition: all 0.2s ease;
     }
-
+    
     .toast:hover {
       transform: translateX(-4px);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
@@ -145,8 +145,9 @@ import { ToastService, Toast } from './toast.service';
       font-size: 14px;
       font-weight: 500;
       color: #1f2937;
-      line-height: 1.4;
+      line-height: 1.5;
       word-wrap: break-word;
+      white-space: pre-line; /* Respeta saltos de línea \n */
     }
 
     .toast-close {

@@ -12,7 +12,7 @@
 
 <!-- ── Modal ─────────────────────────────────────────────────── -->
 <div class="modal-backdrop" *ngIf="showForm">
-  <div class="user-modal dimension-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+  <div class="modal-card dimension-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
 
     <div class="modal-header">
       <h3>
@@ -24,7 +24,7 @@
 
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
 
-      <div class="modal-body">
+      <div class="modal-body form-body">
 
         <div class="form-field">
           <label>Código <span class="required">*</span></label>
@@ -104,13 +104,14 @@
         (cleared)="applyFilter()">
       </app-search-input>
     </div>
-    <div class="filter-field">
+    <div class="filter-field filter-field--select">
       <label>Estado</label>
-      <select [(ngModel)]="filterActiva" (change)="onFilterActivaChange()" class="filter-select">
-        <option value="todas">Todas</option>
-        <option value="activas">Activas</option>
-        <option value="inactivas">Inactivas</option>
-      </select>
+      <app-select
+        [options]="estadoOptions"
+        [value]="filterActiva"
+        placeholder="Filtrar por estado"
+        (valueChange)="onFilterActivaChange($event)">
+      </app-select>
     </div>
   </div>
   <span class="filter-count" *ngIf="!loading">

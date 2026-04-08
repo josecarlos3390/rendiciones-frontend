@@ -10,13 +10,13 @@ import { AprobacionesService, AprobacionPendiente } from '../../services/aprobac
 import { ToastService } from '../../core/toast/toast.service';
 import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
-import { VirtualTableBodyComponent } from '../../shared/virtual-table';
+
 
 @Component({
   selector:        'app-aprobaciones',
   standalone:      true,
   changeDetection: ChangeDetectionStrategy.Default,
-  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent, VirtualTableBodyComponent],
+  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent],
   templateUrl: './aprobaciones.component.html',
   styleUrls:  ['./aprobaciones.component.scss'],
 })
@@ -154,10 +154,11 @@ export class AprobacionesComponent implements OnInit {
 
   estadoRendCss(estado: number): string {
     const map: Record<number, string> = {
-      1: 'status-badge status-open',
-      2: 'status-badge status-secondary',
-      3: 'status-badge status-approved',
-      4: 'status-badge status-sent',
+      1: 'status-badge status-open',      // ABIERTO
+      2: 'status-badge status-closed',    // CERRADO
+      3: 'status-badge status-cancelled', // ELIMINADO
+      4: 'status-badge status-confirmed', // ENVIADO
+      7: 'status-badge status-closed',    // APROBADO
     };
     return map[estado] ?? 'status-badge';
   }

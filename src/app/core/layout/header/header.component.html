@@ -2,6 +2,12 @@
   <div class="header-left">
     <!-- Logo o título -->
     <h1 class="app-title">Sistema de Rendiciones</h1>
+    
+    <!-- Indicador OFFLINE compacto -->
+    <span *ngIf="isOffline" class="offline-indicator" title="Modo autónomo - Sin conexión a SAP">
+      <span class="offline-dot"></span>
+      OFFLINE
+    </span>
   </div>
   
   <div class="header-right">

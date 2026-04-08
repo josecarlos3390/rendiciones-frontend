@@ -12,24 +12,87 @@ import { AuthService } from '../auth/auth.service';
 let isHandling401 = false;
 
 /**
+ * Extrae y formatea mensajes de error del backend.
+ * Soporta:
+ *   - String simple: "Error message"
+ *   - Array de strings: ["Error 1", "Error 2"]
+ *   - Objeto con message: { message: "..." } o { message: ["...", "..."] }
+ */
+function extractErrorMessages(error: any): string[] {
+  if (!error) return [];
+  
+  // Caso 1: message es un array
+  if (Array.isArray(error.message)) {
+    return error.message.map((m: any) => String(m));
+  }
+  
+  // Caso 2: message es un string
+  if (typeof error.message === 'string' && error.message.trim()) {
+    return [error.message];
+  }
+  
+  // Caso 3: error es un string directo
+  if (typeof error === 'string' && error.trim()) {
+    return [error];
+  }
+  
+  // Caso 4: error es un array directo
+  if (Array.isArray(error)) {
+    return error.map((e: any) => 
+      typeof e === 'string' ? e : (e.message || e.toString())
+    ).filter(Boolean);
+  }
+  
+  // Caso 5: propiedad error (algunos backends usan esta estructura)
+  if (error.error) {
+    if (typeof error.error === 'string') return [error.error];
+    if (Array.isArray(error.error)) return error.error.map(String);
+    if (error.error.message) return extractErrorMessages(error.error);
+  }
+  
+  return [];
+}
+
+/**
+ * Formatea mensajes de validación para mostrarlos en toast.
+ * Muestra máximo 3 errores para no saturar la pantalla.
+ */
+function formatValidationErrors(messages: string[]): string {
+  if (messages.length === 0) return 'Error de validación. Verifica los datos ingresados.';
+  if (messages.length === 1) return messages[0];
+  
+  // Para múltiples errores, listarlos con viñetas
+  const maxMessages = 3;
+  const displayMessages = messages.slice(0, maxMessages);
+  const remainingCount = messages.length - maxMessages;
+  
+  let formatted = displayMessages.map(m => `• ${m}`).join('\n');
+  if (remainingCount > 0) {
+    formatted += `\n• ...y ${remainingCount} error${remainingCount > 1 ? 'es' : ''} más`;
+  }
+  
+  return formatted;
+}
+
+/**
  * Interceptor global de errores HTTP.
  *
  * Maneja automáticamente:
  *   0   → Sin conexión al servidor
- *   400 → Bad request → mensaje del backend si existe
+ *   400 → Bad request / Validación → mensaje del backend (soporta arrays)
  *   401 → Token expirado o inválido → logout y redirige a login
  *   403 → Sin permisos → toast informativo
  *   408/timeout → Request timeout → mensaje específico
+ *   422 → Validación → mensajes de error del backend
  *   5xx → Error del servidor → mensaje genérico
  *
  * NO maneja (el componente es responsable):
  *   409 → Conflicto de negocio — siempre tiene un mensaje específico del backend
- *   422 → Validación — siempre tiene un mensaje específico del backend
  *   404 → No encontrado — el componente decide cómo reaccionar en su contexto
  *
  * El callback error() en los componentes solo debe limpiar estado de UI
  * (ej: isSaving = false). No necesita volver a mostrar un toast para
- * los errores que ya maneja este interceptor (0, 400, 401, 403, 5xx).
+ * los errores que ya maneja este interceptor (0, 400, 401, 403, 422, 5xx).
  *
  * Para suprimir el manejo global en una petición específica, agregar el header:
  *   { headers: { 'X-Skip-Error-Handler': 'true' } }
@@ -58,9 +121,9 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
-      // Extraer mensaje del backend si existe
-      const backendMsg: string | undefined =
-        err.error?.message || err.error?.error || err.error?.detail;
+      // Extraer mensajes del backend
+      const messages = extractErrorMessages(err.error);
+      const backendMsg: string | undefined = messages[0] || err.error?.detail;
 
       switch (true) {
         // ── Sin conexión ──────────────────────────────────────────
@@ -68,9 +131,23 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
           toast.error('Sin conexión con el servidor. Verifica tu red.');
           break;
 
-        // ── Bad request ───────────────────────────────────────────
+        // ── Bad request (400) / Validación ────────────────────────
         case err.status === 400:
-          toast.error(backendMsg || 'La solicitud contiene datos inválidos.');
+          if (messages.length > 0) {
+            // Errores de validación del backend (ej: validación de class-validator)
+            toast.error(formatValidationErrors(messages));
+          } else {
+            toast.error(backendMsg || 'La solicitud contiene datos inválidos.');
+          }
+          break;
+          
+        // ── Validación (422) ─────────────────────────────────────
+        case err.status === 422:
+          if (messages.length > 0) {
+            toast.error(formatValidationErrors(messages));
+          } else {
+            toast.error(backendMsg || 'Error de validación. Verifica los datos ingresados.');
+          }
           break;
 
         // ── Token expirado / no autenticado ───────────────────────

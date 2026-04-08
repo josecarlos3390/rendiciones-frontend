@@ -90,14 +90,30 @@
 .filter-bar {
   display: flex;
   align-items: flex-end;  // align-items: center → flex-end so labels align with inputs
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 12px;
+  }
+}
+
+/* Contenedor de filtros a la izquierda — agrupa campos horizontalmente */
+.filter-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex: 1;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
 }
 
@@ -164,21 +180,39 @@
 .filter-field {
   display:        flex;
   flex-direction: column;
-  gap:            4px;
+  gap:            6px;
   min-width:      220px;
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    color: var(--text-label);
+    line-height: var(--leading-tight);
+  }
 
   @media (max-width: 640px) {
     min-width: 0;
     width: 100%;
   }
+
+  /* Variante para usar con app-select — ancho fijo consistente */
+  &--select {
+    min-width: 220px;
+    width: 220px;
+
+    @media (max-width: 640px) {
+      width: 100%;
+    }
+  }
 }
 
 .filter-label {
-  font-size:      0.78rem;
-  font-weight:    600;
+  font-size:      var(--text-sm);
+  font-weight:    var(--weight-semibold);
   color:          var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height:    var(--leading-tight);
 }
 
 /* Botón de acción dentro del filter-bar (ej: limpiar filtros) */
@@ -270,12 +304,15 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow-x: auto;  // Permitir scroll horizontal en tablas anchas
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;   // Asegurar que no exceda el contenedor padre
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;  // Las columnas se ajustan al contenido
 
   th {
     padding: 10px 16px;
@@ -328,10 +365,29 @@
 .actions {
   white-space: nowrap;
   text-align: right;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: flex-end;
+  
+  // Aplicar flex solo cuando NO sea celda de tabla
+  // (en celdas de tabla, display: flex colapsa el ancho)
+  &:not(td):not(th) {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+}
+
+// En celdas de tabla, los botones deben estar en línea con espacio entre ellos
+td.actions,
+th.actions {
+  > * {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 6px;
+    
+    &:first-child {
+      margin-left: 0;
+    }
+  }
 }
 
 /* ── Celda de usuario con avatar ── */

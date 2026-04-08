@@ -493,21 +493,28 @@ $transition:          0.22s cubic-bezier(.4,0,.2,1);
 .mobile-toggle {
   display: none;
   position: fixed;
-  top: 12px; left: 12px;
-  z-index: 1100;
+  top: 8px; left: 8px;
+  z-index: 1001; /* Por debajo del sidebar abierto (1000) pero visible */
   background: var(--sidebar-bg, var(--bg-sidebar));
   border: 1px solid var(--sidebar-border, var(--border-color));
   color: var(--sidebar-text-base, var(--text-body));
-  padding: 10px;
+  padding: 8px;
   border-radius: 10px;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-md);
-  transition: color $transition, background $transition;
-  width: 44px;
-  height: 44px;
-  &:hover { color: var(--sidebar-text-bright, var(--text-heading)); background: var(--sidebar-bg-hover, var(--bg-subtle)); }
+  transition: color $transition, background $transition, transform 0.2s ease;
+  width: 40px;
+  height: 40px;
+  &:hover { 
+    color: var(--sidebar-text-bright, var(--text-heading)); 
+    background: var(--sidebar-bg-hover, var(--bg-subtle)); 
+    transform: scale(1.05);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 @media (max-width: 768px) {

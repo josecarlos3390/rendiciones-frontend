@@ -44,12 +44,12 @@
           <span [class]="tipoCss(item)">{{ tipoLabel(item) }}</span>
         </td>
         <td class="text-center">
-          <span class="bool-badge" [class.bool-yes]="item.U_PermiteGU === 'Y'">
+          <span [class]="boolCss(item.U_PermiteGU)">
             {{ item.U_PermiteGU === 'Y' ? '✓ Sí' : '— No' }}
           </span>
         </td>
         <td class="text-center">
-          <span class="bool-badge" [class.bool-yes]="item.U_PermiteGD === 'Y'">
+          <span [class]="boolCss(item.U_PermiteGD)">
             {{ item.U_PermiteGD === 'Y' ? '✓ Sí' : '— No' }}
           </span>
         </td>
@@ -68,7 +68,7 @@
 
 <!-- Modal formulario -->
 <div class="modal-backdrop" *ngIf="showForm">
-  <div class="user-modal tipo-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+  <div class="modal-card modal-card-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
 
     <div class="modal-header">
       <h3>{{ editingItem ? 'Editar Tipo de Documento' : 'Nuevo Tipo de Documento' }}</h3>
@@ -76,7 +76,7 @@
       <button class="modal-close" type="button" (click)="closeForm()">✕</button>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-body modal-single-col">
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-body">
 
       <!-- Código SAP -->
       <div class="form-field" [class.field-changed]="fieldChanged('idTipo')">
@@ -99,51 +99,41 @@
       <!-- Tipo F/R -->
       <div class="form-field" [class.field-changed]="fieldChanged('esTipoF')">
         <label>Tipo de lógica de cálculo <span class="required">*</span></label>
-        <div class="radio-group">
-          <label class="radio-option" [class.radio-option--selected]="form.get('esTipoF')?.value === 'F'">
-            <input type="radio" formControlName="esTipoF" value="F" />
-            <div class="radio-content">
-              <span class="radio-title">🧾 Factura</span>
-              <span class="radio-desc">Impuestos calculados sobre la base imponible</span>
-            </div>
-          </label>
-          <label class="radio-option" [class.radio-option--selected]="form.get('esTipoF')?.value === 'R'">
-            <input type="radio" formControlName="esTipoF" value="R" />
-            <div class="radio-content">
-              <span class="radio-title">📄 Recibo</span>
-              <span class="radio-desc">Impuestos calculados sobre el importe bruto, permite grossing</span>
-            </div>
-          </label>
-        </div>
+        <app-select
+          [options]="tipoOptions"
+          [formValue]="form.get('esTipoF')?.value"
+          placeholder="Seleccione tipo"
+          (valueChange)="form.get('esTipoF')?.setValue($event)">
+        </app-select>
       </div>
 
       <!-- Grossing — solo visible si es Recibo -->
       <div class="form-row" *ngIf="form.get('esTipoF')?.value === 'R'">
         <div class="form-field" [class.field-changed]="fieldChanged('permiteGU')">
           <label>Grossing Up</label>
-          <label class="toggle-switch">
-            <input type="checkbox" formControlName="permiteGU" />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-            <span class="toggle-label">
+          <div class="toggle-wrapper">
+            <label class="u-toggle">
+              <input type="checkbox" formControlName="permiteGU" />
+              <span class="u-toggle-slider"></span>
+            </label>
+            <span class="toggle-status" [class.active]="form.get('permiteGU')?.value">
               {{ form.get('permiteGU')?.value ? 'Permitido — empresa asume retenciones' : 'No permitido' }}
             </span>
-          </label>
+          </div>
           <span class="field-hint">La empresa asume el costo de las retenciones</span>
         </div>
 
         <div class="form-field" [class.field-changed]="fieldChanged('permiteGD')">
           <label>Grossing Down</label>
-          <label class="toggle-switch">
-            <input type="checkbox" formControlName="permiteGD" />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-            <span class="toggle-label">
+          <div class="toggle-wrapper">
+            <label class="u-toggle">
+              <input type="checkbox" formControlName="permiteGD" />
+              <span class="u-toggle-slider"></span>
+            </label>
+            <span class="toggle-status" [class.active]="form.get('permiteGD')?.value">
               {{ form.get('permiteGD')?.value ? 'Permitido — proveedor asume retenciones' : 'No permitido' }}
             </span>
-          </label>
+          </div>
           <span class="field-hint">El proveedor asume el costo de las retenciones</span>
         </div>
       </div>
@@ -158,15 +148,15 @@
       <!-- Activo -->
       <div class="form-field" [class.field-changed]="fieldChanged('activo')">
         <label>Estado</label>
-        <label class="toggle-switch">
-          <input type="checkbox" formControlName="activo" />
-          <span class="toggle-track">
-            <span class="toggle-thumb"></span>
-          </span>
-          <span class="toggle-label">
+        <div class="toggle-wrapper">
+          <label class="u-toggle">
+            <input type="checkbox" formControlName="activo" />
+            <span class="u-toggle-slider"></span>
+          </label>
+          <span class="toggle-status" [class.active]="form.get('activo')?.value">
             {{ form.get('activo')?.value ? 'Activo — visible en selectores' : 'Inactivo — oculto en selectores' }}
           </span>
-        </label>
+        </div>
       </div>
 
     </form>

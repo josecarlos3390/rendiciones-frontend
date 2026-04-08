@@ -33,7 +33,9 @@
     <!-- settingsReady garantiza que settings.snapshot tenga el valor real del servidor
          antes de cualquier formulario de precios lo lea para calcular IVA. -->
     @if (settingsReady) {
-      <router-outlet></router-outlet>
+      <div class="content-wrapper">
+        <router-outlet></router-outlet>
+      </div>
     }
   </main>
 </div>

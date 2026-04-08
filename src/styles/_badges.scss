@@ -53,6 +53,12 @@
   border-color: var(--status-confirmed-border);
 }
 
+.status-sent {
+  background: var(--status-sent-bg);
+  color: var(--status-sent-color);
+  border-color: var(--status-sent-border);
+}
+
 /* ── Badge con punto de estado (ej. Activo / Inactivo en usuarios) ── */
 .status-badge-dot {
   display: inline-flex;
@@ -106,4 +112,74 @@
   background: var(--color-danger-soft);
   color:      var(--color-danger-text);
   border:     1px solid var(--color-danger-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BADGES ESTÁNDAR — para uso general en tablas y listados
+   ═══════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Variantes semánticas */
+.badge-success,
+.badge-activo {
+  background: var(--status-closed-bg);
+  color: var(--status-closed-color);
+  border: 1px solid var(--status-closed-border);
+}
+
+.badge-secondary,
+.badge-inactivo {
+  background: var(--bg-faint);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.badge-warning {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-color);
+  border: 1px solid var(--status-pending-border);
+}
+
+.badge-danger {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-color);
+  border: 1px solid var(--status-cancelled-border);
+}
+
+.badge-info {
+  background: var(--status-sent-bg);
+  color: var(--status-sent-color);
+  border: 1px solid var(--status-sent-border);
+}
+
+.badge-primary {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-text);
+  border: 1px solid var(--color-primary-border);
+}
+
+/* Code tag para códigos/monedas */
+.code-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
 }

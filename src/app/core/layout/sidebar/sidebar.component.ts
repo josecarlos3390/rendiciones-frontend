@@ -84,6 +84,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'Cuentas Cabecera',  route: '/cuentas-cabecera', icon: 'admin',     section: 'Administración', adminOnly: true },
     { label: 'Lista de Cuentas',  route: '/cuentas-lista',    icon: 'admin',     section: 'Administración', adminOnly: true },
     { label: 'Mapeo SAP',         route: '/rend-cmp',         icon: 'admin',     section: 'Administración', adminOnly: true },
+    { label: 'Tipo de Cambio',    route: '/tipo-cambio',      icon: 'admin',     section: 'Datos Maestros', adminOnly: true },
   ];
 
   private _filteredItems: { label: string; route: string; icon: string; section: string }[] = [];

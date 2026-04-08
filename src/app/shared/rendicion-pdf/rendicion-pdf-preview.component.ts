@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { RendM } from '../../models/rend-m.model';
 import { RendD } from '../../models/rend-d.model';
+import { Documento } from '../../models/documento.model';
 import { RendicionPdfService } from './rendicion-pdf.service';
 
 @Component({
@@ -246,6 +247,7 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 export class RendicionPdfPreviewComponent implements OnInit, OnDestroy, OnChanges {
   @Input()  rend!: RendM;
   @Input()  docs:  RendD[] = [];
+  @Input()  tiposDocs: Documento[] = [];
   @Input()  mode:  'envio' | 'reprint' = 'envio';
   @Input()  orientation: 'portrait' | 'landscape' = 'portrait';
 
@@ -296,7 +298,7 @@ export class RendicionPdfPreviewComponent implements OnInit, OnDestroy, OnChange
     this.cdr.markForCheck();
 
     try {
-      const result   = await this.pdfSvc.generarPDF(this.rend, this.docs, this.orientation);
+      const result   = await this.pdfSvc.generarPDF(this.rend, this.docs, this.orientation, this.tiposDocs);
       this.blob      = result.blob;
       this._revokeUrl();
       this.objectUrl = result.url;

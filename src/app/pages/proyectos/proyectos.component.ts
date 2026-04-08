@@ -23,6 +23,7 @@ import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { SearchInputComponent } from '../../shared/debounce';
 import { Proyecto } from '../../models/proyecto.model';
 import { AuthService } from '../../auth/auth.service';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
@@ -34,6 +35,7 @@ import { AuthService } from '../../auth/auth.service';
     ConfirmDialogComponent,
     PaginatorComponent,
     SearchInputComponent,
+    AppSelectComponent,
   ],
   templateUrl: './proyectos.component.html',
   styleUrls: ['./proyectos.component.scss'],
@@ -47,6 +49,12 @@ export class ProyectosComponent implements OnInit {
   loading = false;
   loadError = false;
   filterActivo: 'todos' | 'activos' | 'inactivos' = 'todos';
+
+  estadoOptions: SelectOption<'todos' | 'activos' | 'inactivos'>[] = [
+    { value: 'todos', label: 'Todos', icon: '🔍' },
+    { value: 'activos', label: 'Activos', icon: '✅' },
+    { value: 'inactivos', label: 'Inactivos', icon: '⭕' },
+  ];
 
   // Paginación
   page = 1;
@@ -167,7 +175,8 @@ export class ProyectosComponent implements OnInit {
     this.updatePaging();
   }
 
-  onFilterActivoChange() {
+  onFilterActivoChange(value: 'todos' | 'activos' | 'inactivos') {
+    this.filterActivo = value;
     this.applyFilter();
   }
 

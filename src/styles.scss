@@ -30,6 +30,12 @@
   --status-confirmed-bg:     #fff4ec;
   --status-confirmed-color:  #b84a07;
   --status-confirmed-border: #ffd0b0;
+  --status-sent-bg:          #fff4ec;
+  --status-sent-color:       #b84a07;
+  --status-sent-border:      #ffd0b0;
+  --status-pending-bg:       #fef3c7;
+  --status-pending-color:    #92400e;
+  --status-pending-border:   #fde68a;
 
   /* ── Semánticos ── */
   --color-success:       #059669;
@@ -63,6 +69,14 @@
   --weight-medium:  500;
   --weight-semibold:600;
   --weight-bold:    700;
+
+  /* ── Interlineado ── */
+  --leading-none:   1;
+  --leading-tight:  1.25;
+  --leading-snug:   1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed:1.625;
+  --leading-loose:  1.75;
 
   /* ── Fondos ── */
   --bg-page:    #f4f5f8;
@@ -153,6 +167,12 @@
   --status-confirmed-bg:     rgba(234,88,12,0.12);
   --status-confirmed-color:  #fb923c;
   --status-confirmed-border: rgba(234,88,12,0.28);
+  --status-sent-bg:          rgba(234,88,12,0.12);
+  --status-sent-color:       #fb923c;
+  --status-sent-border:      rgba(234,88,12,0.28);
+  --status-pending-bg:       rgba(245,158,11,0.12);
+  --status-pending-color:    #fbbf24;
+  --status-pending-border:   rgba(245,158,11,0.28);
 
   --color-success:       #34d399;
   --color-warning:       #fbbf24;

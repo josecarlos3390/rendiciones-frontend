@@ -7,12 +7,13 @@ import { TipoDocSapService, TipoDocSap } from '../../services/tipo-doc-sap.servi
 import { ToastService } from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
 import { AuthService } from '../../auth/auth.service';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   selector:        'app-tipo-doc-sap',
   standalone:      true,
   changeDetection: ChangeDetectionStrategy.Default,
-  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent],
+  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, AppSelectComponent],
   templateUrl:     './tipo-doc-sap.component.html',
   styleUrls:       ['./tipo-doc-sap.component.scss'],
 })
@@ -24,6 +25,11 @@ export class TipoDocSapComponent implements OnInit {
 
   showForm     = false;
   editingItem:  TipoDocSap | null = null;
+
+  tipoOptions: SelectOption<string>[] = [
+    { value: 'F', label: 'Factura — Impuestos sobre base imponible', icon: '🧾' },
+    { value: 'R', label: 'Recibo — Impuestos sobre importe bruto', icon: '📄' },
+  ];
   isSaving     = false;
   initialValues: any = null;
 
@@ -176,11 +182,15 @@ export class TipoDocSapComponent implements OnInit {
   }
 
   tipoCss(t: TipoDocSap): string {
-    return t.U_EsTipoF === 'F' ? 'badge-factura' : 'badge-recibo';
+    return t.U_EsTipoF === 'F' ? 'badge badge-primary' : 'badge badge-info';
   }
 
   activoCss(t: TipoDocSap): string {
-    return t.U_Activo === 'Y' ? 'status-badge status-closed' : 'status-badge status-secondary';
+    return t.U_Activo === 'Y' ? 'badge badge-success' : 'badge badge-secondary';
+  }
+
+  boolCss(value: string): string {
+    return value === 'Y' ? 'badge badge-success' : 'badge badge-secondary';
   }
 
   fieldChanged(field: string): boolean {

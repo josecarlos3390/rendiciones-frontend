@@ -172,8 +172,8 @@ interface ChatMensaje {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      width: 360px;
-      height: 480px;
+      width: 380px;
+      height: 520px;
       background: white;
       border-radius: 20px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08);
@@ -275,7 +275,8 @@ interface ChatMensaje {
     }
 
     .mensaje-burbuja {
-      max-width: 85%;
+      max-width: 90%;
+      min-width: 0;
       padding: 10px 14px;
       border-radius: 18px;
       display: flex;
@@ -283,6 +284,9 @@ interface ChatMensaje {
       position: relative;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
       transition: transform 0.2s ease;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
     .mensaje-burbuja:hover {
@@ -299,6 +303,8 @@ interface ChatMensaje {
       background: #f5f5f5;
       color: #333;
       border-bottom-left-radius: 4px;
+      width: 100%;
+      max-width: 100%;
     }
 
     .mensaje-icono { 
@@ -309,10 +315,12 @@ interface ChatMensaje {
     }
 
     .mensaje-contenido {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.4;
+      max-width: 100%;
+      overflow-wrap: break-word;
       word-wrap: break-word;
-      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     /* Estilos para formato markdown */
@@ -330,11 +338,38 @@ interface ChatMensaje {
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'Courier New', monospace;
-      font-size: 13px;
+      font-size: 12px;
+      word-break: break-all;
     }
 
     .mensaje.asistente .mensaje-contenido ::ng-deep code {
       background: rgba(0,0,0,0.08);
+    }
+
+    /* Tablas y contenido largo - scroll horizontal */
+    .mensaje-contenido ::ng-deep table {
+      display: block;
+      overflow-x: auto;
+      max-width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+
+    .mensaje-contenido ::ng-deep table th,
+    .mensaje-contenido ::ng-deep table td {
+      padding: 4px 8px;
+      border: 1px solid rgba(0,0,0,0.1);
+      white-space: nowrap;
+    }
+
+    /* Líneas largas - scroll horizontal */
+    .mensaje-contenido ::ng-deep pre {
+      overflow-x: auto;
+      max-width: 100%;
+      padding: 8px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 6px;
+      font-size: 12px;
     }
 
     .mensaje-contenido ::ng-deep ul {
@@ -608,13 +643,10 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngAfterViewChecked() {
+    // Scroll al final cuando es necesario
     if (this.shouldScroll && this.messagesContainer) {
       this.scrollToBottom();
       this.shouldScroll = false;
-    }
-    // Forzar detección de cambios si el chat está abierto y no hay mensajes
-    if (this.isOpen && this.mensajes.length === 0) {
-      this.cdr.detectChanges();
     }
   }
 
@@ -632,13 +664,14 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.isOpen = !this.isOpen;
       if (this.isOpen) {
         this.unreadCount = 0;
-        // Asegurar que el mensaje de bienvenida se muestre
-        if (this.mensajes.length === 0) {
-          // Forzar detección de cambios después de un pequeño delay
-          setTimeout(() => {
-            this.cdr.detectChanges();
-          }, 0);
-        }
+        // Forzar detección de cambios para mostrar mensajes inmediatamente
+        this.cdr.detectChanges();
+        // Esperar a que el DOM se actualice y luego hacer scroll
+        setTimeout(() => {
+          if (this.messagesContainer) {
+            this.scrollToBottom();
+          }
+        }, 50);
       }
     });
   }

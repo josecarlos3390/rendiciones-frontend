@@ -1,7 +1,6 @@
 import {
   Component,
   OnInit,
-  ChangeDetectionStrategy,
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -25,6 +24,8 @@ import { SearchInputComponent } from '../../shared/debounce';
 import { NormaConDimension } from '../../models/norma.model';
 import { Dimension } from '../../models/dimension.model';
 import { AuthService } from '../../auth/auth.service';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { LoadingStateComponent } from '../../shared/loading-state';
 
 @Component({
   standalone: true,
@@ -36,10 +37,12 @@ import { AuthService } from '../../auth/auth.service';
     ConfirmDialogComponent,
     PaginatorComponent,
     SearchInputComponent,
+    AppSelectComponent,
+    LoadingStateComponent,
   ],
   templateUrl: './normas.component.html',
   styleUrls: ['./normas.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class NormasComponent implements OnInit {
   normas: NormaConDimension[] = [];
@@ -47,9 +50,14 @@ export class NormasComponent implements OnInit {
   paged: NormaConDimension[] = [];
   dimensiones: Dimension[] = [];
   search = '';
-  loading = false;
-  loadError = false;
+  loadingState: 'idle' | 'loading' | 'success' | 'empty' | 'error' = 'idle';
   filterActiva: 'todas' | 'activas' | 'inactivas' = 'todas';
+
+  estadoOptions: SelectOption<'todas' | 'activas' | 'inactivas'>[] = [
+    { value: 'todas', label: 'Todas', icon: '🔍' },
+    { value: 'activas', label: 'Activas', icon: '✅' },
+    { value: 'inactivas', label: 'Inactivas', icon: '⭕' },
+  ];
 
   // Paginación
   page = 1;
@@ -123,19 +131,17 @@ export class NormasComponent implements OnInit {
   // ── CRUD ─────────────────────────────────────────────────
 
   load(onComplete?: () => void) {
-    this.loading = true;
-    this.loadError = false;
+    this.loadingState = 'loading';
+    this.cdr.markForCheck();
+    
     this.normasService.getNormas().subscribe({
       next: (data) => {
         this.normas = data;
-        this.loading = false;
         this.applyFilter();
-        this.cdr.markForCheck();
         onComplete?.();
       },
       error: () => {
-        this.loading = false;
-        this.loadError = true;
+        this.loadingState = 'error';
         this.cdr.markForCheck();
         onComplete?.();
       },
@@ -178,6 +184,8 @@ export class NormasComponent implements OnInit {
     this.filtered = result;
     this.page = 1;
     this.updatePaging();
+    // Set estado success o empty según haya resultados
+    this.loadingState = this.filtered.length > 0 ? 'success' : 'empty';
     this.cdr.markForCheck();
   }
 
@@ -197,7 +205,8 @@ export class NormasComponent implements OnInit {
     this.updatePaging();
   }
 
-  onFilterActivaChange() {
+  onFilterActivaChange(value: 'todas' | 'activas' | 'inactivas') {
+    this.filterActiva = value;
     this.applyFilter();
   }
 

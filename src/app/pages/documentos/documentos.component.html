@@ -14,6 +14,14 @@
 
 <!-- ── Modal ─────────────────────────────────────────────── -->
 <div class="modal-backdrop" *ngIf="showForm">
+  <!-- 
+    EXCEPCIÓN: .doc-modal 
+    Razón: El modal de documentos requiere un ancho mayor (960px) que el estándar
+    de .modal-card-lg (700px) debido a la complejidad del grid de impuestos.
+    El patrón .user-modal permite hasta 900px pero aún es insuficiente.
+    Se mantiene clase propia .doc-modal con las mismas propiedades base que
+    .modal-card para consistencia visual.
+  -->
   <div class="doc-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
 
     <div class="modal-header">
@@ -55,8 +63,13 @@
           </div>
         </div>
 
-        <!-- Grid de impuestos: cards agrupadas por tipo -->
-        <div class="section-divider">Impuestos <span style="font-weight: var(--weight-regular); font-size: var(--text-sm); opacity: 0.75;">— dejá en 0 los que no apliquen</span></div>
+        <!-- 
+          EXCEPCIÓN: .tax-grid 
+          Razón: Grid específico de dominio fiscal que requiere layout de 3 columnas
+          en desktop, 2 en tablet, 1 en mobile. No existe patrón estándar equivalente
+          para este caso de uso específico de tarjetas de impuestos.
+        -->
+        <div class="section-divider">Impuestos <span class="section-subtitle">— dejá en 0 los que no apliquen</span></div>
         <div class="tax-grid">
 
           <div class="tax-card">
@@ -64,7 +77,7 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>%</label>
-                <input type="number" style="max-width:110px" formControlName="ivaPercent" step="0.01" min="0" placeholder="13" />
+                <input type="number" class="input-short" formControlName="ivaPercent" step="0.01" min="0" placeholder="13" />
               </div>
               <div class="form-field tax-cta-field">
                 <label>Cuenta</label>
@@ -81,7 +94,7 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>%</label>
-                <input type="number" style="max-width:110px" formControlName="itPercent" step="0.01" min="0" placeholder="3" />
+                <input type="number" class="input-short" formControlName="itPercent" step="0.01" min="0" placeholder="3" />
               </div>
               <div class="form-field tax-cta-field">
                 <label>Cuenta</label>
@@ -98,7 +111,7 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>%</label>
-                <input type="number" style="max-width:110px" formControlName="iuePercent" step="0.01" min="0" placeholder="5" />
+                <input type="number" class="input-short" formControlName="iuePercent" step="0.01" min="0" placeholder="5" />
               </div>
               <div class="form-field tax-cta-field">
                 <label>Cuenta</label>
@@ -115,7 +128,7 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>%</label>
-                <input type="number" style="max-width:110px" formControlName="rcivaPercent" step="0.01" min="0" placeholder="13" />
+                <input type="number" class="input-short" formControlName="rcivaPercent" step="0.01" min="0" placeholder="13" />
               </div>
               <div class="form-field tax-cta-field">
                 <label>Cuenta</label>
@@ -132,7 +145,7 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>%</label>
-                <input type="number" style="max-width:110px" formControlName="exentoPercent" step="0.01" min="-1" placeholder="-1" />
+                <input type="number" class="input-short" formControlName="exentoPercent" step="0.01" min="-1" placeholder="-1" />
                 <span class="field-hint">-1 si variable</span>
               </div>
               <div class="form-field tax-cta-field">
@@ -150,11 +163,11 @@
             <div class="tax-card-fields">
               <div class="form-field tax-pct-field">
                 <label>% ICE</label>
-                <input type="number" style="max-width:110px" formControlName="ice" step="0.01" min="0" />
+                <input type="number" class="input-short" formControlName="ice" step="0.01" min="0" />
               </div>
               <div class="form-field tax-pct-field">
                 <label>% Tasa</label>
-                <input type="number" style="max-width:110px" formControlName="tasa" step="0.01" min="-1" />
+                <input type="number" class="input-short" formControlName="tasa" step="0.01" min="-1" />
                 <span class="field-hint">-1 si variable</span>
               </div>
             </div>
@@ -215,7 +228,11 @@
 <!-- ── Tabla (desktop/tablet) + Cards (mobile) ─────────────── -->
 <div class="table-wrapper" *ngIf="selectedPerfilId && !loading && filtered.length > 0">
 
-  <!-- Tabla — se oculta en mobile via CSS -->
+  <!-- 
+    Tabla desktop/tablet 
+    EXCEPCIÓN: .doc-table extiende .data-table con columnas específicas
+    fiscales (tax-col, tax-cell, etc.) que no existen en el patrón estándar.
+  -->
   <div class="table-scroll-outer hide-on-mobile">
     <table class="data-table doc-table">
       <thead>
@@ -239,6 +256,12 @@
           <td data-label="Tipo Doc."><strong>{{ d.U_TipDoc }}</strong></td>
           <td class="col-hide-tablet" data-label="SAP"><span class="col-sap-label">{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</span></td>
           <td class="col-hide-tablet" data-label="Cálculo">
+            <!-- 
+              EXCEPCIÓN: .badge-calc 
+              Razón: Badge específico para tipos de cálculo fiscal (GD/GU) 
+              con variantes grossing-up/down que requieren colores semánticos
+              diferentes a los badges estándar (.badge-*).
+            -->
             <span class="badge-calc" [class.grossing-up]="isGrossingUp(d.U_TipoCalc)" [class.grossing-down]="isGrossingDown(d.U_TipoCalc)">{{ tipoCalcLabel(d.U_TipoCalc) }}</span>
           </td>
           <td class="tax-cell" data-label="IVA">
@@ -289,7 +312,13 @@
     </table>
   </div>
 
-  <!-- Cards mobile — se muestra solo en mobile via CSS -->
+  <!-- 
+    Cards mobile
+    EXCEPCIÓN: .doc-cards es un patrón mobile específico
+    Razón: La tabla de documentos tiene demasiadas columnas fiscales
+    para adaptarse al patrón estándar de cards mobile. Se requiere
+    un layout custom que agrupe los impuestos de forma compacta.
+  -->
   <div class="doc-cards show-on-mobile">
     <div class="doc-card" *ngFor="let d of paged">
       <div class="doc-card-header">
@@ -348,7 +377,7 @@
           </svg>
           Editar
         </button>
-        <button class="btn btn-danger-ghost btn-sm" (click)="confirmRemove(d)">
+        <button class="btn btn-danger-soft btn-sm" (click)="confirmRemove(d)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
           </svg>

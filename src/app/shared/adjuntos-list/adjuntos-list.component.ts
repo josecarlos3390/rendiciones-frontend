@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { AdjuntosService } from '../../services/adjuntos.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
 import {
   Adjunto,
   formatFileSize,
@@ -45,6 +46,7 @@ export class AdjuntosListComponent {
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
+    private confirm: ConfirmDialogService,
   ) {}
 
   getFileIcon = getFileIcon;
@@ -210,8 +212,16 @@ export class AdjuntosListComponent {
   /**
    * Elimina un archivo
    */
-  eliminar(adjunto: Adjunto) {
-    if (!confirm(`¿Eliminar el archivo "${adjunto.nombre}"?`)) {
+  async eliminar(adjunto: Adjunto) {
+    const confirmed = await this.confirm.ask({
+      title: '¿Eliminar archivo?',
+      message: `El archivo "${adjunto.nombre}" será eliminado permanentemente.`,
+      confirmLabel: 'Eliminar',
+      cancelLabel: 'Cancelar',
+      type: 'danger',
+    });
+
+    if (!confirmed) {
       return;
     }
 

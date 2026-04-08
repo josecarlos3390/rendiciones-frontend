@@ -48,7 +48,7 @@
           </span>
         </div>
 
-        <div class="form-field form-field-toggle">
+        <div class="form-field">
           <label>Estado</label>
           <div class="toggle-wrapper">
             <label class="u-toggle">
@@ -97,13 +97,14 @@
         (cleared)="applyFilter()">
       </app-search-input>
     </div>
-    <div class="filter-field">
+    <div class="filter-field filter-field--select">
       <label>Estado</label>
-      <select [(ngModel)]="filterActivo" (change)="onFilterActivoChange()" class="filter-select">
-        <option value="todos">Todos</option>
-        <option value="activos">Activos</option>
-        <option value="inactivos">Inactivos</option>
-      </select>
+      <app-select
+        [options]="estadoOptions"
+        [value]="filterActivo"
+        placeholder="Filtrar por estado"
+        (valueChange)="onFilterActivoChange($event)">
+      </app-select>
     </div>
   </div>
   <span class="filter-count" *ngIf="!loading">

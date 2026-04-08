@@ -10,16 +10,16 @@
 <div class="filter-bar" *ngIf="nivelesDisponibles.length > 1">
   <div class="filter-field">
     <label>Nivel de aprobación</label>
-    <div class="estado-chips">
-      <button type="button" class="estado-chip"
-        [class.estado-chip--active]="nivelFiltro === 'todas'"
+    <div class="tab-switcher">
+      <button type="button" class="tab-btn"
+        [class.active]="nivelFiltro === 'todas'"
         (click)="cambiarNivelFiltro('todas')">
         Todas
         <span class="sub-count-badge" *ngIf="nivelFiltro === 'todas' && pendientes.length > 0">{{ pendientes.length }}</span>
       </button>
-      <button type="button" class="estado-chip"
+      <button type="button" class="tab-btn"
         *ngFor="let n of nivelesDisponibles"
-        [class.estado-chip--active]="nivelFiltro === n"
+        [class.active]="nivelFiltro === n"
         (click)="cambiarNivelFiltro(n)">
         Nivel {{ n }}
         <span class="sub-count-badge" *ngIf="nivelFiltro === n && pendientesActivos.length > 0">{{ pendientesActivos.length }}</span>
@@ -57,13 +57,8 @@
         <th class="actions">Acciones</th>
       </tr>
     </thead>
-    <app-virtual-table-body 
-      [items]="pendientesActivos" 
-      [itemHeight]="64"
-      [maxItems]="15"
-      [colspan]="10"
-      [trackByFn]="trackByPendiente">
-      <ng-template #rowTemplate let-r>
+    <tbody>
+      <tr *ngFor="let r of pendientesActivos; trackBy: trackByPendiente">
         <td class="text-center">
           <a class="link-primary" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
             {{ r.U_IdRendicion }}
@@ -76,7 +71,7 @@
         <td class="text-center">{{ r.U_FechaFinal | ddmmyyyy }}</td>
         <td class="text-right mono-cell">{{ r.U_Monto | number:'1.2-2' }}</td>
         <td class="text-center">
-          <span class="nivel-badge">Nivel {{ r.U_Nivel }}</span>
+          <span class="badge badge-primary">Nivel {{ r.U_Nivel }}</span>
         </td>
         <td class="text-center">
           <span [class]="estadoRendCss(r.U_Estado_Rend)">{{ estadoRendTexto(r.U_Estado_Rend) }}</span>
@@ -92,25 +87,25 @@
             ✗ Rechazar
           </button>
         </td>
-      </ng-template>
-    </app-virtual-table-body>
+      </tr>
+    </tbody>
   </table>
 </div>
 
 <!-- Modal de acción -->
-<div class="modal-backdrop" *ngIf="showAccionModal">
-  <div class="accion-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+<div class="modal-backdrop" *ngIf="showAccionModal" (click)="closeModal()">
+  <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
         {{ accionActual === 'aprobar' ? '✓ Aprobar Rendición' : '✗ Rechazar Rendición' }}
-        <span class="rend-id-badge">N° {{ rendSeleccionada?.U_IdRendicion }}</span>
+        <span class="code-tag">N° {{ rendSeleccionada?.U_IdRendicion }}</span>
       </h3>
       <button class="modal-close" type="button" (click)="closeModal()">✕</button>
     </div>
     <div class="modal-body">
 
       <!-- Info rendición -->
-      <div class="accion-info">
+      <div class="info-rows">
         <div class="info-row">
           <span class="info-label">Usuario</span>
           <span class="info-value">{{ rendSeleccionada?.U_NomUsuario }}</span>
@@ -132,12 +127,12 @@
       </div>
 
       <!-- Alerta rechazo -->
-      <div class="info-banner info-warning" *ngIf="accionActual === 'rechazar'" style="margin: 12px 0">
+      <div class="info-banner info-warning" *ngIf="accionActual === 'rechazar'">
         ⚠ Al rechazar, la rendición volverá a estado <strong>ABIERTO</strong> para que el usuario realice correcciones y la reenvíe.
       </div>
 
       <!-- Comentario -->
-      <div class="form-field" style="margin-top: 12px">
+      <div class="form-field">
         <label>
           Comentario
           <span class="required" *ngIf="accionActual === 'rechazar'">*</span>
@@ -147,8 +142,7 @@
           [(ngModel)]="comentario"
           rows="3"
           maxlength="500"
-          [placeholder]="accionActual === 'rechazar' ? 'Indicá el motivo del rechazo...' : 'Observaciones opcionales...'"
-          style="width:100%; resize:vertical">
+          [placeholder]="accionActual === 'rechazar' ? 'Indicá el motivo del rechazo...' : 'Observaciones opcionales...'">
         </textarea>
         <span class="field-error" *ngIf="accionActual === 'rechazar' && !comentario.trim()">
           El motivo de rechazo es obligatorio

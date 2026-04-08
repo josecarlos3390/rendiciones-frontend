@@ -423,11 +423,25 @@ export class RendDComponent implements OnInit {
 
   onAdjuntoSubido(adjunto: Adjunto) {
     this.adjuntosList.push(adjunto);
+    // Actualizar contador en el mapa
+    if (this.adjuntosDoc) {
+      const idRD = this.adjuntosDoc.U_RD_IdRD;
+      const currentCount = this.adjuntosCountMap.get(idRD) || 0;
+      this.adjuntosCountMap.set(idRD, currentCount + 1);
+    }
     this.cdr.markForCheck();
   }
 
   onAdjuntoEliminado(id: number) {
     this.adjuntosList = this.adjuntosList.filter(a => a.id !== id);
+    // Actualizar contador en el mapa
+    if (this.adjuntosDoc) {
+      const idRD = this.adjuntosDoc.U_RD_IdRD;
+      const currentCount = this.adjuntosCountMap.get(idRD) || 0;
+      if (currentCount > 0) {
+        this.adjuntosCountMap.set(idRD, currentCount - 1);
+      }
+    }
     this.cdr.markForCheck();
   }
 
@@ -780,9 +794,10 @@ export class RendDComponent implements OnInit {
     const doc = this.tiposDocs.find(d => String(d.U_IdDocumento) === idDocumento);
     if (!doc) return;
     this.form.patchValue({
-      idTipoDoc:  doc.U_IdTipoDoc,
+      tipoDoc:     doc.U_IdDocumento,  // ← FALTABA ESTE CAMPO
+      idTipoDoc:   doc.U_IdTipoDoc,
       tipoDocName: doc.U_TipDoc,
-      ctaExento:  doc.U_CTAEXENTO,
+      ctaExento:   doc.U_CTAEXENTO,
       // Si TASA en config es -1, mantener el valor que tiene el usuario; si no, usar el de la config
       tasa:       Number(doc.U_TASA) === -1 ? this.form.get('tasa')?.value : (Number(doc.U_TASA) ?? 0),
       // Si ICE en config es -1, mantener el valor digitado; si no, usar el de la config
@@ -1535,8 +1550,20 @@ export class RendDComponent implements OnInit {
    */
   private async _crearDocumentoDesdeFactura(factura: FacturaSiat): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Validar que haya tipos de documento configurados
+      if (!this.tiposDocs || this.tiposDocs.length === 0) {
+        reject(new Error('No hay tipos de documento configurados. Configure al menos un tipo de documento en el módulo de Tipo Doc SAP.'));
+        return;
+      }
+      
       const primerTipo = this.tiposDocs[0];
       const config = primerTipo; // Config del tipo de documento
+      
+      // Validar que el tipo de documento tenga configuración válida
+      if (!config || !config.U_IdDocumento) {
+        reject(new Error('El tipo de documento no tiene configuración válida.'));
+        return;
+      }
       
       let fecha = this.hoy;
       if (factura.datetime) {
@@ -2131,12 +2158,17 @@ export class RendDComponent implements OnInit {
     this.proveedorSeleccionado = d.U_RD_CodProv
       ? { cardCode: d.U_RD_CodProv, cardName: d.U_RD_Prov ?? '', licTradNum: d.U_RD_NIT }
       : (d.U_RD_Prov ? { cardCode: d.U_RD_NIT || '', cardName: d.U_RD_Prov, licTradNum: d.U_RD_NIT } : null);
+    
+    // Buscar el nombre del tipo de documento correctamente
+    const tipoDocConfig = this.tiposDocs.find(td => String(td.U_IdDocumento) === String(d.U_RD_TipoDoc));
+    const tipoDocName = tipoDocConfig?.U_TipDoc || d.U_RD_TipoDoc || '';
+    
     const values = {
       cuenta:       d.U_RD_Cuenta        ?? '',
       nombreCuenta: d.U_RD_NombreCuenta  ?? '',
       fecha:        d.U_RD_Fecha?.substring(0, 10) ?? '',
       tipoDoc:      String(d.U_RD_TipoDoc),
-      tipoDocName:  d.U_RD_TipoDoc,
+      tipoDocName:  tipoDocName,
       idTipoDoc:    d.U_RD_IdTipoDoc,
       numDocumento: d.U_RD_NumDocumento  ?? '',
       nroAutor:     d.U_RD_NroAutor      ?? '',

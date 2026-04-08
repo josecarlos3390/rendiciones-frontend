@@ -1,184 +1,196 @@
-<div class="container">
-  <header class="page-header">
-    <h1>Tipo de Cambio</h1>
-    <div class="header-actions">
-      <button class="btn btn-primary" (click)="openCreate()">
-        <i class="icon">+</i>
-        Nueva Tasa
-      </button>
-    </div>
-  </header>
-
-  <!-- Estado OFFLINE -->
-  <div *ngIf="isOffline" class="alert alert-info">
-    <strong>Modo OFFLINE:</strong> Gestión de tasas de cambio locales.
+<div class="page-header">
+  <div class="page-title-group">
+    <h2>Tipo de Cambio</h2>
+    <p class="page-subtitle">Administra las tasas de cambio en modo OFFLINE.</p>
   </div>
+  <button class="btn btn-primary btn-sm" (click)="openCreate()">+ Nueva Tasa</button>
+</div>
 
-  <!-- Filtros -->
-  <div class="filters">
-    <div class="filter-group">
-      <label>Moneda:</label>
-      <select [(ngModel)]="filterMoneda" (change)="applyFilters()">
-        <option value="">Todas</option>
-        <option *ngFor="let m of monedas" [value]="m">{{ m }}</option>
-      </select>
+<!-- Estado OFFLINE -->
+<div *ngIf="isOffline" class="alert alert-info">
+  <strong>Modo OFFLINE:</strong> Gestión de tasas de cambio locales.
+</div>
+
+<!-- ── Filtros ── -->
+<div class="filter-bar">
+  <div class="filter-left">
+    <div class="filter-field filter-field--select">
+      <label>Moneda</label>
+      <app-select
+        [options]="monedaOptions"
+        [value]="filterMoneda"
+        placeholder="Todas las monedas"
+        (valueChange)="onMonedaChange($event)">
+      </app-select>
     </div>
-
-    <div class="filter-group">
-      <label>Fecha desde:</label>
+    <div class="filter-field">
+      <label>Fecha desde</label>
       <input 
         type="date" 
         [(ngModel)]="filterFechaDesde" 
         (change)="applyFilters()"
+        class="filter-date"
       />
     </div>
-
-    <div class="filter-group">
-      <label>Fecha hasta:</label>
+    <div class="filter-field">
+      <label>Fecha hasta</label>
       <input 
         type="date" 
         [(ngModel)]="filterFechaHasta" 
         (change)="applyFilters()"
+        class="filter-date"
       />
     </div>
-
-    <button class="btn btn-secondary" (click)="resetFilters()">
+    <button class="btn btn-ghost btn-sm" (click)="resetFilters()">
       Limpiar
     </button>
   </div>
-
-  <!-- Loading -->
-  <div *ngIf="loading" class="loading-state">
-    Cargando tasas de cambio...
-  </div>
-
-  <!-- Error -->
-  <div *ngIf="loadError" class="error-state">
-    <p>Error al cargar los datos.</p>
-    <button class="btn btn-primary" (click)="loadTasas()">
-      Reintentar
-    </button>
-  </div>
-
-  <!-- Tabla -->
-  <div *ngIf="!loading && !loadError" class="table-container">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Moneda</th>
-          <th>Tasa (BOB)</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let tasa of filtered" [class.inactive]="tasa.activo !== 'Y'">
-          <td>{{ tasa.fecha | date:'dd/MM/yyyy' }}</td>
-          <td>
-            <span class="badge badge-moneda">{{ tasa.moneda }}</span>
-          </td>
-          <td class="numeric">{{ formatTasa(tasa.tasa) }}</td>
-          <td>
-            <span 
-              class="badge"
-              [class.badge-success]="tasa.activo === 'Y'"
-              [class.badge-inactive]="tasa.activo !== 'Y'"
-            >
-              {{ tasa.activo === 'Y' ? 'Activo' : 'Inactivo' }}
-            </span>
-          </td>
-          <td class="actions">
-            <button 
-              class="btn-icon" 
-              title="Editar"
-              (click)="openEdit(tasa)"
-            >
-              ✏️
-            </button>
-            <button 
-              class="btn-icon btn-danger" 
-              title="Eliminar"
-              (click)="confirmDelete(tasa)"
-            >
-              🗑️
-            </button>
-          </td>
-        </tr>
-        <tr *ngIf="filtered.length === 0">
-          <td colspan="5" class="no-data">
-            No se encontraron tasas de cambio.
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Paginador -->
-    <app-paginator
-      [total]="filtered.length"
-      (pageChange)="applyFilters()"
-    />
-  </div>
+  <span class="filter-count" *ngIf="!loading">
+    {{ filtered.length }} tasa{{ filtered.length !== 1 ? 's' : '' }}
+  </span>
 </div>
 
-<!-- Modal Crear/Editar -->
-<div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <header class="modal-header">
-      <h2>{{ editingId ? 'Editar' : 'Nueva' }} Tasa de Cambio</h2>
-      <button class="btn-close" (click)="closeModal()">×</button>
-    </header>
+<!-- Loading / Error / Empty -->
+<div *ngIf="loading" class="empty-state">Cargando tasas de cambio...</div>
+<div *ngIf="!loading && loadError" class="empty-state">
+  Error al cargar los datos.
+  <a (click)="loadTasas()">Reintentar</a>
+</div>
+<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
+  No hay tasas de cambio registradas.
+  <a (click)="openCreate()">Crear la primera</a>
+</div>
 
-    <form [formGroup]="form" (ngSubmit)="save()">
-      <div class="form-group">
-        <label>Fecha *</label>
-        <input 
-          type="date" 
-          formControlName="fecha"
-          [readonly]="editingId !== null"
-        />
-        <div *ngIf="form.get('fecha')?.touched && form.get('fecha')?.errors" class="error">
-          Fecha requerida
+<!-- ── Tabla ── -->
+<div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Moneda</th>
+        <th class="text-right">Tasa (BOB)</th>
+        <th class="text-center">Estado</th>
+        <th class="actions">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tasa of paged" [class.inactive-row]="tasa.activo !== 'Y'">
+        <td data-label="Fecha">{{ tasa.fecha | date:'dd/MM/yyyy' }}</td>
+        <td data-label="Moneda">
+          <span class="code-tag">{{ tasa.moneda }}</span>
+        </td>
+        <td class="text-right col-mono" data-label="Tasa (BOB)">{{ formatTasa(tasa.tasa) }}</td>
+        <td class="text-center" data-label="Estado">
+          <span [class]="tasa.activo === 'Y' ? 'badge badge-success' : 'badge badge-secondary'">
+            {{ tasa.activo === 'Y' ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td class="actions">
+          <button 
+            class="btn btn-icon btn-sm btn-ghost" 
+            title="Editar"
+            (click)="openEdit(tasa)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button 
+            class="btn btn-icon btn-sm btn-danger-soft" 
+            title="Eliminar"
+            (click)="confirmDelete(tasa)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+    </table>
+  </div>
+
+  <!-- Paginador -->
+  <app-paginator
+    *ngIf="!loading && !loadError && filtered.length > 0"
+    [page]="page"
+    [limit]="limit"
+    [total]="filtered.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)">
+  </app-paginator>
+
+<!-- ══ Modal Crear/Editar ══ -->
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3>{{ editingId ? 'Editar Tasa' : 'Nueva Tasa' }}</h3>
+      <button class="modal-close" type="button" (click)="closeModal()">✕</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="modal-body">
+        
+        <div class="form-field">
+          <label>Fecha <span class="required">*</span></label>
+          <input 
+            type="date" 
+            formControlName="fecha"
+            [class.input-error]="form.get('fecha')?.touched && form.get('fecha')?.errors"
+          />
+          <span class="field-error" *ngIf="form.get('fecha')?.touched && form.get('fecha')?.errors">
+            Fecha requerida
+          </span>
         </div>
+
+        <div class="form-field">
+          <label>Moneda <span class="required">*</span></label>
+          <app-select
+            [options]="monedaFormOptions"
+            [formValue]="form.get('moneda')?.value"
+            placeholder="Seleccione moneda"
+            (valueChange)="form.get('moneda')?.setValue($event)">
+          </app-select>
+          <span class="field-error" *ngIf="form.get('moneda')?.touched && form.get('moneda')?.errors">
+            Moneda requerida
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label>Tasa (BOB) <span class="required">*</span></label>
+          <input 
+            type="number" 
+            formControlName="tasa"
+            step="0.0001"
+            min="0.0001"
+            placeholder="Ej: 6.96"
+            [class.input-error]="form.get('tasa')?.touched && form.get('tasa')?.errors"
+          />
+          <span class="field-hint">Cuántos BOB equivalen a 1 {{ form.get('moneda')?.value || 'USD' }}</span>
+          <span class="field-error" *ngIf="form.get('tasa')?.touched && form.get('tasa')?.errors">
+            Tasa válida requerida (mayor a 0)
+          </span>
+        </div>
+
       </div>
 
-      <div class="form-group">
-        <label>Moneda *</label>
-        <select formControlName="moneda" [disabled]="editingId !== null">
-          <option *ngFor="let m of monedas" [value]="m">{{ m }}</option>
-        </select>
-        <div *ngIf="form.get('moneda')?.touched && form.get('moneda')?.errors" class="error">
-          Moneda requerida
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Tasa (BOB) *</label>
-        <input 
-          type="number" 
-          formControlName="tasa"
-          step="0.0001"
-          min="0.0001"
-          placeholder="Ej: 6.96"
-        />
-        <small>Cuántos BOB equivalen a 1 {{ form.get('moneda')?.value || 'USD' }}</small>
-        <div *ngIf="form.get('tasa')?.touched && form.get('tasa')?.errors" class="error">
-          Tasa válida requerida (mayor a 0)
-        </div>
-      </div>
-
-      <footer class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeModal()">
-          Cancelar
-        </button>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" (click)="closeModal()">Cancelar</button>
         <button 
           type="submit" 
           class="btn btn-primary"
-          [disabled]="saving"
+          [disabled]="saving || form.invalid"
         >
-          {{ saving ? 'Guardando...' : 'Guardar' }}
+          {{ saving ? 'Guardando...' : (editingId ? '💾 Guardar cambios' : 'Crear Tasa') }}
         </button>
-      </footer>
+      </div>
     </form>
   </div>
 </div>

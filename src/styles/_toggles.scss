@@ -1,0 +1,111 @@
+// ═══════════════════════════════════════════════════════════════
+// _toggles.scss
+// Toggle switch unificado para todo el sistema
+// ═══════════════════════════════════════════════════════════════
+
+// Toggle básico
+.u-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+
+    &:checked + .u-toggle-slider {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+
+      &:before {
+        transform: translateX(20px);
+      }
+    }
+
+    &:disabled + .u-toggle-slider {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.u-toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-faint);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  transition: all 0.2s ease;
+
+  &:before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+}
+
+// Toggle con label
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toggle-status {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &.active {
+    color: var(--color-primary);
+  }
+}
+
+// Variante compacta
+.u-toggle--sm {
+  width: 36px;
+  height: 20px;
+
+  .u-toggle-slider:before {
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+  }
+
+  input:checked + .u-toggle-slider:before {
+    transform: translateX(16px);
+  }
+}
+
+// Variante grande (para forms)
+.u-toggle--lg {
+  width: 52px;
+  height: 28px;
+
+  .u-toggle-slider:before {
+    height: 22px;
+    width: 22px;
+    left: 2px;
+    bottom: 2px;
+  }
+
+  input:checked + .u-toggle-slider:before {
+    transform: translateX(24px);
+  }
+}

@@ -1,4 +1,9 @@
-// ── Tabla ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// APROBACIONES — Estilos específicos mínimos
+// La mayoría de estilos vienen de los patrones centralizados:
+// .page-header, .filter-bar, .tab-switcher, .data-table, .modal-card, .badge
+// ═══════════════════════════════════════════════════════════════
+
 .link-primary {
   color:           var(--color-primary);
   text-decoration: none;
@@ -7,75 +12,31 @@
   &:hover { text-decoration: underline; }
 }
 
-.nivel-badge {
-  display:       inline-block;
-  padding:       2px 8px;
-  border-radius: var(--radius-pill, 20px);
-  font-size:     var(--text-xs);
-  font-weight:   var(--weight-semibold);
-  background:    var(--color-primary-bg);
-  color:         var(--color-primary-text);
-  border:        1px solid var(--color-primary-border);
-}
-
 .empty-icon {
   font-size:     48px;
   margin-bottom: 8px;
 }
 
-// ── Status badges ──────────────────────────────────────────────
-.status-badge {
-  display:       inline-block;
-  padding:       3px 10px;
-  border-radius: var(--radius-pill, 20px);
-  font-size:     var(--text-xs);
-  font-weight:   var(--weight-semibold);
-  letter-spacing: 0.03em;
-}
-.status-open     { background: rgba(59,130,246,.1);  color: #185FA5; }
-.status-sent     { background: rgba(245,158,11,.1);  color: #854F0B; }
-.status-approved { background: rgba(59,109,17,.1);   color: #3B6D11; }
-.status-closed   { background: rgba(107,114,128,.1); color: #444441; }
-
-// ── Modal acción ───────────────────────────────────────────────
-.modal-backdrop {
-  @media (max-width: 480px) {
-    padding: 0;
-    align-items: flex-end;
-  }
+// Sub-badge para contadores en tabs
+.sub-count-badge {
+  display:       inline-flex;
+  align-items:   center;
+  justify-content: center;
+  min-width:     18px;
+  height:        18px;
+  padding:       0 5px;
+  border-radius: var(--radius-pill);
+  background:    var(--color-primary);
+  color:         white;
+  font-size:     10px;
+  font-weight:   var(--weight-bold);
+  margin-left:   4px;
 }
 
-.accion-modal {
-  background:     var(--bg-surface);
-  border:         1px solid var(--border-color);
-  border-radius:  var(--radius-lg);
-  width:          min(560px, 96vw);
-  display:        flex;
-  flex-direction: column;
-  overflow:       hidden;
-  box-shadow:     var(--shadow-modal);
-  animation:      _modal-in 0.2s ease;
-
-  @media (max-width: 480px) {
-    width:         100%;
-    max-height:    90vh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    animation:     _modal-slide-up 0.28s cubic-bezier(0.34, 1.2, 0.64, 1);
-  }
-}
-
-@keyframes _modal-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0);   }
-}
-
-@keyframes _modal-slide-up {
-  from { opacity: 0; transform: translateY(60px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-
-// ── Info rows ──────────────────────────────────────────────────
-.accion-info {
+// ═══════════════════════════════════════════════════════════════
+// INFO ROWS — Bloque de información en modal (patrón reutilizable)
+// ═══════════════════════════════════════════════════════════════
+.info-rows {
   display:        flex;
   flex-direction: column;
   gap:            8px;
@@ -110,30 +71,14 @@
 }
 
 .info-value {
-  font-size: var(--text-sm);
-  color:     var(--text-body);
+  font-size:  var(--text-sm);
+  color:      var(--text-body);
   word-break: break-word;
 }
 
-// ── Modal body scroll en móvil ─────────────────────────────────
-.accion-modal .modal-body {
-  @media (max-width: 480px) {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  }
-}
-
-// ── Footer con soporte notch iOS ───────────────────────────────
-.accion-modal .modal-footer {
-  @media (max-width: 480px) {
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-
-    .btn { flex: 1; justify-content: center; }
-  }
-}
-
-// ── Acciones tabla ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// TABLA — Ajustes específicos para columna de acciones
+// ═══════════════════════════════════════════════════════════════
 .data-table td.actions {
   display:     table-cell;
   white-space: nowrap;
@@ -153,16 +98,26 @@
   }
 }
 
-// ── Textarea comentario ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// MODAL — Ajustes específicos (la estructura base viene de _modals.scss)
+// ═══════════════════════════════════════════════════════════════
+
+// Info banner dentro del modal
+.info-banner {
+  margin: 0; // El gap del modal-body ya da el espaciado
+}
+
+// Textarea estilizado consistente con el design system
 textarea {
   padding:       8px 12px;
-  border:        1px solid var(--border-color);
+  border:        1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   background:    var(--bg-surface);
   color:         var(--text-body);
   font-family:   inherit;
   font-size:     var(--text-sm);
   width:         100%;
+  resize:        vertical;
 
   &:focus-visible {
     outline:      none;

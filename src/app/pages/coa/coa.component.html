@@ -124,13 +124,14 @@
         <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
       </div>
     </div>
-    <div class="filter-field">
+    <div class="filter-field filter-field--select">
       <label>Estado</label>
-      <select [(ngModel)]="filterActiva" (change)="onFilterActivaChange()" class="filter-select">
-        <option value="todas">Todas</option>
-        <option value="activas">Activas</option>
-        <option value="inactivas">Inactivas</option>
-      </select>
+      <app-select
+        [options]="estadoOptions"
+        [value]="filterActiva"
+        placeholder="Filtrar por estado"
+        (valueChange)="onFilterActivaChange($event)">
+      </app-select>
     </div>
   </div>
   <span class="filter-count" *ngIf="!loading">
@@ -167,12 +168,12 @@
         <td class="col-nombre" data-label="Nombre">{{ c.name }}</td>
         <td data-label="Format">{{ c.formatCode || '-' }}</td>
         <td class="text-center" data-label="Asociada">
-          <span class="badge" [class.badge-yes]="c.asociada" [class.badge-no]="!c.asociada">
+          <span class="badge" [class.badge-success]="c.asociada" [class.badge-secondary]="!c.asociada">
             {{ c.asociada ? 'Sí' : 'No' }}
           </span>
         </td>
         <td class="text-center" data-label="Estado">
-          <span class="status-badge" [class.active]="c.activa" [class.inactive]="!c.activa">
+          <span class="status-badge" [class.status-confirmed]="c.activa" [class.status-cancelled]="!c.activa">
             {{ c.activa ? 'Activa' : 'Inactiva' }}
           </span>
         </td>

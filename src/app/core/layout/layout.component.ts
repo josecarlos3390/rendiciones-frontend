@@ -27,6 +27,9 @@ import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicato
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
+  host: {
+    '[class.sidebar-collapsed]': 'sidebarCollapsed'
+  }
 })
 export class LayoutComponent implements OnInit {
   @ViewChild('sidebar') sidebar!: SidebarComponent;

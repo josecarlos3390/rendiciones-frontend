@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { RendM } from '../../models/rend-m.model';
 import { RendD } from '../../models/rend-d.model';
+import { Documento } from '../../models/documento.model';
 
 @Injectable({ providedIn: 'root' })
 export class RendicionPdfService {
@@ -56,7 +57,22 @@ export class RendicionPdfService {
     });
   }
 
-  async generarPDF(rend: RendM, docs: RendD[], orientation: 'portrait' | 'landscape' = 'portrait'): Promise<{ blob: Blob; url: string }> {
+  async generarPDF(
+    rend: RendM,
+    docs: RendD[],
+    orientation: 'portrait' | 'landscape' = 'portrait',
+    tiposDocs?: Documento[]
+  ): Promise<{ blob: Blob; url: string }> {
+    // Helper para obtener nombre del tipo de documento desde ID
+    const getTipoDocName = (id: number | string | null | undefined): string => {
+      if (id === null || id === undefined) return '—';
+      const doc = tiposDocs?.find(d => String(d.U_IdDocumento) === String(id));
+      return doc?.U_TipDoc || String(id);
+    };
+
+    // Detectar tema actual
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    const isDark = currentTheme === 'dark';
     await this.loadJsPdf();
 
     const JsPDF = this.jspdfInstance;
@@ -70,14 +86,63 @@ export class RendicionPdfService {
 
     let y = 0;
 
+    // Colores según tema
+    const colors = {
+      headerBg: isDark ? [51, 65, 85] : [30, 64, 175],
+      headerText: [255, 255, 255],
+      subHeaderBg: isDark ? [71, 85, 105] : [59, 130, 246],
+      subHeaderText: [255, 255, 255],
+      rowEven: isDark ? [30, 41, 59] : [255, 255, 255],
+      rowOdd: isDark ? [51, 65, 85] : [250, 248, 245],
+      rowText: isDark ? [226, 232, 240] : [30, 41, 59],
+      border: isDark ? [71, 85, 105] : [200, 200, 200],
+      totalsBg: isDark ? [51, 65, 85] : [30, 64, 175],
+      totalsText: [255, 255, 255],
+      infoText: isDark ? [203, 213, 225] : [51, 65, 85],
+      titleText: isDark ? [241, 245, 249] : [30, 41, 59],
+    };
+
     const setF = (size: number, style = 'normal') => {
       doc.setFontSize(size);
       doc.setFont('helvetica', style);
     };
-    const setC = (r: number, g: number, b: number) => doc.setTextColor(r, g, b);
-    const setLC = (r: number, g: number, b: number) => doc.setDrawColor(r, g, b);
-    const setFC = (r: number, g: number, b: number) => doc.setFillColor(r, g, b);
+    const setC = (rgb: number[]) => doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+    const setLC = (rgb: number[]) => doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
+    const setFC = (rgb: number[]) => doc.setFillColor(rgb[0], rgb[1], rgb[2]);
     const txt = (t: string, x: number, yy: number, opts?: any) => doc.text(String(t ?? ''), x, yy, opts);
+
+    // Helper para dibujar texto con wrapping y alineación vertical centrada
+    const drawWrappedText = (
+      text: string,
+      x: number,
+      yBase: number,
+      maxWidth: number,
+      rowHeight: number,
+      opts?: { align?: 'left' | 'center' | 'right'; maxLines?: number }
+    ): number => {
+      const lines = doc.splitTextToSize(text, maxWidth);
+      const maxLines = opts?.maxLines ?? 3;
+      const linesToDraw = lines.slice(0, maxLines);
+      const lineHeight = 2.5;
+      
+      // Calcular posición Y inicial para centrar verticalmente
+      const totalHeight = linesToDraw.length * lineHeight;
+      const startY = yBase + (rowHeight - totalHeight) / 2 + lineHeight - 1;
+      
+      linesToDraw.forEach((line: string, idx: number) => {
+        let xPos = x;
+        if (opts?.align === 'center') {
+          // Para centrado, x ya debería ser el centro de la celda
+          txt(line, x, startY + idx * lineHeight, { align: 'center' });
+        } else if (opts?.align === 'right') {
+          txt(line, x, startY + idx * lineHeight, { align: 'right' });
+        } else {
+          txt(line, x, startY + idx * lineHeight);
+        }
+      });
+      
+      return lines.length;
+    };
 
     const nombreResp = rend.U_NombreEmpleado?.trim() || rend.U_NomUsuario || '—';
     const cuentaFull = `${rend.U_Cuenta || ''} - ${rend.U_NombreCuenta || ''}`.trim() || '—';
@@ -98,44 +163,44 @@ export class RendicionPdfService {
     const colorEstado = estadoColor[rend.U_Estado] || [107, 114, 128];
 
     // Encabezado con gradiente simulado
-    setFC(30, 64, 175);
+    setFC(colors.headerBg);
     doc.rect(0, 0, PW, 16, 'F');
     setF(14, 'bold');
-    setC(255, 255, 255);
+    setC(colors.headerText);
     txt('RENDICIÓN DE GASTOS', ML, 10);
     setF(10, 'bold');
     txt(`N° ${rend.U_IdRendicion}`, PW / 2, 10, { align: 'center' });
 
     // Badge de estado
-    setFC(colorEstado[0], colorEstado[1], colorEstado[2]);
+    setFC(colorEstado);
     doc.roundedRect(MR - 32, 5, 28, 6, 1, 1, 'FD');
     setF(7, 'bold');
-    setC(255, 255, 255);
+    setC([255, 255, 255]);
     txt(estadoTxt, MR - 18, 8.5, { align: 'center' });
 
     y = 20;
 
     // Sección: Responsable
-    setFC(241, 245, 249);
+    setFC(isDark ? [51, 65, 85] : [241, 245, 249]);
     doc.roundedRect(ML, y, CW, 18, 2, 2, 'FD');
     setF(9, 'bold');
-    setC(30, 64, 175);
+    setC(colors.headerBg);
     txt('RESPONSABLE', ML + 3, y + 5);
     setF(8, 'normal');
-    setC(55, 65, 75);
+    setC(colors.infoText);
     txt(`Nombre: ${nombreResp}`, ML + 3, y + 10);
     txt(`Perfil: ${nombrePerfil}`, ML + 3, y + 14);
 
     y += 22;
 
     // Sección: Datos de la Rendición
-    setFC(241, 245, 249);
+    setFC(isDark ? [51, 65, 85] : [241, 245, 249]);
     doc.roundedRect(ML, y, CW, 22, 2, 2, 'FD');
     setF(9, 'bold');
-    setC(30, 64, 175);
+    setC(colors.headerBg);
     txt('DATOS DE LA RENDICIÓN', ML + 3, y + 5);
     setF(8, 'normal');
-    setC(55, 65, 75);
+    setC(colors.infoText);
     txt(`Período: ${periodo}`, ML + 3, y + 10);
     txt(`Cuenta: ${cuentaFull}`, ML + 3, y + 14);
     txt(`Objetivo: ${objetivo.substring(0, 70)}`, ML + 3, y + 18);
@@ -160,10 +225,10 @@ export class RendicionPdfService {
     colAnchos = colAnchos.map(w => w * escala);
 
     // Header de tabla
-    setFC(30, 64, 175);
+    setFC(colors.headerBg);
     doc.rect(ML, y, CW, 7, 'F');
     setF(6, 'bold');
-    setC(255, 255, 255);
+    setC(colors.headerText);
     let xAcum = ML;
     cols.forEach((c, i) => {
       let xPos: number;
@@ -212,7 +277,7 @@ export class RendicionPdfService {
 
     if (!docs || docs.length === 0) {
       setF(8, 'italic');
-      setC(100, 116, 139);
+      setC(isDark ? [148, 163, 184] : [100, 116, 139]);
       txt('Sin documentos registrados', ML + CW / 2, y + 4, { align: 'center' });
       y += 8;
     } else {
@@ -245,62 +310,117 @@ export class RendicionPdfService {
         sumGiftCard += giftCard;
         sumImpRet += impRet;
 
-        // Alternar colores de fila
-        setFC(idx % 2 === 0 ? 255 : 250, idx % 2 === 0 ? 255 : 248, idx % 2 === 0 ? 255 : 245);
+        // Alternar colores de fila según tema
+        const rowBg = idx % 2 === 0 ? colors.rowEven : colors.rowOdd;
+        setFC(rowBg);
         doc.rect(ML, y, CW, 6);
         setF(6, 'normal');
-        setC(30, 41, 59);
+        setC(colors.rowText);
+
+        let rowHeight = 6; // Altura por defecto para landscape
 
         if (isLandscape) {
+          // Calcular altura necesaria para cada columna de texto
+          const tipoDocName = getTipoDocName(d.U_RD_TipoDoc);
+          const tipoDocLines = doc.splitTextToSize(tipoDocName, colAnchos[1] - 2);
+          const numDocLines = doc.splitTextToSize(d.U_RD_NumDocumento || '—', colAnchos[2] - 2);
+          
+          // Altura basada en la columna con más líneas (máximo 4 líneas para landscape)
+          const maxLines = Math.max(
+            1,
+            Math.min(4, tipoDocLines.length),
+            Math.min(4, numDocLines.length)
+          );
+          rowHeight = Math.max(6, maxLines * 2.5 + 2);
+          
+          // Redibujar el fondo con la altura ajustada
+          setFC(rowBg);
+          doc.rect(ML, y, CW, rowHeight);
+          
           xAcum = ML;
-          txt(this.fmtDate(d.U_RD_Fecha), xAcum + colAnchos[0] / 2, y + 4, { align: 'center' });
+          // Fecha - siempre una línea
+          txt(this.fmtDate(d.U_RD_Fecha), xAcum + colAnchos[0] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[0];
-          txt((d.U_RD_TipoDoc || '—').substring(0, 20), xAcum + colAnchos[1] / 2, y + 4, { align: 'center' });
+          
+          // Tipo - con wrapping
+          drawWrappedText(tipoDocName, xAcum + colAnchos[1] / 2, y, colAnchos[1] - 2, rowHeight, { align: 'center', maxLines: 4 });
           xAcum += colAnchos[1];
-          txt((d.U_RD_NumDocumento || '—').substring(0, 12), xAcum + colAnchos[2] / 2, y + 4, { align: 'center' });
+          
+          // N° Doc - con wrapping
+          drawWrappedText(d.U_RD_NumDocumento || '—', xAcum + colAnchos[2] / 2, y, colAnchos[2] - 2, rowHeight, { align: 'center', maxLines: 4 });
           xAcum += colAnchos[2];
-          txt(this.fmt(importe), xAcum + colAnchos[3] / 2, y + 4, { align: 'center' });
+          
+          // Columnas numéricas - centrado vertical
+          txt(this.fmt(importe), xAcum + colAnchos[3] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[3];
-          txt(this.fmt(descuento), xAcum + colAnchos[4] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(descuento), xAcum + colAnchos[4] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[4];
-          txt(this.fmt(exento), xAcum + colAnchos[5] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(exento), xAcum + colAnchos[5] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[5];
-          txt(this.fmt(tasa), xAcum + colAnchos[6] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(tasa), xAcum + colAnchos[6] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[6];
-          txt(this.fmt(giftCard), xAcum + colAnchos[7] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(giftCard), xAcum + colAnchos[7] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[7];
-          txt(this.fmt(ice), xAcum + colAnchos[8] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(ice), xAcum + colAnchos[8] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[8];
-          txt(this.fmt(iva), xAcum + colAnchos[9] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(iva), xAcum + colAnchos[9] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[9];
-          txt(this.fmt(it), xAcum + colAnchos[10] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(it), xAcum + colAnchos[10] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[10];
-          txt(this.fmt(rciva), xAcum + colAnchos[11] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(rciva), xAcum + colAnchos[11] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[11];
-          txt(this.fmt(iue), xAcum + colAnchos[12] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(iue), xAcum + colAnchos[12] / 2, y + rowHeight/2, { align: 'center' });
           xAcum += colAnchos[12];
-          txt(this.fmt(total), xAcum + colAnchos[13] / 2, y + 4, { align: 'center' });
+          txt(this.fmt(total), xAcum + colAnchos[13] / 2, y + rowHeight/2, { align: 'center' });
         } else {
-          const glosa = (d.U_RD_Concepto || '—').substring(0, 25);
+          // Modo Portrait - Text wrapping para Tipo, N° Doc y Glosa
+          const tipoDocName = getTipoDocName(d.U_RD_TipoDoc);
+          const tipoDocLines = doc.splitTextToSize(tipoDocName, colAnchos[1] - 2);
+          const numDocLines = doc.splitTextToSize(d.U_RD_NumDocumento || '—', colAnchos[2] - 2);
+          const glosaText = d.U_RD_Concepto || '—';
+          const glosaWidth = colAnchos[3] - 4;
+          const glosaLines = doc.splitTextToSize(glosaText, glosaWidth);
           const impRet = (Number(d.U_RD_Total) || 0) - importe;
           const impRetStr = impRet > 0 ? this.fmt(impRet) : (impRet < 0 ? `-${this.fmt(Math.abs(impRet))}` : '0.00');
-          txt(this.fmtDate(d.U_RD_Fecha), ML + colAnchos[0] / 2, y + 4, { align: 'center' });
-          txt((d.U_RD_TipoDoc || '—').substring(0,20), ML + colAnchos[0] + colAnchos[1] / 2, y + 4, { align: 'center' });
-          txt(d.U_RD_NumDocumento || '—', ML + colAnchos[0] + colAnchos[1] + colAnchos[2] / 2, y + 4, { align: 'center' });
-          txt(glosa, ML + colAnchos[0] + colAnchos[1] + colAnchos[2] + 2, y + 4);
-          txt(this.fmt(importe), ML + colAnchos[0] + colAnchos[1] + colAnchos[2] + colAnchos[3] + colAnchos[4] / 2, y + 4, { align: 'center' });
-          txt(impRetStr, ML + colAnchos[0] + colAnchos[1] + colAnchos[2] + colAnchos[3] + colAnchos[4] + colAnchos[5] / 2, y + 4, { align: 'center' });
-          txt(this.fmt(total), ML + CW - colAnchos[6] / 2, y + 4, { align: 'center' });
+          
+          // Calcular altura de fila basada en la columna con más líneas
+          const maxLines = Math.max(
+            tipoDocLines.length,
+            numDocLines.length,
+            Math.min(3, glosaLines.length) // Glosa máximo 3 líneas
+          );
+          rowHeight = Math.max(6, Math.min(12, maxLines * 2.5 + 2));
+          
+          // Redibujar el fondo con la altura ajustada
+          setFC(rowBg);
+          doc.rect(ML, y, CW, rowHeight);
+          
+          // Fecha - centrado vertical
+          txt(this.fmtDate(d.U_RD_Fecha), ML + colAnchos[0] / 2, y + rowHeight/2, { align: 'center' });
+          
+          // Tipo - con wrapping y centrado vertical
+          drawWrappedText(tipoDocName, ML + colAnchos[0] + colAnchos[1] / 2, y, colAnchos[1] - 2, rowHeight, { align: 'center', maxLines: 3 });
+          
+          // N° Doc - con wrapping y centrado vertical
+          drawWrappedText(d.U_RD_NumDocumento || '—', ML + colAnchos[0] + colAnchos[1] + colAnchos[2] / 2, y, colAnchos[2] - 2, rowHeight, { align: 'center', maxLines: 3 });
+          
+          // Glosa - con wrapping alineado a la izquierda
+          drawWrappedText(glosaText, ML + colAnchos[0] + colAnchos[1] + colAnchos[2] + 2, y, glosaWidth, rowHeight, { align: 'left', maxLines: 3 });
+          
+          // Columnas numéricas - centrado vertical
+          txt(this.fmt(importe), ML + colAnchos[0] + colAnchos[1] + colAnchos[2] + colAnchos[3] + colAnchos[4] / 2, y + rowHeight/2, { align: 'center' });
+          txt(impRetStr, ML + colAnchos[0] + colAnchos[1] + colAnchos[2] + colAnchos[3] + colAnchos[4] + colAnchos[5] / 2, y + rowHeight/2, { align: 'center' });
+          txt(this.fmt(total), ML + CW - colAnchos[6] / 2, y + rowHeight/2, { align: 'center' });
         }
 
-        y += 6;
+        y += rowHeight;
       });
 
       // Fila de totales
-      setFC(30, 64, 175);
+      setFC(colors.totalsBg);
       doc.rect(ML, y, CW, 7, 'F');
       setF(6.5, 'bold');
-      setC(255, 255, 255);
+      setC(colors.totalsText);
       if (isLandscape) {
         xAcum = ML;
         txt('TOTALES', xAcum + 2, y + 4.5);
@@ -349,20 +469,20 @@ export class RendicionPdfService {
     
     if (isLandscape) {
       // Horizontal: retenciones + IVA en la misma línea
-      setFC(239, 246, 255);
+      setFC(isDark ? [51, 65, 85] : [239, 246, 255]);
       const boxHeight = 14;
       doc.roundedRect(ML, y, CW, boxHeight, 2, 2, 'FD');
       setF(8, 'bold');
-      setC(30, 64, 175);
+      setC(colors.headerBg);
       txt('RESUMEN DE RETENCIONES E IMPUESTOS', ML + 3, y + 5);
       
       setF(6.5, 'normal');
-      setC(55, 65, 75);
+      setC(colors.infoText);
       txt(`IT: ${this.fmt(sumIT)}  |  RC-IVA: ${this.fmt(sumRCIVA)}  |  IUE: ${this.fmt(sumIUE)}  |  IVA: ${this.fmt(sumIva)}`, ML + 3, y + 10);
       y += boxHeight + 4;
     } else {
       // Vertical: retenciones + impuestos adicionales
-      setFC(239, 246, 255);
+      setFC(isDark ? [51, 65, 85] : [239, 246, 255]);
       const rowsRet = 1;
       const rowsImp = hasIVA || hasOther ? 1 : 0;
       const boxHeight = 8 + (rowsRet + rowsImp) * 5;
@@ -370,11 +490,11 @@ export class RendicionPdfService {
       
       let yy = y;
       setF(8, 'bold');
-      setC(30, 64, 175);
+      setC(colors.headerBg);
       txt('RESUMEN', ML + 3, yy + 5);
       
       setF(7, 'normal');
-      setC(55, 65, 75);
+      setC(colors.infoText);
       yy += 5;
       txt(`IT: ${this.fmt(sumIT)}  |  RC-IVA: ${this.fmt(sumRCIVA)}  |  IUE: ${this.fmt(sumIUE)}`, ML + 3, yy + 4);
       
@@ -400,14 +520,14 @@ export class RendicionPdfService {
     if (isLandscape) {
       // Formato horizontal: siempre mostrar todos los campos
       if (y > 180) { doc.addPage(); y = 14; }
-      setFC(229, 246, 229);
+      setFC(isDark ? [51, 65, 85] : [229, 246, 229]);
       doc.roundedRect(ML, y, CW, 48, 2, 2, 'FD');
       setF(9, 'bold');
-      setC(30, 64, 175);
+      setC(colors.headerBg);
       txt('RESUMEN FINANCIERO', ML + 3, y + 5);
       
       setF(7, 'normal');
-      setC(55, 65, 75);
+      setC(colors.infoText);
       
       let ly = 12;
       txt(`Total Documentos:`, ML + 3, y + ly);
@@ -458,38 +578,38 @@ export class RendicionPdfService {
       txt(this.fmt(sumIUE), ML + 50, y + ly, { align: 'right' });
       ly += 5;
       
-      setLC(30, 64, 175);
+      setLC(colors.border);
       doc.line(ML + 3, y + ly + 1, ML + CW - 3, y + ly + 1);
       ly += 4;
       
       setF(9, 'bold');
-      setC(5, 150, 105);
+      setC([5, 150, 105]);
       txt(`Total Rendido: Bs ${this.fmt(sumTotal)}`, ML + 3, y + ly + 3);
       
       y += 54;
     } else {
       // Formato vertical: solo lo que el usuario conoce
       if (y > 200) { doc.addPage(); y = 14; }
-      setFC(229, 246, 229);
+      setFC(isDark ? [51, 65, 85] : [229, 246, 229]);
       doc.roundedRect(ML, y, CW, 36, 2, 2, 'FD');
       setF(9, 'bold');
-      setC(30, 64, 175);
+      setC(colors.headerBg);
       txt('RESUMEN DE RENDICIÓN', ML + 3, y + 5);
       
       const montoEntregado = Number(rend.U_Monto) || 0;
       
       setF(8, 'normal');
-      setC(55, 65, 75);
+      setC(colors.infoText);
       txt(`Monto Registrado:`, ML + 3, y + 12);
       setF(10, 'bold');
-      setC(55, 65, 75);
+      setC(colors.infoText);
       txt(`Bs ${this.fmt(montoEntregado)}`, ML + CW - 3, y + 12, { align: 'right' });
       
       setF(8, 'normal');
-      setC(55, 65, 75);
+      setC(colors.infoText);
       txt(`Total Documentos:`, ML + 3, y + 18);
       setF(10, 'bold');
-      setC(5, 150, 105);
+      setC([5, 150, 105]);
       txt(`Bs ${this.fmt(sumImporte)}`, ML + CW - 3, y + 18, { align: 'right' });
 
       y += 40;
@@ -500,14 +620,14 @@ export class RendicionPdfService {
       if (y > 220) { doc.addPage(); y = 14; }
       if (diferencia !== 0) {
         const esSaldoReintegrar = diferencia > 0;
-        setFC(esSaldoReintegrar ? 254 : 249, esSaldoReintegrar ? 226 : 235, esSaldoReintegrar ? 226 : 209);
+        setFC(esSaldoReintegrar ? [180, 83, 83] : [5, 150, 105]);
         doc.roundedRect(ML, y, CW, 22, 2, 2, 'FD');
         setF(9, 'bold');
-        setC(esSaldoReintegrar ? 180 : 30, esSaldoReintegrar ? 83 : 64, esSaldoReintegrar ? 83 : 175);
+        setC([255, 255, 255]);
         const labelDiff = esSaldoReintegrar ? 'SALDO POR REINTEGRAR' : 'SALDO A DEVOLVER';
         txt(labelDiff, ML + 3, y + 7);
         setF(11, 'bold');
-        setC(esSaldoReintegrar ? 180 : 30, esSaldoReintegrar ? 83 : 64, esSaldoReintegrar ? 83 : 175);
+        setC([255, 255, 255]);
         txt(`Bs ${this.fmt(Math.abs(diferencia))}`, ML + CW - 3, y + 16, { align: 'right' });
         y += 26;
       }
@@ -515,17 +635,17 @@ export class RendicionPdfService {
 
     // Firmas
     if (y > 240) { doc.addPage(); y = 14; }
-    setFC(248, 250, 252);
+    setFC(isDark ? [51, 65, 85] : [248, 250, 252]);
     doc.roundedRect(ML, y, CW, 28, 2, 2, 'FD');
     setF(9, 'bold');
-    setC(30, 64, 175);
+    setC(colors.headerBg);
     txt('FIRMAS DE CONFORMIDAD', ML + 3, y + 5);
 
     const fw = (CW - 10) / 3;
     setF(8, 'normal');
-    setC(100, 116, 139);
+    setC(isDark ? [148, 163, 184] : [100, 116, 139]);
     
-    setLC(180, 190, 200);
+    setLC(colors.border);
     doc.line(ML + 5, y + 22, ML + 5 + fw - 5, y + 22);
     txt('RESPONSABLE', ML + 5 + (fw - 5) / 2, y + 18, { align: 'center' });
     txt(nombreResp, ML + 5 + (fw - 5) / 2, y + 25, { align: 'center' });
@@ -542,10 +662,10 @@ export class RendicionPdfService {
     const pages = doc.getNumberOfPages();
     for (let i = 1; i <= pages; i++) {
       doc.setPage(i);
-      setFC(30, 64, 175);
+      setFC(colors.headerBg);
       doc.rect(0, 287, PW, 10, 'F');
       setF(7, 'normal');
-      setC(200, 205, 220);
+      setC(isDark ? [148, 163, 184] : [200, 205, 220]);
       txt(`Rendición N° ${rend.U_IdRendicion} | ${nombrePerfil} | Período: ${periodo}`, ML, 292);
       txt(`Página ${i} de ${pages}`, MR, 292, { align: 'right' });
     }

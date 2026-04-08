@@ -13,21 +13,20 @@
   transition: left 0.22s cubic-bezier(.4,0,.2,1);
 }
 
-.app-header-wrapper:has(+ app-sidebar.collapsed),
-:host-context(.sidebar-collapsed) .app-header-wrapper {
+// Cuando el sidebar está colapsado (clase aplicada al host)
+:host.sidebar-collapsed .app-header-wrapper {
   left: 72px;
 }
 
 .content {
   flex: 1;
+  min-width: 0;      // Importante: permite que el contenido se encoja en flex container
   margin-left: 240px;
   margin-top: 60px; /* Espacio para el header fijo */
-  padding: 28px 32px;
   background: var(--bg-page);
   min-height: calc(100vh - 60px);
   transition: margin-left 0.22s cubic-bezier(.4,0,.2,1);
   box-sizing: border-box;
-  min-width: 0;
   // Expone el ancho del sidebar como CSS variable para que .action-bar
   // pueda sincronizar su margin-left sin depender de clases de Angular
   --sidebar-width: 240px;
@@ -36,6 +35,15 @@
 .content.collapsed {
   margin-left: 72px;
   --sidebar-width: 72px;
+}
+
+// Contenedor para el router-outlet que asegura que los componentes hijos se expandan
+.content-wrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;      // Importante: permite que el contenido se encoja en flex container
+  padding: 28px 32px;
+  box-sizing: border-box;
 }
 
 // Botón flotante para expandir sidebar colapsado
@@ -97,10 +105,13 @@
   
   .content {
     margin-left: 0;
-    margin-top: 60px;
+    margin-top: 56px; /* Altura reducida del header en móvil */
     --sidebar-width: 0px;
-    /* 60px para el botón hamburguesa fixed + 16px margen superior */
-    padding: 64px 16px 24px;
+  }
+  
+  .content-wrapper {
+    /* Padding normal en móvil */
+    padding: 16px 12px 24px;
   }
   
   .sidebar-expand-btn,

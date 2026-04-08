@@ -23,6 +23,7 @@ import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { SearchInputComponent } from '../../shared/debounce';
 import { Dimension } from '../../models/dimension.model';
 import { AuthService } from '../../auth/auth.service';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
@@ -34,6 +35,7 @@ import { AuthService } from '../../auth/auth.service';
     ConfirmDialogComponent,
     PaginatorComponent,
     SearchInputComponent,
+    AppSelectComponent,
   ],
   templateUrl: './dimensiones.component.html',
   styleUrls: ['./dimensiones.component.scss'],
@@ -47,6 +49,12 @@ export class DimensionesComponent implements OnInit {
   loading = false;
   loadError = false;
   filterActiva: 'todas' | 'activas' | 'inactivas' = 'todas';
+
+  estadoOptions: SelectOption<'todas' | 'activas' | 'inactivas'>[] = [
+    { value: 'todas', label: 'Todas', icon: '🔍' },
+    { value: 'activas', label: 'Activas', icon: '✅' },
+    { value: 'inactivas', label: 'Inactivas', icon: '⭕' },
+  ];
 
   // Paginación
   page = 1;
@@ -168,7 +176,8 @@ export class DimensionesComponent implements OnInit {
     this.updatePaging();
   }
 
-  onFilterActivaChange() {
+  onFilterActivaChange(value: 'todas' | 'activas' | 'inactivas') {
+    this.filterActiva = value;
     this.applyFilter();
   }
 

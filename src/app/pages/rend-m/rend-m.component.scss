@@ -143,6 +143,11 @@
   font-size: var(--text-sm);  // 12.5px — mismo que users y otras tablas de lista
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ANCHOS DE COLUMNAS - Tabla normal (sin virtual scroll)
+// Las columnas se ajustan automáticamente al contenido
+// ═══════════════════════════════════════════════════════════════
+
 // ─────────────────────────────────────────────────────────────
 // PASO 1 — Pantalla de selección de perfil
 // ─────────────────────────────────────────────────────────────
@@ -266,6 +271,44 @@
 }
 
 // ─────────────────────────────────────────────────────────────
+// Filtros — layout para múltiples campos
+// ─────────────────────────────────────────────────────────────
+.filter-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+// Campo de búsqueda — ancho fijo para evitar que se comprima
+.filter-field:has(app-search-input) {
+  width: 280px;
+  min-width: 280px;
+  flex-shrink: 0;
+}
+
+// Responsive: en pantallas pequeñas, el buscador ocupa todo el ancho
+@media (max-width: 768px) {
+  .filter-left {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  
+  .filter-field:has(app-search-input) {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // CHIPS DE ESTADO — filtro Abiertas / Enviadas / Todas
 // ─────────────────────────────────────────────────────────────
 .estado-chips {
@@ -314,10 +357,10 @@
   border-radius: 50%;
   flex-shrink:   0;
 
-  &--open     { background: var(--status-open-color,      #2563eb); }
-  &--sent     { background: var(--status-confirmed-color, #ea580c); }
-  &--approved { background: var(--status-closed-color,    #16a34a); }
-  &--sync     { background: #7c3aed; }
+  &--open     { background: var(--status-open-color); }
+  &--sent     { background: var(--status-sent-color); }
+  &--approved { background: var(--status-closed-color); }
+  &--sync     { background: var(--color-primary); }
 }
 
 .col-id {
@@ -394,6 +437,26 @@
   min-width:   100px;
   white-space: nowrap;
 }
+
+// Anchos mínimos para columnas principales
+.data-table th,
+.data-table td {
+  min-width: 90px;
+}
+
+// Columnas que necesitan más espacio
+.data-table th.col-objetivo,
+.data-table td.col-objetivo,
+.data-table th.col-empleado,
+.data-table td.col-empleado {
+  min-width: 180px;
+}
+
+.data-table th.col-cuenta,
+.data-table td.col-cuenta {
+  min-width: 200px;
+}
+
 // ── Banner informativo de flujo ───────────────────────────────
 .rend-m-info {
   margin-bottom: 12px;
@@ -409,15 +472,15 @@
 
 // ── Botón Enviar ──────────────────────────────────────────────
 .btn-send {
-  background:   rgba(245, 158, 11, 0.12);
-  color:        #854F0B;
-  border:       1px solid rgba(245, 158, 11, 0.35);
+  background:   var(--status-sent-bg);
+  color:        var(--status-sent-color);
+  border:       1px solid var(--status-sent-border);
   font-weight:  var(--weight-semibold);
   white-space:  nowrap;
 
   &:hover {
-    background: rgba(245, 158, 11, 0.22);
-    border-color: rgba(245, 158, 11, 0.6);
+    background:   var(--status-pending-bg);
+    border-color: var(--status-pending-border);
   }
 }
 // ── Tabs propias / subordinados ─────────────────────────────────
@@ -455,7 +518,7 @@
 
 .sub-count-badge {
   background: var(--color-primary);
-  color: #fff;
+  color:      var(--bg-surface);
   font-size: 10px;
   font-weight: 700;
   padding: 1px 6px;
@@ -513,4 +576,98 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+// ---------------------------------------------------------------
+// DROPDOWN DE ACCIONES
+// ---------------------------------------------------------------
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  width: fit-content;
+  min-width: 140px;
+  z-index: 200;
+  overflow: hidden;
+  animation: dropdown-in 0.13s ease;
+
+  &.show {
+    display: block;
+  }
+
+  [data-theme="dark"] & {
+    border-color: var(--border-color);
+    background: var(--bg-faint);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  width: 100%;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  color: var(--text-body);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background var(--transition);
+
+  &:hover:not(:disabled) { 
+    background: var(--bg-subtle); 
+  }
+  
+  &.text-primary {
+    color: var(--color-primary);
+    
+    &:hover {
+      background: var(--color-primary-soft);
+    }
+  }
+  
+  &.text-danger {
+    color: var(--color-danger);
+    
+    &:hover {
+      background: var(--color-danger-soft);
+    }
+  }
+  
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.dropdown-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--border-color);
+  border: none;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

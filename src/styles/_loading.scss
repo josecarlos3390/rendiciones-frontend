@@ -1,0 +1,226 @@
+// ═══════════════════════════════════════════════════════════════
+// LOADING STATES — Transiciones suaves entre estados de carga
+// ═══════════════════════════════════════════════════════════════
+
+// ── Contenedor principal con transiciones de fade ──
+.content-fade {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+
+  &.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  &.fade-out {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+// ── Estados de carga (wrapper para cada estado) ──
+.loading-state {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+
+  &.active {
+    display: block;
+    opacity: 1;
+  }
+}
+
+// ── Skeleton loading ──
+.skeleton-wrapper {
+  padding: 8px 0;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.skeleton-cell {
+  height: 20px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle) 25%,
+    var(--bg-faint) 50%,
+    var(--bg-subtle) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+
+  // Variantes de tamaño
+  &--sm { width: 60px; }
+  &--md { width: 120px; }
+  &--lg { width: 200px; flex: 1; }
+  &--xl { width: 100%; }
+  &--circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  &--header {
+    height: 32px;
+    background: var(--bg-subtle);
+    animation: none;
+    margin-bottom: 16px;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ── Spinner elegante (alternativa al skeleton) ──
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+
+  &.visible {
+    opacity: 1;
+  }
+}
+
+.spinner-ring {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bg-subtle);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spinner-rotate 1s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-text {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: var(--weight-medium);
+}
+
+// ── Empty state mejorado con transición ──
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--text-muted);
+
+  // Transición solo cuando tiene clase .with-fade
+  &.with-fade {
+    animation: fadeInEmpty 0.4s ease-out;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-title {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--text-heading);
+    margin: 0 0 8px;
+  }
+
+  .empty-message {
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    margin: 0 0 20px;
+    line-height: var(--leading-normal);
+    max-width: 320px;
+  }
+
+  .empty-action {
+    margin-top: 8px;
+  }
+}
+
+// ── Tabla con transición suave (usar clase .with-fade) ──
+.table-wrapper.with-fade {
+  animation: fadeInTable 0.4s ease-out;
+}
+
+@keyframes fadeInTable {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInEmpty {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeInError {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+// ── Estados de error con transición ──
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+
+  &.with-fade {
+    animation: fadeInError 0.3s ease-out;
+  }
+
+  .error-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+  }
+
+  .error-title {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--color-danger);
+    margin: 0 0 8px;
+  }
+
+  .error-message {
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    margin: 0 0 20px;
+  }
+}
+
+// ── Delay mínimo para evitar flash ──
+.loading-min-delay {
+  // Asegura que el skeleton se muestre por al menos 400ms
+  // Se controla vía JavaScript con la clase .can-transition
+  &.can-transition {
+    .skeleton-wrapper,
+    .spinner-container {
+      transition-delay: 0ms;
+    }
+  }
+
+  &:not(.can-transition) {
+    .skeleton-wrapper,
+    .spinner-container {
+      transition-delay: 400ms;
+    }
+  }
+}

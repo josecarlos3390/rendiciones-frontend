@@ -224,12 +224,10 @@
         </td>
         <td class="col-nombre" data-label="Nombre Perfil">{{ p.U_NombrePerfil }}</td>
         <td class="text-center" data-label="Moneda">
-          <span class="moneda-badge" [class.moneda-bs]="p.U_Trabaja === '0'" [class.moneda-usd]="p.U_Trabaja === '1'">
-            {{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}
-          </span>
+          <span class="code-tag">{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</span>
         </td>
         <td class="text-center" data-label="Líneas">
-          <span class="lineas-badge">{{ p.U_CntLineas || 10 }}</span>
+          <span class="badge badge-secondary">{{ p.U_CntLineas || 10 }}</span>
         </td>
         <td data-label="Proveedores">
           <span class="carac-badge">{{ p.U_PRO_CAR }}</span>

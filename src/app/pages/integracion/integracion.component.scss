@@ -45,8 +45,11 @@
 }
 
 // ── Modal sync e historial ─────────────────────────────────
+// EXCEPCIÓN: Modales específicos de integración SAP
+// Usan estructura similar a .modal-card pero con animaciones y tamaños específicos
 .sync-modal,
-.historial-modal {
+.historial-modal,
+.credentials-modal {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-2xl);
@@ -64,6 +67,14 @@
 
 .historial-modal {
   max-width: 520px;
+
+  @media (max-width: 480px) {
+    max-width: 100%;
+  }
+}
+
+.credentials-modal {
+  max-width: 460px;
 
   @media (max-width: 480px) {
     max-width: 100%;

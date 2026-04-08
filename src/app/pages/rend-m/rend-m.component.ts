@@ -1,5 +1,5 @@
 import { RouterModule, Router } from '@angular/router';
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule, ReactiveFormsModule,
@@ -28,7 +28,7 @@ import { RendicionPdfPreviewComponent } from '../../shared/rendicion-pdf/rendici
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 import { LoadingButtonComponent } from '../../shared/loading-button/loading-button.component';
 import { SearchInputComponent } from '../../shared/debounce';
-import { VirtualTableBodyComponent } from '../../shared/virtual-table';
+
 import { RendicionFilterService } from '../../services/rendicion-filter.service';
 import {
   RendM, CreateRendMPayload,
@@ -42,7 +42,7 @@ import { RendD } from '../../models/rend-d.model';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
             ConfirmDialogComponent, PaginatorComponent, EmpleadoSearchComponent,
             CuentaCabeceraSelectComponent, DdmmyyyyPipe, SkeletonLoaderComponent,
-            RendicionPdfPreviewComponent, EmptyStateComponent, LoadingButtonComponent, SearchInputComponent, VirtualTableBodyComponent],
+            RendicionPdfPreviewComponent, EmptyStateComponent, LoadingButtonComponent, SearchInputComponent],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -74,6 +74,9 @@ export class RendMComponent implements OnInit {
   // ── Filtros unificados ───────────────────────────────────────
   verFiltro:    'propias' | 'subordinados' | 'todas' = 'propias';
   estadoFiltro: 'todas' | 'abiertas' | 'cerradas' | 'enviadas' | 'aprobadas' | 'sincronizadas' | 'error' = 'todas';
+
+  // ── Menú de acciones ─────────────────────────────────────────
+  menuOpen: number | null = null;
 
   // Datos combinados en la vista
   rendicionesSubordinados: RendM[] = [];
@@ -346,6 +349,26 @@ export class RendMComponent implements OnInit {
 
   onPageChange(p: number)  { this.page = p; this.load(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.load(); }
+
+  // ── Menú de acciones ─────────────────────────────────────────
+  toggleMenu(id: number) {
+    this.menuOpen = this.menuOpen === id ? null : id;
+    this.cdr.markForCheck();
+  }
+
+  closeMenu() {
+    this.menuOpen = null;
+    this.cdr.markForCheck();
+  }
+
+  // Cerrar menú al hacer clic fuera
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.dropdown')) {
+      this.closeMenu();
+    }
+  }
 
   openPerfilPicker() {
     this.perfilPickerSelId  = this.perfilActivo?.U_CodPerfil ?? null;

@@ -21,6 +21,7 @@ import {
 } from '../../core/confirm-dialog/confirm-dialog.component';
 import { PaginatorComponent } from '../../shared/paginator/paginator.component';
 import { AuthService } from '../../auth/auth.service';
+import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
 
 @Component({
   standalone: true,
@@ -31,6 +32,7 @@ import { AuthService } from '../../auth/auth.service';
     ReactiveFormsModule,
     ConfirmDialogComponent,
     PaginatorComponent,
+    AppSelectComponent,
   ],
   templateUrl: './tipo-cambio.component.html',
   styleUrls: ['./tipo-cambio.component.scss'],
@@ -64,6 +66,21 @@ export class TipoCambioComponent implements OnInit {
 
   // Monedas disponibles
   monedas = ['USD', 'EUR'];
+  monedaOptions: SelectOption<string>[] = [
+    { value: '', label: 'Todas las monedas', icon: '💱' },
+    { value: 'USD', label: 'USD - Dólar americano', icon: '💵' },
+    { value: 'EUR', label: 'EUR - Euro', icon: '💶' },
+  ];
+  monedaFormOptions: SelectOption<string>[] = [
+    { value: 'USD', label: 'USD - Dólar americano', icon: '💵' },
+    { value: 'EUR', label: 'EUR - Euro', icon: '💶' },
+  ];
+
+  // Paginación
+  page = 1;
+  limit = 10;
+  totalPages = 1;
+  paged: TipoCambio[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -73,9 +90,9 @@ export class TipoCambioComponent implements OnInit {
     private cdr: ChangeDetectorRef,
   ) {
     this.form = this.fb.group({
-      fecha: ['', [Validators.required]],
+      fecha: [null, [Validators.required]],
       moneda: ['USD', [Validators.required]],
-      tasa: ['', [Validators.required, Validators.min(0.0001)]],
+      tasa: [null, [Validators.required, Validators.min(0.0001)]],
     });
   }
 
@@ -119,8 +136,13 @@ export class TipoCambioComponent implements OnInit {
   }
 
   /**
-   * Aplicar filtros
+   * Aplicar filtros y paginación
    */
+  onMonedaChange(value: string): void {
+    this.filterMoneda = value;
+    this.applyFilters();
+  }
+
   applyFilters(): void {
     let result = [...this.tasas];
 
@@ -139,6 +161,42 @@ export class TipoCambioComponent implements OnInit {
     }
 
     this.filtered = result;
+    this.updatePaging();
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Actualizar paginación
+   */
+  private updatePaging(): void {
+    this.totalPages = Math.ceil(this.filtered.length / this.limit) || 1;
+    
+    // Ajustar página si está fuera de rango
+    if (this.page > this.totalPages) {
+      this.page = this.totalPages;
+    }
+    
+    const start = (this.page - 1) * this.limit;
+    const end = start + this.limit;
+    this.paged = this.filtered.slice(start, end);
+  }
+
+  /**
+   * Cambiar página
+   */
+  onPageChange(page: number): void {
+    this.page = page;
+    this.updatePaging();
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Cambiar límite de items por página
+   */
+  onLimitChange(limit: number): void {
+    this.limit = limit;
+    this.page = 1;
+    this.updatePaging();
     this.cdr.markForCheck();
   }
 
@@ -147,13 +205,26 @@ export class TipoCambioComponent implements OnInit {
    */
   openCreate(): void {
     this.editingId = null;
-    this.form.reset({
-      fecha: new Date().toISOString().split('T')[0],
-      moneda: 'USD',
-      tasa: '',
-    });
     this.showModal = true;
-    this.cdr.markForCheck();
+    
+    // Resetear formulario con valores por defecto
+    const hoy = new Date().toISOString().split('T')[0];
+    
+    // Usar setTimeout para asegurar que el DOM se actualice antes de setear valores
+    setTimeout(() => {
+      this.form.reset();
+      this.form.setValue({
+        fecha: hoy,
+        moneda: 'USD',
+        tasa: '',
+      });
+      
+      // Habilitar campos que podrían estar deshabilitados
+      this.form.get('fecha')?.enable();
+      this.form.get('moneda')?.enable();
+      
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   /**
@@ -161,13 +232,22 @@ export class TipoCambioComponent implements OnInit {
    */
   openEdit(tasa: TipoCambio): void {
     this.editingId = tasa.id;
-    this.form.patchValue({
-      fecha: tasa.fecha,
-      moneda: tasa.moneda,
-      tasa: tasa.tasa,
-    });
     this.showModal = true;
-    this.cdr.markForCheck();
+    
+    setTimeout(() => {
+      this.form.reset();
+      this.form.patchValue({
+        fecha: tasa.fecha,
+        moneda: tasa.moneda,
+        tasa: tasa.tasa,
+      });
+      
+      // En edición, fecha y moneda no son editables
+      this.form.get('fecha')?.disable();
+      this.form.get('moneda')?.disable();
+      
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   /**
@@ -177,7 +257,7 @@ export class TipoCambioComponent implements OnInit {
     this.showModal = false;
     this.editingId = null;
     this.form.reset();
-    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   /**
@@ -190,7 +270,13 @@ export class TipoCambioComponent implements OnInit {
     }
 
     this.saving = true;
-    const dto: CreateTipoCambioDto = this.form.value;
+    // Obtener todos los valores incluyendo campos deshabilitados
+    const rawValue = this.form.getRawValue();
+    const dto: CreateTipoCambioDto = {
+      fecha: rawValue.fecha,
+      moneda: rawValue.moneda,
+      tasa: Number(rawValue.tasa),
+    };
 
     if (this.editingId) {
       this.service.update(this.editingId, { tasa: dto.tasa }).subscribe({
@@ -209,18 +295,14 @@ export class TipoCambioComponent implements OnInit {
     } else {
       this.service.create(dto).subscribe({
         next: () => {
-          this.toast.exito('Tasa de cambio creada');
+          this.toast.exito('Tasa de cambio guardada');
           this.saving = false;
           this.closeModal();
           this.loadTasas();
         },
         error: (err: any) => {
           this.saving = false;
-          if (err.status === 409) {
-            this.toast.error('Ya existe una tasa para esa fecha y moneda');
-          } else {
-            this.toast.error('Error al crear la tasa de cambio');
-          }
+          this.toast.error('Error al guardar la tasa de cambio');
           this.cdr.markForCheck();
         },
       });
@@ -277,6 +359,7 @@ export class TipoCambioComponent implements OnInit {
     this.filterMoneda = '';
     this.filterFechaDesde = '';
     this.filterFechaHasta = '';
+    this.page = 1;
     this.applyFilters();
   }
 

@@ -1,3 +1,30 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE: DOCUMENTOS
+// 
+// EXCEPCIONES DOCUMENTADAS:
+// 
+// 1. .doc-modal (líneas 2-20)
+//    Razón: El modal requiere 960px de ancho, superando el máximo de 
+//    .modal-card-lg (700px) y .user-modal (900px). Se mantiene clase propia
+//    con las mismas propiedades base para consistencia visual.
+//
+// 2. .tax-grid (líneas 75-88)
+//    Razón: Grid específico de dominio fiscal (3col→2col→1col responsive)
+//    sin equivalente en patrones estándar.
+//
+// 3. .doc-table (líneas 143-168)
+//    Razón: Extensión de .data-table con columnas fiscales específicas
+//    (tax-col, tax-cell) que no existen en el patrón estándar.
+//
+// 4. .doc-cards (líneas 256-369)
+//    Razón: Patrón mobile específico. La tabla tiene demasiadas columnas
+//    fiscales para adaptarse al patrón estándar de cards mobile.
+//
+// 5. .badge-calc (líneas 219-238)
+//    Razón: Badge específico para tipos de cálculo fiscal GD/GU con
+//    variantes grossing-up/down que requieren semántica particular.
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // ── Modal ─────────────────────────────────────────────────────
 .doc-modal {
   background: var(--bg-surface);
@@ -42,7 +69,8 @@ form {
 
   @media (max-width: 480px) {
     padding: 16px;
-  }}
+  }
+}
 
 // ── Separador de sección ──────────────────────────────────────
 .section-divider {
@@ -54,6 +82,12 @@ form {
   border-bottom: 1px solid var(--color-primary-border);
   padding-bottom: 4px;
   margin: 16px 0 12px;
+}
+
+.section-subtitle {
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  opacity: 0.75;
 }
 
 .form-row {
@@ -69,6 +103,11 @@ form {
   color: var(--text-muted);
   margin-top: 2px;
   display: block;
+}
+
+// Input corto para porcentajes
+.input-short {
+  max-width: 110px;
 }
 
 // ── Grid de impuestos — cards agrupadas ───────────────────────
@@ -218,22 +257,25 @@ form {
 
 // ── Badge tipo cálculo ─────────────────────────────────────────
 .badge-calc {
-  display: inline-block; padding: 2px 8px; border-radius: 999px;
-  font-size: var(--text-sm); font-weight: var(--weight-bold);
+  display: inline-block; 
+  padding: 2px 8px; 
+  border-radius: 999px;
+  font-size: var(--text-sm); 
+  font-weight: var(--weight-bold);
   background: var(--bg-subtle);
-  color:      var(--text-muted);
-  border:     1px solid var(--border-color);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
 
   &.grossing-up {
-    background: var(--color-danger-soft, rgba(239,68,68,0.1));
-    color:      var(--color-danger);
-    border:     1px solid var(--color-danger-border, rgba(239,68,68,0.3));
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger-border);
   }
 
   &.grossing-down {
     background: var(--status-closed-bg);
-    color:      var(--status-closed-color);
-    border:     1px solid var(--status-closed-border);
+    color: var(--status-closed-color);
+    border: 1px solid var(--status-closed-border);
   }
 }
 
@@ -338,34 +380,6 @@ form {
 .doc-card-actions {
   display: flex;
   gap: 8px;
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: var(--radius-md);
-    font-size: var(--text-base);
-    font-weight: var(--weight-medium);
-    font-family: inherit;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: background 0.15s, color 0.15s;
-
-    &.btn-ghost {
-      border-color: var(--border-color);
-      background: transparent;
-      color: var(--text-body);
-      &:hover { background: var(--bg-faint); }
-    }
-
-    &.btn-danger-ghost {
-      border-color: var(--color-danger-border, #fca5a5);
-      background: transparent;
-      color: var(--color-danger);
-      &:hover { background: var(--color-danger-soft); }
-    }
-  }
 }
 
 // ── Breakpoints ───────────────────────────────────────────────

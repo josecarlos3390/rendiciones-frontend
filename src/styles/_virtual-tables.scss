@@ -1,0 +1,56 @@
+// ═══════════════════════════════════════════════════════════════
+// _virtual-tables.scss
+// Estilos centralizados para tablas con virtual scroll
+// 
+// USO:
+// 1. Agregar clase 'virtual-scroll' a la tabla: <table class="data-table virtual-scroll">
+// 2. Definir template de columnas usando CSS grid-template-columns:
+//    .data-table.virtual-scroll {
+//      --grid-columns: 60px 200px 180px 1fr 100px 100px;
+//    }
+// 
+// NOTA: El componente app-virtual-table-body usa CSS Grid para las filas
+// en lugar de display:table, lo que garantiza alineación perfecta con el thead.
+// ═══════════════════════════════════════════════════════════════
+
+// Tabla con virtual scroll - El thead usa grid, el tbody es manejado por CDK
+.data-table.virtual-scroll {
+  // El thead usa CSS Grid para alineación perfecta
+  thead {
+    display: table;  // Mantener como table para que ocupe el ancho completo
+    width: 100%;
+  }
+  
+  thead tr {
+    display: grid;
+    grid-template-columns: var(--grid-columns);
+    width: 100%;
+  }
+  
+  th {
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-faint);
+    border-bottom: 1px solid var(--border-color);
+    min-width: 0; /* Permite que el texto se contraiga */
+  }
+  
+  // Ajustes para celdas con clases especiales
+  th.text-center { text-align: center; }
+  th.text-right { text-align: right; }
+}
+
+// Wrapper para scroll horizontal cuando la tabla es muy ancha
+.table-wrapper:has(.data-table.virtual-scroll) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

@@ -1,4 +1,5 @@
-import { Component, Input, ContentChild, TemplateRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, ContentChild, TemplateRef, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, OnChanges, SimpleChanges, AfterViewInit } from '@angular/core';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
@@ -29,18 +30,19 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
   selector: 'app-virtual-table-body',
   standalone: true,
   imports: [CommonModule, ScrollingModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   template: `
     <tbody class="virtual-tbody">
       <cdk-virtual-scroll-viewport
         [itemSize]="itemHeight"
-        [minBufferPx]="itemHeight * 3"
-        [maxBufferPx]="itemHeight * 8"
+        [minBufferPx]="itemHeight * 10"
+        [maxBufferPx]="itemHeight * 20"
         [style.height.px]="viewportHeight"
-        class="virtual-scroll-viewport">
+        class="virtual-scroll-viewport"
+        appendOnly>
         
         <tr 
-          *cdkVirtualFor="let item of items; trackBy: trackByFn"
+          *cdkVirtualFor="let item of items"
           class="virtual-row"
           [style.height.px]="itemHeight">
           <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: item }"></ng-container>
@@ -61,22 +63,45 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
     }
 
     .virtual-tbody {
-      display: block;
+      display: table-row-group;
+      width: 100%;
     }
 
     .virtual-scroll-viewport {
       width: 100%;
       overflow-y: auto;
       overflow-x: hidden;
-      display: block;
     }
 
     .virtual-row {
-      display: table;
+      display: grid;
+      grid-template-columns: var(--grid-columns); /* Hereda del CSS de la tabla */
       width: 100%;
-      table-layout: fixed;
       border-bottom: 1px solid #f3f4f6;
       transition: background-color 0.15s ease;
+      align-items: center;
+    }
+
+    /* Estilos para celdas dentro de las filas virtuales */
+    .virtual-row td {
+      padding: 13px 14px;
+      box-sizing: border-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0; /* Permite que el contenido se contraiga si es necesario */
+    }
+    
+    /* Clases de alineación */
+    .virtual-row td.text-center { text-align: center; }
+    .virtual-row td.text-right { text-align: right; }
+    
+    /* Permitir que ciertas columnas tengan múltiples líneas */
+    .virtual-row td.col-objetivo,
+    .virtual-row td.col-cuenta,
+    .virtual-row td.col-empleado {
+      white-space: normal;
+      word-break: break-word;
     }
 
     .virtual-row:hover {
@@ -149,7 +174,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
     }
   `]
 })
-export class VirtualTableBodyComponent<T> {
+export class VirtualTableBodyComponent<T> implements OnChanges, AfterViewInit {
   @Input() items: T[] = [];
   @Input() itemHeight = 56;
   @Input() maxItems = 20; // Cuántos items mostrar antes de scroll
@@ -157,6 +182,30 @@ export class VirtualTableBodyComponent<T> {
   @Input() trackByFn: (index: number, item: T) => any = (index) => index;
 
   @ContentChild('rowTemplate', { static: false }) rowTemplate!: TemplateRef<{ $implicit: T }>;
+  @ViewChild(CdkVirtualScrollViewport, { static: false }) viewport!: CdkVirtualScrollViewport;
+
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  ngAfterViewInit(): void {
+    // Forzar detección de cambios inicial
+    this.refreshViewport();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items']) {
+      // Forzar recálculo del viewport cuando cambian los items
+      this.refreshViewport();
+    }
+  }
+
+  private refreshViewport(): void {
+    setTimeout(() => {
+      if (this.viewport) {
+        this.viewport.checkViewportSize();
+        this.cdr.detectChanges();
+      }
+    }, 0);
+  }
 
   get viewportHeight(): number {
     // Limita la altura máxima basada en maxItems

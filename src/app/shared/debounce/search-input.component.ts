@@ -66,7 +66,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
       display: flex;
       align-items: center;
       width: 100%;
-      max-width: 400px;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .search-icon {
@@ -74,75 +75,91 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
       left: 12px;
       width: 18px;
       height: 18px;
-      color: #9ca3af;
+      color: var(--text-muted);
       pointer-events: none;
       z-index: 1;
+      flex-shrink: 0;
     }
 
     .search-input {
       width: 100%;
-      padding: 10px 36px 10px 40px;
-      font-size: 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: white;
+      min-width: 0;
+      padding: 10px 40px 10px 40px;
+      font-size: var(--text-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      color: var(--text-body);
       transition: all 0.2s ease;
+      box-sizing: border-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-faint);
     }
 
     .search-input:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: var(--color-primary);
+      box-shadow: var(--focus-ring);
     }
 
     .search-input:disabled {
-      background: #f3f4f6;
+      background: var(--bg-faint);
       cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .clear-btn,
     .search-spinner {
       position: absolute;
-      right: 12px;
-      width: 18px;
-      height: 18px;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
+      z-index: 2;
     }
 
     .clear-btn {
-      background: none;
+      background: transparent;
       border: none;
-      padding: 0;
+      border-radius: var(--radius-sm);
+      padding: 4px;
       cursor: pointer;
-      color: #9ca3af;
+      color: var(--text-muted);
       transition: all 0.2s ease;
     }
 
     .clear-btn:hover {
-      color: #4b5563;
-      transform: rotate(90deg);
+      background: var(--bg-subtle);
+      color: var(--text-body);
     }
 
     .clear-btn svg {
-      width: 100%;
-      height: 100%;
+      width: 16px;
+      height: 16px;
     }
 
     .search-spinner {
-      color: #3b82f6;
+      color: var(--color-primary);
       animation: spin 1s linear infinite;
     }
 
     .search-spinner svg {
-      width: 100%;
-      height: 100%;
+      width: 16px;
+      height: 16px;
     }
 
     @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      from { transform: translateY(-50%) rotate(0deg); }
+      to { transform: translateY(-50%) rotate(360deg); }
     }
 
     /* Variante compacta */
@@ -151,8 +168,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
     }
 
     :host(.compact) .search-input {
-      padding: 6px 32px 6px 32px;
-      font-size: 13px;
+      padding: 8px 32px 8px 32px;
+      font-size: var(--text-sm);
     }
 
     :host(.compact) .search-icon {
@@ -163,9 +180,14 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
     :host(.compact) .clear-btn,
     :host(.compact) .search-spinner {
-      right: 10px;
-      width: 14px;
-      height: 14px;
+      right: 8px;
+      width: 18px;
+      height: 18px;
+    }
+
+    :host(.compact) .clear-btn svg {
+      width: 12px;
+      height: 12px;
     }
 
     /* Ancho completo */
