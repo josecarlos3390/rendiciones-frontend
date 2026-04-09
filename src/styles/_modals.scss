@@ -1,6 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
 // MODALS — backdrop, card, header, tabla interior
 // ═══════════════════════════════════════════════════════════════
+//
+// JERARQUÍA DE Z-INDEX:
+//   100   → Botón flotante AI (siempre visible pero debajo de modales)
+//   1000  → Layout/Sidebar
+//   1100  → Modales (.modal-backdrop)
+//   9999  → Dropdowns/Selectores (encima de modales cuando están abiertos)
+//   10000 → Toast/Loading/Confirm Dialog (siempre encima de todo)
+// ═══════════════════════════════════════════════════════════════
 
 .modal-backdrop {
   position: fixed;
@@ -9,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;  // Por encima del layout (1000) pero debajo de dropdowns/toasts
   padding: 24px;
   animation: modal-fade-in 0.15s ease;
 
@@ -104,6 +112,7 @@
   gap: 14px;       // espaciado uniforme entre todos los form-field directos
 
   @media (max-width: 480px) { padding: 16px; gap: 12px; }
+  @media (max-width: 360px) { padding: 12px 10px; gap: 10px; }
 }
 .modal-body-scroll { overflow-y: auto; }
 
@@ -114,6 +123,15 @@
   gap: 10px;
   justify-content: flex-end;
   flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    flex-direction: column-reverse;  // Acción primaria queda arriba visualmente
+    padding: 12px 16px;
+    gap: 8px;
+
+    .btn,
+    button { width: 100%; justify-content: center; }
+  }
 }
 
 /* ── Tabla dentro de modal ── */
@@ -222,11 +240,36 @@
   max-height:     90vh;
   width:          min(900px, 96vw);  // cada componente puede sobreescribir el width
   animation:      user-modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+
+  // ── Responsive móvil ──
+  @media (max-width: 640px) {
+    width:         100%;
+    max-height:    92vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    margin:        0;
+    animation:     user-modal-slide-up 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
 }
 
 @keyframes user-modal-in {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes user-modal-slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// Variante ancha para formularios complejos (ej: rend-m, permisos)
+.user-modal--wide {
+  width: min(1000px, 96vw);
+}
+
+// Variante compacta para formularios simples (ej: picker de perfil)
+.user-modal--compact {
+  width: min(480px, 96vw);
+  max-height: 70vh;
 }
 
 // Badge de cambios sin guardar — aparece en el h3 del modal-header

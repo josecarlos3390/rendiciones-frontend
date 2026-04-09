@@ -125,17 +125,17 @@ interface ChatMensaje {
     .chat-fab {
       position: fixed;
       bottom: 24px;
-      right: 24px;
+      left: 24px;  /* ← Cambiado de right a left */
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary, #764ba2) 100%);
       border: none;
       color: white;
       font-size: 24px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 100;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -150,8 +150,8 @@ interface ChatMensaje {
     }
 
     @keyframes pulse {
-      0%, 100% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-      50% { box-shadow: 0 4px 24px rgba(102, 126, 234, 0.8); }
+      0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+      50% { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5); }
     }
 
     .fab-badge {
@@ -160,29 +160,31 @@ interface ChatMensaje {
       right: -4px;
       width: 20px;
       height: 20px;
-      background: #f44336;
+      background: var(--color-danger);
       border-radius: 50%;
       font-size: 11px;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: white;
     }
 
     .chat-panel {
       position: fixed;
+      top: 60px;       /* justo debajo del header */
       bottom: 24px;
-      right: 24px;
+      left: 24px;
       width: 380px;
-      height: 520px;
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08);
-      z-index: 9999;
+      height: auto;    /* usa top+bottom en vez de altura fija */
+      background: var(--bg-surface);
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--shadow-modal);
+      z-index: 99;     /* por debajo del header (z-index 100) */
       display: flex;
       flex-direction: column;
       overflow: hidden;
       animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      border: 1px solid rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
     }
 
     @keyframes slideUp {
@@ -191,7 +193,7 @@ interface ChatMensaje {
     }
 
     .chat-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary, #764ba2) 100%);
       color: white;
       padding: 16px;
       display: flex;
@@ -220,7 +222,7 @@ interface ChatMensaje {
     }
 
     .header-status.online {
-      color: #4caf50;
+      color: var(--color-success, #4caf50);
     }
 
     .btn-close {
@@ -232,6 +234,11 @@ interface ChatMensaje {
       border-radius: 50%;
       cursor: pointer;
       font-size: 16px;
+      transition: background 0.2s;
+    }
+
+    .btn-close:hover {
+      background: rgba(255,255,255,0.3);
     }
 
     .chat-messages {
@@ -242,6 +249,7 @@ interface ChatMensaje {
       flex-direction: column;
       gap: 8px;
       scroll-behavior: smooth;
+      background: var(--bg-faint);
     }
 
     .mensaje {
@@ -282,7 +290,7 @@ interface ChatMensaje {
       display: flex;
       gap: 10px;
       position: relative;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.08));
       transition: transform 0.2s ease;
       overflow-wrap: break-word;
       word-wrap: break-word;
@@ -294,14 +302,14 @@ interface ChatMensaje {
     }
 
     .mensaje.usuario .mensaje-burbuja {
-      background: #667eea;
+      background: var(--color-primary);
       color: white;
       border-bottom-right-radius: 4px;
     }
 
     .mensaje.asistente .mensaje-burbuja {
-      background: #f5f5f5;
-      color: #333;
+      background: var(--bg-subtle);
+      color: var(--text-body);
       border-bottom-left-radius: 4px;
       width: 100%;
       max-width: 100%;
@@ -334,16 +342,22 @@ interface ChatMensaje {
     }
 
     .mensaje-contenido ::ng-deep code {
-      background: rgba(0,0,0,0.1);
+      background: var(--bg-subtle);
+      color: var(--text-body);
       padding: 2px 6px;
       border-radius: 4px;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font-mono, 'Courier New', monospace);
       font-size: 12px;
       word-break: break-all;
     }
 
+    .mensaje.usuario .mensaje-contenido ::ng-deep code {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
     .mensaje.asistente .mensaje-contenido ::ng-deep code {
-      background: rgba(0,0,0,0.08);
+      background: var(--bg-faint);
     }
 
     /* Tablas y contenido largo - scroll horizontal */
@@ -358,7 +372,7 @@ interface ChatMensaje {
     .mensaje-contenido ::ng-deep table th,
     .mensaje-contenido ::ng-deep table td {
       padding: 4px 8px;
-      border: 1px solid rgba(0,0,0,0.1);
+      border: 1px solid var(--border-color);
       white-space: nowrap;
     }
 
@@ -367,7 +381,7 @@ interface ChatMensaje {
       overflow-x: auto;
       max-width: 100%;
       padding: 8px;
-      background: rgba(0,0,0,0.05);
+      background: var(--bg-subtle);
       border-radius: 6px;
       font-size: 12px;
     }
@@ -387,35 +401,35 @@ interface ChatMensaje {
     }
 
     .mensaje-contenido ::ng-deep a.chat-link {
-      color: #667eea;
+      color: var(--color-primary);
       text-decoration: underline;
       word-break: break-all;
     }
 
     .mensaje-contenido ::ng-deep a.chat-link:hover {
-      color: #5a6fd6;
+      color: var(--color-primary-text);
     }
 
     .mensaje.asistente .mensaje-contenido ::ng-deep a.chat-link {
-      color: #667eea;
+      color: var(--color-primary);
     }
 
     /* Estilos para mensaje de bienvenida */
     .mensaje-bienvenida {
-      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%) !important;
-      border: 1px solid rgba(102, 126, 234, 0.15);
+      background: var(--color-primary-bg) !important;
+      border: 1px solid var(--color-primary-border);
     }
 
     .bienvenida-titulo {
       font-weight: 600;
       font-size: 15px;
-      color: #4a5568;
+      color: var(--text-heading);
       margin-bottom: 6px;
     }
 
     .bienvenida-subtitulo {
       font-size: 12px;
-      color: #718096;
+      color: var(--text-muted);
       margin-bottom: 8px;
     }
 
@@ -427,22 +441,23 @@ interface ChatMensaje {
     }
 
     .opcion-tag {
-      background: rgba(102, 126, 234, 0.1);
-      color: #667eea;
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
       padding: 3px 8px;
       border-radius: 12px;
       font-size: 12px;
       font-weight: 500;
+      border: 1px solid var(--color-primary-border);
     }
 
     .bienvenida-pregunta {
       font-weight: 600;
-      color: #667eea;
+      color: var(--color-primary);
       font-size: 13px;
     }
 
     .mensaje.usuario .mensaje-contenido ::ng-deep a.chat-link {
-      color: #a8c0ff;
+      color: rgba(255,255,255,0.9);
     }
 
     .mensaje-contenido ::ng-deep br {
@@ -470,7 +485,7 @@ interface ChatMensaje {
     .typing-indicator span {
       width: 6px;
       height: 6px;
-      background: #a0aec0;
+      background: var(--text-muted);
       border-radius: 50%;
       animation: typing 1.4s ease-in-out infinite;
     }
@@ -489,28 +504,28 @@ interface ChatMensaje {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      border-top: 1px solid #f0f0f0;
-      background: #fafafa;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-faint);
     }
 
     .sugerencia-chip {
       padding: 5px 10px;
-      background: white;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
       border-radius: 14px;
       font-size: 12px;
       cursor: pointer;
       transition: all 0.2s ease;
-      color: #667eea;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      color: var(--color-primary);
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
     }
 
     .sugerencia-chip:hover {
-      background: #667eea;
+      background: var(--color-primary);
       color: white;
-      border-color: #667eea;
+      border-color: var(--color-primary);
       transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+      box-shadow: var(--shadow-md, 0 2px 4px rgba(0,0,0,0.15));
     }
 
     .sugerencia-chip:active {
@@ -519,38 +534,39 @@ interface ChatMensaje {
 
     .chat-input {
       padding: 10px 16px;
-      border-top: 1px solid #f0f0f0;
+      border-top: 1px solid var(--border-color);
       display: flex;
       gap: 8px;
-      background: white;
+      background: var(--bg-surface);
     }
 
     .chat-input input {
       flex: 1;
       padding: 8px 14px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
       border-radius: 20px;
       outline: none;
       font-size: 14px;
       transition: all 0.2s ease;
-      background: #f8fafc;
+      background: var(--bg-faint);
+      color: var(--text-body);
     }
 
     .chat-input input:focus {
-      border-color: #667eea;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: var(--color-primary);
+      background: var(--bg-surface);
+      box-shadow: 0 0 0 3px var(--color-primary-bg);
     }
 
     .chat-input input::placeholder {
-      color: #a0aec0;
+      color: var(--text-faint);
     }
 
     .btn-enviar {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: #667eea;
+      background: var(--color-primary);
       border: none;
       color: white;
       cursor: pointer;
@@ -563,7 +579,7 @@ interface ChatMensaje {
     }
 
     .btn-enviar:hover:not(:disabled) { 
-      background: #5a6fd6; 
+      background: var(--color-primary-text); 
       transform: scale(1.05);
     }
     .btn-enviar:active:not(:disabled) {
@@ -578,9 +594,9 @@ interface ChatMensaje {
     .chat-disabled {
       padding: 20px 16px;
       text-align: center;
-      color: #718096;
-      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-      border-top: 1px solid #e2e8f0;
+      color: var(--text-muted);
+      background: var(--bg-faint);
+      border-top: 1px solid var(--border-color);
     }
 
     .chat-disabled p {
@@ -590,15 +606,24 @@ interface ChatMensaje {
 
     .chat-disabled small {
       font-size: 12px;
-      color: #a0aec0;
+      color: var(--text-faint);
     }
 
     @media (max-width: 480px) {
-      .chat-panel {
-        width: calc(100% - 32px);
-        height: calc(100vh - 100px);
+      .chat-fab {
         bottom: 16px;
-        right: 16px;
+        left: 16px;
+      }
+      .chat-panel {
+        top: 56px;     /* header mobile = 56px */
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
       }
     }
   `]
@@ -629,6 +654,7 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       .pipe(takeUntil(this.destroy$))
       .subscribe(status => {
         this.iaEnabled = !!(status?.ia?.enabled && status?.ia?.configured);
+        this.cdr.detectChanges();
       });
     
     // Cargar estado inicial si no está cargado
@@ -650,35 +676,52 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  private scrollToBottom() {
-    try {
-      const element = this.messagesContainer.nativeElement;
-      element.scrollTop = element.scrollHeight;
-    } catch (err) {
-      console.error('Error scrolling to bottom:', err);
+  toggleChat() {
+    this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      this.unreadCount = 0;
+      this.cargarSugerencias();
+      this.shouldScroll = true;
+    }
+    this.cdr.detectChanges();
+  }
+
+  cargarSugerencias() {
+    // Sugerencias contextuales basadas en la página actual
+    const path = window.location.pathname;
+    
+    if (path.includes('/rend-m')) {
+      this.sugerencias = [
+        '¿Cómo creo una nueva rendición?',
+        '¿Qué significa cada estado?',
+        '¿Cómo cambio de perfil?'
+      ];
+    } else if (path.includes('/rend-d')) {
+      this.sugerencias = [
+        '¿Cómo agrego un documento?',
+        '¿Qué es el cálculo de impuestos?',
+        '¿Cómo funciona el porcentaje de norma?'
+      ];
+    } else if (path.includes('/aprobaciones')) {
+      this.sugerencias = [
+        '¿Cómo apruebo una rendición?',
+        '¿Qué puedo modificar antes de aprobar?',
+        '¿Qué pasa si rechazo?'
+      ];
+    } else {
+      this.sugerencias = [
+        '¿Qué puedes hacer?',
+        'Ayuda con rendiciones',
+        'Explica los impuestos'
+      ];
     }
   }
 
-  toggleChat() {
-    this.ngZone.run(() => {
-      this.isOpen = !this.isOpen;
-      if (this.isOpen) {
-        this.unreadCount = 0;
-        // Forzar detección de cambios para mostrar mensajes inmediatamente
-        this.cdr.detectChanges();
-        // Esperar a que el DOM se actualice y luego hacer scroll
-        setTimeout(() => {
-          if (this.messagesContainer) {
-            this.scrollToBottom();
-          }
-        }, 50);
-      }
-    });
-  }
-
   enviarMensaje() {
+    if (!this.nuevoMensaje.trim() || this.isLoading || !this.iaEnabled) return;
+
     const mensaje = this.nuevoMensaje.trim();
-    if (!mensaje || this.isLoading) return;
+    this.nuevoMensaje = '';
 
     // Agregar mensaje del usuario
     this.mensajes.push({
@@ -687,45 +730,38 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       timestamp: new Date()
     });
 
-    this.nuevoMensaje = '';
-    this.isLoading = true;
-    this.sugerencias = [];
     this.shouldScroll = true;
+    this.isLoading = true;
 
-    // Enviar a la IA
-    const historial = this.mensajes.slice(-10).map(m => ({
-      rol: m.rol,
-      contenido: m.contenido
-    }));
-
+    // Enviar al servicio de IA
     this.aiService.chat({
       mensaje,
-      historial,
-      usuarioId: '123'
+      historial: this.mensajes.map(m => ({ rol: m.rol, contenido: m.contenido })),
+      paginaActual: window.location.pathname
     }).subscribe({
       next: (respuesta) => {
-        this.ngZone.run(() => {
-          if (respuesta) {
-            this.mensajes.push({
-              rol: 'asistente',
-              contenido: respuesta.mensaje,
-              timestamp: new Date()
-            });
-            this.sugerencias = respuesta.sugerencias || [];
-          }
-          this.isLoading = false;
-          this.shouldScroll = true;
+        const contenido = respuesta?.mensaje ?? 'Sin respuesta del asistente.';
+        if (respuesta?.sugerencias?.length) {
+          this.sugerencias = respuesta.sugerencias;
+        }
+        this.mensajes.push({
+          rol: 'asistente',
+          contenido,
+          timestamp: new Date()
         });
+        this.isLoading = false;
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
       },
       error: () => {
-        this.ngZone.run(() => {
-          this.mensajes.push({
-            rol: 'asistente',
-            contenido: 'Lo siento, hubo un error. Inténtalo de nuevo.',
-            timestamp: new Date()
-          });
-          this.isLoading = false;
+        this.mensajes.push({
+          rol: 'asistente',
+          contenido: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+          timestamp: new Date()
         });
+        this.isLoading = false;
+        this.shouldScroll = true;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -733,5 +769,14 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   usarSugerencia(sugerencia: string) {
     this.nuevoMensaje = sugerencia;
     this.enviarMensaje();
+  }
+
+  private scrollToBottom() {
+    try {
+      const container = this.messagesContainer.nativeElement;
+      container.scrollTop = container.scrollHeight;
+    } catch (err) {
+      console.error('Error scrolling:', err);
+    }
   }
 }

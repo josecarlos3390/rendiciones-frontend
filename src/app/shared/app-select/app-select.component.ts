@@ -256,6 +256,20 @@ export interface SelectOption<T = string | number> {
       to   { opacity: 1; transform: translateY(0)    scale(1); }
     }
 
+    @keyframes asSlideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .as-backdrop { align-items: flex-end; padding: 0; }
+      .as-modal {
+        width: 100%; max-height: 92vh;
+        border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none;
+        animation: asSlideUp 0.25s cubic-bezier(0.34,1.2,0.64,1);
+      }
+    }
+
     /* Header */
     .as-header {
       display: flex;

@@ -77,6 +77,8 @@ export class RendMComponent implements OnInit {
 
   // ── Menú de acciones ─────────────────────────────────────────
   menuOpen: number | null = null;
+  menuPosition = { top: 0, left: 0 };
+  private menuButtonRef: HTMLElement | null = null;
 
   // Datos combinados en la vista
   rendicionesSubordinados: RendM[] = [];
@@ -351,9 +353,45 @@ export class RendMComponent implements OnInit {
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.load(); }
 
   // ── Menú de acciones ─────────────────────────────────────────
-  toggleMenu(id: number) {
-    this.menuOpen = this.menuOpen === id ? null : id;
+  toggleMenu(id: number, event?: MouseEvent) {
+    if (this.menuOpen === id) {
+      this.closeMenu();
+      return;
+    }
+    
+    this.menuOpen = id;
+    
+    // Calcular posición del dropdown (solo para desktop)
+    if (event && window.innerWidth > 640) {
+      const button = (event.currentTarget as HTMLElement) || (event.target as HTMLElement)?.closest('button');
+      if (button) {
+        this.menuButtonRef = button;
+        this.updateMenuPosition(button);
+      }
+    }
+    
     this.cdr.markForCheck();
+  }
+
+  private updateMenuPosition(button: HTMLElement) {
+    const rect = button.getBoundingClientRect();
+    const menuWidth = 160;
+    const buttonCenter = rect.left + rect.width / 2;
+    
+    // Posicionar el menú centrado bajo el botón
+    let left = buttonCenter - menuWidth / 2;
+    let top = rect.bottom + window.scrollY + 4;
+    
+    // Ajustar si se sale por la izquierda
+    if (left < 10) {
+      left = 10;
+    }
+    // Ajustar si se sale por la derecha
+    if (left + menuWidth > window.innerWidth - 10) {
+      left = window.innerWidth - menuWidth - 10;
+    }
+    
+    this.menuPosition = { top, left };
   }
 
   closeMenu() {

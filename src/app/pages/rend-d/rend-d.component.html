@@ -5,7 +5,12 @@
 <!-- ── Cabecera ── -->
 <div class="page-header">
   <div class="page-title-group">
-    <button class="back-btn" (click)="goBack()">← Volver</button>
+    <button class="back-btn" (click)="goBack()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Volver
+    </button>
     <div class="title-block">
       <h2>
         Detalle de Rendición
@@ -18,9 +23,11 @@
     </div>
   </div>
   <div class="header-actions">
-    <!-- Importar (solo si no es readonly) -->
-    <div class="import-btn-wrap" *ngIf="!isReadonly">
-      <label class="btn btn-ghost btn-sm" title="Importar desde Excel">
+
+    <!-- Fila 1 móvil: Importar + Exportar lado a lado -->
+    <div class="action-row-top">
+      <!-- Importar (solo si no es readonly) -->
+      <label class="btn btn-ghost btn-sm" *ngIf="!isReadonly" title="Importar desde Excel">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
           <polyline points="17,8 12,3 7,8"/>
@@ -31,27 +38,30 @@
         <input type="file" accept=".xlsx,.xls" style="display:none"
           (change)="onImportarFile($event)" [disabled]="importando" />
       </label>
-      <button class="btn btn-ghost btn-sm" (click)="descargarFormato()" title="Descargar formato Excel">
+
+      <!-- Exportar (siempre visible si hay documentos) -->
+      <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
+        (click)="exportarExcel()" title="Exportar tabla a Excel">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7,10 12,15 17,10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Formato
+        Exportar
       </button>
     </div>
 
-    <!-- Exportar (siempre visible si hay documentos) -->
-    <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
-      (click)="exportarExcel()" title="Exportar tabla a Excel">
+    <!-- Fila 2 móvil: Formato (solo si no es readonly) -->
+    <button class="btn btn-ghost btn-sm" *ngIf="!isReadonly"
+      (click)="descargarFormato()" title="Descargar formato Excel">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="7,10 12,15 17,10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14,2 14,8 20,8"/>
       </svg>
-      Exportar
+      Formato
     </button>
 
-    <!-- Imprimir PDF (siempre visible si hay documentos) -->
+    <!-- Fila 3 móvil: Imprimir -->
     <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
       (click)="abrirVistaPreliminar()" title="Imprimir PDF de la rendición">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -930,7 +940,12 @@
         <div class="footer-nav">
           <button type="button" class="btn btn-ghost btn-sm"
             [disabled]="activeTab === 'doc'"
-            (click)="prevTab()">← Anterior</button>
+            (click)="prevTab()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Anterior
+          </button>
           <button type="button" class="btn btn-ghost btn-sm"
             [disabled]="activeTab === 'impuestos'"
             (click)="nextTab()">Siguiente →</button>
@@ -1154,7 +1169,8 @@
   </table>
 
   <!-- ══ Vista Impuestos ══ -->
-  <table class="data-table tabla-impuestos" *ngIf="documentos.length > 0 && tablaActiva === 'impuestos'">
+  <div class="table-scroll-wrapper" *ngIf="documentos.length > 0 && tablaActiva === 'impuestos'">
+  <table class="data-table tabla-impuestos">
     <thead>
       <tr>
         <th class="col-sticky">N° · Proveedor</th>
@@ -1214,8 +1230,34 @@
       </tr>
     </tfoot>
   </table>
+  </div><!-- /table-scroll-wrapper -->
 
-  <div class="totals-mobile" *ngIf="documentos.length > 0">
+  <!-- Totales móvil específicos para impuestos -->
+  <div class="totals-mobile impuestos-totals" *ngIf="documentos.length > 0 && tablaActiva === 'impuestos'">
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">IVA</span>
+      <span class="totals-mobile-value">{{ totalIVA | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">IT</span>
+      <span class="totals-mobile-value">{{ totalIT | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">IUE</span>
+      <span class="totals-mobile-value">{{ totalIUE | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">RCIVA</span>
+      <span class="totals-mobile-value">{{ totalRCIVA | number:'1.2-2' }}</span>
+    </div>
+    <div class="totals-mobile-divider"></div>
+    <div class="totals-mobile-row">
+      <span class="totals-mobile-label">Total General</span>
+      <span class="totals-mobile-value">{{ totalGeneral | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
+  <div class="totals-mobile" *ngIf="documentos.length > 0 && tablaActiva !== 'impuestos'">
     <div class="totals-mobile-row">
       <span class="totals-mobile-label">Importe</span>
       <span class="totals-mobile-value">{{ totalImporte | number:'1.2-2' }}</span>

@@ -61,6 +61,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
     </div>
   `,
   styles: [`
+    :host { display: block; width: 100%; min-width: 0; }
+
     .search-input-wrapper {
       position: relative;
       display: flex;

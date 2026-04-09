@@ -84,6 +84,19 @@ export class CuentaPrefixPipe implements PipeTransform {
       from { opacity: 0; transform: translateY(12px) scale(0.97); }
       to   { opacity: 1; transform: translateY(0)    scale(1);    }
     }
+    @keyframes ccsSlideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .modal-backdrop { align-items: flex-end; padding: 0; }
+      .ccs-modal {
+        width: 100%; max-height: 92vh;
+        border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none;
+        animation: ccsSlideUp 0.25s cubic-bezier(0.34,1.2,0.64,1);
+      }
+    }
 
     /* Header */
     .ccs-header {

@@ -50,6 +50,16 @@ import { ProvService } from '../../services/prov.service';
       animation: psSlideIn 0.22s cubic-bezier(0.34,1.3,0.64,1);
     }
     @keyframes psSlideIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes psSlideUp  { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 480px) {
+      .ps-backdrop { align-items: flex-end; padding: 0; }
+      .ps-modal {
+        width: 100%; max-height: 92vh;
+        border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none;
+        animation: psSlideUp 0.25s cubic-bezier(0.34,1.2,0.64,1);
+      }
+    }
 
     .ps-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; background: var(--bg-faint); h3 { margin: 0; font-size: var(--text-base); font-weight: var(--weight-bold); color: var(--text-heading); display: flex; align-items: center; gap: 8px; } }
     .ps-close { background: none; border: none; font-size: 16px; color: var(--text-faint); cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); line-height: 1; &:hover { background: var(--bg-subtle); color: var(--text-muted); } }

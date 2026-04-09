@@ -72,6 +72,46 @@
   }
 }
 
+// Responsive móvil
+@media (max-width: 640px) {
+  // Forzar el filter-bar y filter-left a modo columna con stretch
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-left {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  // Cada campo ocupa todo el ancho
+  .filter-field {
+    width: 100%;
+    min-width: 0;
+
+    // El input de fecha ocupa todo el ancho
+    .filter-date {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
+  // filter-field--select también a ancho completo
+  .filter-field--select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  // El botón Limpiar está dentro de .filter-left
+  .filter-left > .btn,
+  .filter-left > button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 // Modal específico - hereda de _modals.scss
 .modal-card {
   width: min(420px, 96vw);

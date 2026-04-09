@@ -13,6 +13,7 @@
 
   @media (max-width: 640px) { padding: 12px; padding-bottom: 90px; }
   @media (max-width: 400px) { padding: 8px; padding-bottom: 84px; }
+  @media (max-width: 360px) { padding: 6px; padding-bottom: 80px; }
 }
 
 /* ── Cabecera ── */
@@ -42,21 +43,45 @@
 }
 
 .back-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: var(--text-md);
-  padding: 4px 0;
-  font-family: inherit;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  transition: color var(--transition);
-
-  &:hover { color: var(--text-heading); }
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: white;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-family: inherit;
+  transition: all var(--transition);
+  
+  svg {
+    flex-shrink: 0;
+  }
+  
+  &:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    color: white;
+  }
+  
+  &:active {
+    background: var(--color-primary-text);
+    border-color: var(--color-primary-text);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
   &:focus { outline: none; }
-  &:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
+  &:focus-visible { 
+    outline: none; 
+    box-shadow: var(--shadow-focus); 
+  }
 }
 
 /* ── Banners informativos ── */
@@ -163,6 +188,7 @@
 
   @media (max-width: 640px) { padding: 14px; }
   @media (max-width: 400px) { padding: 12px 10px; }
+  @media (max-width: 360px) { padding: 10px 8px; }
 }
 
 .section-title {
@@ -403,9 +429,15 @@
     flex-direction: column;
     padding: 10px 12px;
 
+    // Orden explícito: primaria arriba, destructiva debajo, secundarias, Volver al final
+    .btn-primary   { order: 1; }
+    .btn-danger    { order: 2; }
+    .btn-secondary { order: 3; }
+    .btn-warning   { order: 4; }
+    .btn-ghost     { order: 99; }  // Volver siempre al final
+
     .btn { width: 100%; justify-content: center; }
     .btn-ghost:last-of-type { margin-left: 0; }
-    .btn-ghost { order: 10; } // Volver al final en móvil
   }
 }
 
@@ -1040,6 +1072,24 @@
   }
 }
 
+// ── Mobile: reducir altura con teclado virtual ────────────────
+@media (max-width: 640px) {
+  .item-dropdown,
+  .partner-dropdown {
+    // El teclado virtual ocupa ~40% de la pantalla en móvil.
+    // Reducimos max-height para que el dropdown siempre sea visible.
+    max-height: 180px;
+  }
+
+  // La variante fixed ya posiciona correctamente; solo ajustamos altura
+  .item-dropdown-fixed,
+  .partner-dropdown-fixed {
+    max-height: 180px;
+    // El componente TS debe calcular top/left dinámicamente con getBoundingClientRect()
+    // para que no quede tapado por el teclado
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // UTILITARIOS DE MODAL — indicadores y separadores de sección
 // ═══════════════════════════════════════════════════════════════
@@ -1382,20 +1432,36 @@
   grid-column: 1 / -1;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 640px) {
   .modal-2col-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    overflow-y: auto;
   }
-  .modal-col:first-child {
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-  }
-  .modal-2col-footer .btn {
-    width: 100%;
-    justify-content: center;
+  .modal-col {
+    min-height: auto;
+    
+    &:first-child {
+      border-right: none;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    // La columna de permisos/config tiene scroll propio para no empujar el footer
+    &:last-child {
+      max-height: 300px;
+      overflow-y: auto;
+    }
   }
   .modal-2col-footer {
-    flex-direction: column;
+    grid-column: 1 / -1;
+    flex-direction: column-reverse;
+    gap: 8px;
+    padding: 12px 16px;
+    
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
   }
 }
 

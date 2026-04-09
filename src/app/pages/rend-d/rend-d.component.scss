@@ -197,7 +197,38 @@
 .modal-backdrop {
   align-items: flex-start;
   padding: 32px 24px;
-  @media (max-width: 480px) { padding: 0; align-items: flex-end; }
+  @media (max-width: 480px) { 
+    padding: 0; 
+    align-items: flex-end; 
+  }
+}
+
+// Formulario dentro del modal - necesita flex para que el footer se mantenga abajo
+.doc-modal form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; // Importante para que el flex funcione correctamente
+}
+
+// En móvil, asegurar que el modal ocupe toda la altura disponible
+@media (max-width: 480px) {
+  .doc-modal {
+    max-height: 95vh;
+    
+    .modal-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    
+    .modal-footer {
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      position: sticky;
+      bottom: 0;
+    }
+  }
 }
 
 // EXCEPCIÓN DOCUMENTADA: .doc-modal extiende .user-modal con funcionalidades específicas
@@ -548,6 +579,70 @@ tfoot .totals-row {
 @media (max-width: 640px) {
   .maestro-grid { grid-template-columns: repeat(2, 1fr); }
   tfoot { display: none; }
+  
+  // Tabla de documentos → tarjetas en móvil
+  .data-table {
+    display: block;
+    
+    thead { display: none; }
+    
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 0;
+      border: none;
+      font-size: 13px;
+      
+      &::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: var(--weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-faint);
+      }
+      
+      // Acciones: ancho completo
+      &.col-acciones-adjuntos {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        justify-content: flex-end;
+        
+        &::before { display: none; }
+      }
+      
+      // Concepto: ancho completo
+      &.col-sticky {
+        grid-column: 1 / -1;
+        
+        &::before { display: none; }
+      }
+      
+      // Importe, Base Imp, Total: alineados a la derecha
+      &.text-right {
+        text-align: right;
+        align-items: flex-end;
+      }
+    }
+  }
   .totals-mobile {
     display: flex; flex-direction: column; gap: 6px;
     background: var(--bg-faint); border: 1px solid var(--border-color);
@@ -804,18 +899,15 @@ tfoot .totals-row {
     font-weight: var(--weight-semibold);
   }
 
-  // Ocultar columnas menos importantes en móvil
-  @media (max-width: 768px) {
-    th:nth-child(8), td:nth-child(8),   // IUE
-    th:nth-child(9), td:nth-child(9) {  // RCIIVA
-      display: none;
-    }
-  }
-
-  @media (max-width: 560px) {
-    th:nth-child(4), td:nth-child(4),   // NIT
-    th:nth-child(7), td:nth-child(7) {  // IT
-      display: none;
+  // En móvil: scroll horizontal con columna sticky
+  @media (max-width: 640px) {
+    // La primera columna (proveedor) se mantiene fija al hacer scroll
+    .col-sticky {
+      position: sticky;
+      left: 0;
+      background: var(--bg-surface);
+      z-index: 10;
+      box-shadow: 2px 0 4px rgba(0,0,0,0.1);
     }
   }
 }
@@ -1191,7 +1283,8 @@ th.col-impuesto {
   flex-wrap:   wrap;
 }
 
-.import-btn-wrap {
+// Fila superior: Importar + Exportar en desktop (inline), en móvil lado a lado
+.action-row-top {
   display: flex;
   gap:     6px;
 }
@@ -1220,8 +1313,28 @@ label.btn {
 }
 
 @media (max-width: 640px) {
-  .header-actions { gap: 6px; }
-  .import-btn-wrap { flex-wrap: wrap; }
+  .header-actions {
+    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  // Botones directos a ancho completo
+  .header-actions > .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  // Fila Importar + Exportar: lado a lado, reparten el ancho
+  .action-row-top {
+    width: 100%;
+
+    .btn,
+    label.btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
 }
 // ── Botón distribución porcentual ─────────────────────────────────────────
 .btn-dist {

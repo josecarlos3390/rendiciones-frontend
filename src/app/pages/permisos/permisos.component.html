@@ -7,44 +7,43 @@
     [disabled]="!selectedUsuarioId || !selectedPerfilId || isSaving"
     (click)="asignar()">
     <span *ngIf="isSaving">Guardando...</span>
-    <span *ngIf="!isSaving">+ Adicionar Permiso</span>
+    <span *ngIf="!isSaving">+ Adicionar</span>
   </button>
+</div>
+
+<!-- ── Selectores de contexto ── -->
+<div class="filter-bar">
+  <div class="filter-left">
+    <div class="filter-field filter-field--select" *ngIf="usuarioOptions.length > 0">
+      <label class="filter-label">Usuario</label>
+      <app-select
+        label="Usuario"
+        placeholder="— Seleccione —"
+        icon="👤"
+        [options]="usuarioOptions"
+        [value]="selectedUsuarioId"
+        [clearable]="false"
+        (valueChange)="onUsuarioSelect($event)">
+      </app-select>
+    </div>
+    <div class="filter-field filter-field--select" *ngIf="selectedUsuarioId && perfilDisponiblesOptions.length > 0">
+      <label class="filter-label">Perfil</label>
+      <app-select
+        label="Perfil"
+        placeholder="— Seleccione —"
+        icon="🏷️"
+        [options]="perfilDisponiblesOptions"
+        [value]="selectedPerfilId"
+        [clearable]="false"
+        (valueChange)="onPerfilSelect($event)">
+      </app-select>
+    </div>
+  </div>
 </div>
 
 <app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
-
-<!-- ── Barra de selección ─────────────────────────────────── -->
-<div class="filter-bar">
-
-  <div class="filter-field">
-    <label class="filter-label">Seleccione Usuario</label>
-    <app-select
-      label="Usuario"
-      placeholder="— Seleccione —"
-      icon="👤"
-      [options]="usuarioOptions"
-      [value]="selectedUsuarioId"
-      [clearable]="false"
-      (valueChange)="onUsuarioSelect($event)">
-    </app-select>
-  </div>
-
-  <div class="filter-field" *ngIf="selectedUsuarioId">
-    <label class="filter-label">Seleccione Perfil</label>
-    <app-select
-      label="Perfil"
-      placeholder="— Seleccione —"
-      icon="🏷️"
-      [options]="perfilDisponiblesOptions"
-      [value]="selectedPerfilId"
-      [clearable]="false"
-      (valueChange)="onPerfilSelect($event)">
-    </app-select>
-  </div>
-
-</div>
 
 <!-- ── Estados vacíos ─────────────────────────────────────── -->
 <div *ngIf="!selectedUsuarioId" class="empty-state">

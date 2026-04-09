@@ -5,15 +5,14 @@
 }
 
 .col-code {
-  font-family: var(--font-mono, monospace);
-  font-weight: 600;
-  color: var(--text-main);
-  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
 }
 
 .inactive-row {
   opacity: 0.6;
-  background-color: var(--bg-muted, #f8f9fa);
+  background-color: var(--bg-faint);
 }
 
 .status-badge {
@@ -21,19 +20,19 @@
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 
   &.active {
-    background-color: var(--success-bg);
-    color: var(--success-text);
+    background-color: var(--status-closed-bg);
+    color: var(--status-closed-color);
   }
 
   &.inactive {
-    background-color: var(--bg-muted);
+    background-color: var(--bg-faint);
     color: var(--text-muted);
   }
 }
@@ -74,5 +73,18 @@ textarea {
     .filter-field {
       width: 100%;
     }
+  }
+}
+
+// ── Corrección layout tarjeta móvil ──────────────────────────────
+// El global _lists.scss hace que td[data-label="Nombre"] ocupe fila completa,
+// pero en Dimensiones Código y Nombre deben ir lado a lado.
+@media (max-width: 640px) {
+  .data-table td[data-label="Nombre"] {
+    grid-column: auto;
+  }
+  // Código ocupa fila completa (es el campo principal identificador)
+  .data-table td[data-label="Código"] {
+    grid-column: 1 / -1;
   }
 }

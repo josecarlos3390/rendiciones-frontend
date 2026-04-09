@@ -12,17 +12,29 @@
 //              .empty-state, .text-center                       (_lists.scss)
 // ═══════════════════════════════════════════════════════════════
 
-// ── Filtros ───────────────────────────────────────────────────
-.filter-bar {
-  display: flex; align-items: flex-end; gap: 16px;
-  flex-wrap: wrap; margin-bottom: 16px; justify-content: space-between;
-}
-.filter-left { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
-.filter-field {
-  display: flex; flex-direction: column; gap: 4px;
+// ── Selector de perfil en el header (junto al botón) ───────────
+.perfil-selector-inline {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  
   label {
-    font-size: var(--text-sm); font-weight: var(--weight-semibold);
-    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: var(--text-sm); 
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted); 
+    text-transform: uppercase; 
+    letter-spacing: 0.04em;
+  }
+  
+  /* El selector debe ocupar todo el ancho disponible */
+  app-perfil-select {
+    display: block;
+    width: 100%;
+  }
+  
+  @media (max-width: 640px) {
+    min-width: 0;
+    width: 100%;
   }
 }
 
@@ -201,4 +213,28 @@
   text-align: center;
   color:      var(--text-muted);
   font-size: var(--text-md);
+}
+// ── Responsive móvil — buscador a ancho completo ────────────────
+@media (max-width: 640px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-left {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .filter-field,
+  .filter-field--grow {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-search {
+    max-width: none;
+    width: 100%;
+  }
 }

@@ -2,16 +2,15 @@
 // rend-m.component.scss
 // ═══════════════════════════════════════════════════════════════
 
-// ── Modal formulario — sobreescribe width de .user-modal ──────
-.user-modal {
-  width: min(1000px, 96vw);
-
-  @media (max-width: 480px) {
-    width:         100%;
-    max-height:    92vh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    margin:        0;
-    overflow-y:    auto;
+// ── Modal formulario ─ usa .user-modal--wide para ancho personalizado ──────
+// Los estilos base (.user-modal) están en _modals.scss con responsive incluido
+.rend-modal {
+  // El formulario necesita flex para que el footer se mantenga abajo
+  form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 }
 
@@ -432,10 +431,51 @@
   color:       var(--text-heading);
 }
 
-.data-table th.actions,
-.data-table td.actions {
-  min-width:   100px;
+// ── Columna de Acciones (copiada exacta de rend-d) ───────
+.data-table th.col-acciones,
+.data-table td.col-acciones {
+  width: 90px;
+  min-width: 90px;
+  text-align: center;
   white-space: nowrap;
+}
+
+.acciones-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Botones de acción - estilo igual a rend-d
+.data-table td.col-acciones {
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    vertical-align: middle;
+    
+    &:hover {
+      background: var(--bg-subtle);
+      color: var(--text-heading);
+    }
+  }
+  
+  .btn-ghost-primary {
+    color: var(--color-primary);
+    border-color: var(--color-primary-border, var(--border-color));
+    
+    &:hover {
+      background: var(--color-primary-bg);
+    }
+  }
 }
 
 // Anchos mínimos para columnas principales
@@ -589,26 +629,47 @@
 
 .dropdown-menu {
   display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  // Position fixed para evitar overflow de tabla en desktop
+  position: fixed;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-modal);
   width: fit-content;
-  min-width: 140px;
-  z-index: 200;
+  min-width: 160px;
+  z-index: 9999;
   overflow: hidden;
   animation: dropdown-in 0.13s ease;
+  margin-top: 6px;
 
   &.show {
     display: block;
   }
 
+  // Ajuste visual: pequeña flecha indicadora
+  &::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: 12px;
+    width: 10px;
+    height: 10px;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
+    transform: rotate(45deg);
+    z-index: 1;
+  }
+
   [data-theme="dark"] & {
     border-color: var(--border-color);
     background: var(--bg-faint);
+    
+    &::before {
+      background: var(--bg-faint);
+      border-left-color: var(--border-color);
+      border-top-color: var(--border-color);
+    }
   }
 }
 
@@ -669,5 +730,138 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// ── Responsive: Tabla como tarjetas en móvil ───────────────────────
+@media (max-width: 640px) {
+  .table-wrapper {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+  
+  .data-table {
+    display: block;
+    
+    thead { display: none; }
+    
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0;
+      border: none;
+      font-size: 13px;
+      
+      &::before {
+        content: attr(data-label);
+        font-size: 9px;
+        font-weight: var(--weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-faint);
+      }
+      
+      // Acciones: arriba a la derecha (igual que rend-d)
+      &.col-acciones {
+        grid-column: 2;
+        grid-row: 1;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: flex-start;
+        
+        &::before { display: none; }
+      }
+      
+      // N°: arriba a la izquierda
+      &.col-id {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      
+      // Objetivo: segunda fila, ancho completo
+      &.col-objetivo {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        font-size: 14px;
+        font-weight: var(--weight-semibold);
+      }
+      
+      // Cuenta: tercera fila, ancho completo
+      &.col-cuenta {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+      
+      // Empleado: cuarta fila, ancho completo
+      &.col-empleado,
+      &[data-label="Usuario"] {
+        grid-column: 1 / -1;
+        grid-row: 4;
+      }
+      
+      // Fecha Ini: quinta fila, izquierda
+      &[data-label="Fecha Ini"] {
+        grid-column: 1;
+        grid-row: 5;
+      }
+      
+      // Fecha Fin: quinta fila, derecha
+      &[data-label="Fecha Fin"] {
+        grid-column: 2;
+        grid-row: 5;
+      }
+      
+      // Monto: sexta fila, derecha alineado
+      &.col-monto {
+        grid-column: 2;
+        grid-row: 6;
+        text-align: right;
+        align-items: flex-end;
+        font-weight: var(--weight-semibold);
+      }
+      
+      // Estado: sexta fila, izquierda centrado
+      &[data-label="Estado"] {
+        grid-column: 1;
+        grid-row: 6;
+        align-items: flex-start;
+        justify-content: center;
+      }
+    }
+  }
+  
+  // Dropdown en móvil: posición absoluta junto al botón
+  .dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    max-width: calc(100vw - 32px);
+    margin-top: 0;
+  }
+  
+  // Ajustar paginador en móvil
+  app-paginator {
+    margin-top: 12px;
   }
 }

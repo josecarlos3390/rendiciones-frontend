@@ -10,7 +10,7 @@
 export const environment = {
   production: true,
   // TODO: Replace with your actual production backend URL
-  apiUrl: process.env['NG_APP_API_URL'] || 'https://api.tu-empresa.com/api/v1',
+  apiUrl: process.env['NG_APP_API_URL'] || 'http://localhost:3000/api/v1',
   // Request timeout in milliseconds  
   requestTimeout: 30000, // 30 seconds
 };

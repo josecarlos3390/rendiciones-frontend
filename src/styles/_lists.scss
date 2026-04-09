@@ -56,6 +56,52 @@
     color: var(--text-heading);
     margin: 0;
   }
+
+  /* En móvil: apilar verticalmente para mejor aprovechamiento del espacio */
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+}
+
+/* Contenedor para acciones en el page-header (botones, badges, etc.)
+   Usado para agrupar elementos de acción y mantenerlos juntos en desktop,
+   y controlar su posición en móvil.
+   
+   Patrón recomendado:
+     <div class="page-header">
+       <div class="page-title-group">...</div>
+       <div class="page-header-actions">
+         <button>+ Acción</button>
+       </div>
+     </div>
+*/
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    /* En móvil: apilar verticalmente y ocupar todo el ancho */
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+    
+    /* Cualquier selector/form-field hijo ocupa todo el ancho */
+    .filter-field {
+      width: 100%;
+      min-width: 0;
+    }
+    
+    /* El botón ocupa todo el ancho */
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }
 
 /* Agrupador título + subtítulo dentro de page-header

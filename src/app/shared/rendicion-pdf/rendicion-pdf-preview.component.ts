@@ -15,11 +15,11 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-<div class="pdf-backdrop" (click)="onBackdrop($event)">
-  <div class="pdf-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+<div class="modal-backdrop pdf-preview-backdrop" (click)="onBackdrop($event)">
+  <div class="modal-card modal-card--pdf" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
 
     <!-- Header -->
-    <div class="pdf-header">
+    <div class="modal-header pdf-preview-header">
       <div class="pdf-header-info">
         <h3 class="pdf-title">
           {{ mode === 'reprint' ? '🖨 Reimprimir' : '📄 Vista previa' }}
@@ -28,30 +28,34 @@ import { RendicionPdfService } from './rendicion-pdf.service';
         <span class="pdf-subtitle">{{ rend.U_Objetivo }}</span>
       </div>
       <div class="pdf-header-actions">
-        <button class="btn btn-ghost btn-sm" 
+        <button class="btn btn-ghost btn-sm btn-icon-mobile" 
           [class.active]="pdfOrientation === 'portrait'"
           (click)="pdfOrientation = 'portrait'"
           title="Vista vertical">
-          📄 Vertical
+          <span class="btn-icon">📄</span>
+          <span class="btn-text">Vertical</span>
         </button>
-        <button class="btn btn-ghost btn-sm"
+        <button class="btn btn-ghost btn-sm btn-icon-mobile"
           [class.active]="pdfOrientation === 'landscape'"
           (click)="pdfOrientation = 'landscape'"
           title="Vista horizontal">
-          📑 Horizontal
+          <span class="btn-icon">📑</span>
+          <span class="btn-text">Horizontal</span>
         </button>
-        <button class="btn btn-ghost btn-sm" (click)="descargar()" [disabled]="generating" title="Descargar PDF">
-          ⬇ Descargar
+        <button class="btn btn-ghost btn-sm btn-icon-mobile" (click)="descargar()" [disabled]="generating" title="Descargar PDF">
+          <span class="btn-icon">⬇</span>
+          <span class="btn-text">Descargar</span>
         </button>
-        <button class="btn btn-ghost btn-sm" (click)="abrirNuevaVentana()" [disabled]="generating" title="Abrir en nueva pestaña para imprimir">
-          🖨 Imprimir
+        <button class="btn btn-ghost btn-sm btn-icon-mobile" (click)="abrirNuevaVentana()" [disabled]="generating" title="Abrir en nueva pestaña para imprimir">
+          <span class="btn-icon">🖨</span>
+          <span class="btn-text">Imprimir</span>
         </button>
-        <button class="pdf-close" (click)="cerrar()">✕</button>
+        <button class="modal-close" (click)="cerrar()">✕</button>
       </div>
     </div>
 
     <!-- Cuerpo -->
-    <div class="pdf-body">
+    <div class="modal-body pdf-preview-body">
 
       <!-- Generando -->
       <div class="pdf-loading" *ngIf="generating">
@@ -85,7 +89,7 @@ import { RendicionPdfService } from './rendicion-pdf.service';
     </div>
 
     <!-- Footer -->
-    <div class="pdf-footer">
+    <div class="modal-footer pdf-preview-footer">
       <span class="pdf-footer-note" *ngIf="mode !== 'reprint'">
         ℹ Descargá o imprimí el comprobante antes de confirmar el envío
       </span>
@@ -111,18 +115,18 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 </div>
   `,
   styles: [`
-.pdf-backdrop {
-  position: fixed; inset: 0; z-index: 1100;
+/* ── Backdrop ── */
+.pdf-preview-backdrop {
+  /* Extiende el patrón .modal-backdrop con ajustes específicos */
+  z-index: 1100;
   background: rgba(0, 0, 0, 0.65);
-  display: flex; align-items: center; justify-content: center;
   padding: 16px;
 }
 
-.pdf-modal {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
-  width: min(920px, 96vw);
+/* ── Modal ── */
+.modal-card--pdf {
+  max-width: 920px;
+  width: 100%;
   height: min(92vh, 820px);
   display: flex;
   flex-direction: column;
@@ -130,15 +134,12 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 }
 
 /* ── Header ── */
-.pdf-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid #e2e8f0;
+.pdf-preview-header {
+  /* Extiende .modal-header con ajustes específicos */
+  flex-wrap: wrap;
   gap: 12px;
-  flex-shrink: 0;
-  background: #f8fafc;
+  background: var(--bg-faint);
+  padding: 14px 18px;
 }
 
 .pdf-header-info {
@@ -147,14 +148,14 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 
 .pdf-title {
   font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
   margin: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .pdf-subtitle {
-  font-size: 12px; color: #64748b;
+  font-size: 12px; color: var(--text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -162,26 +163,37 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   display: flex; align-items: center; gap: 8px; flex-shrink: 0;
 }
 
-.pdf-close {
-  background: none; border: none; cursor: pointer;
-  color: #64748b;
-  font-size: 18px; padding: 4px 8px;
-  border-radius: 6px; line-height: 1;
+.btn-icon-mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  
+  .btn-icon {
+    display: inline;
+  }
+  
+  .btn-text {
+    display: inline;
+  }
 }
-.pdf-close:hover { background: #f1f5f9; }
 
 /* ── Body ── */
-.pdf-body {
-  flex: 1; min-height: 0; position: relative;
-  background: #525659;
+.pdf-preview-body {
+  /* Extiende .modal-body con ajustes específicos para PDF */
+  flex: 1;
+  padding: 0;
+  min-height: 0;
+  position: relative;
+  background: #525659; /* Fondo PDF viewer - se mantiene fijo */
   display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
 
 .pdf-loading, .pdf-error {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 14px;
-  color: #e2e8f0;
+  color: var(--text-body);
   font-size: 14px;
   padding: 32px;
   text-align: center;
@@ -191,8 +203,8 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 
 .pdf-spinner {
   width: 36px; height: 36px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin .7s linear infinite;
 }
@@ -212,35 +224,118 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 12px;
-  color: #1e293b;
+  color: var(--text-heading);
   padding: 40px;
   text-align: center;
-  background: #ffffff;
+  background: var(--bg-surface);
   width: 100%;
 }
 
 .fallback-icon { font-size: 48px; }
 
 /* ── Footer ── */
-.pdf-footer {
-  display: flex; align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
-  border-top: 1px solid #e2e8f0;
-  gap: 12px; flex-shrink: 0;
-  background: #f8fafc;
+.pdf-preview-footer {
+  /* Extiende .modal-footer con ajustes específicos */
+  flex-wrap: wrap;
+  background: var(--bg-faint);
 }
 
 .pdf-footer-note {
-  font-size: 12px; color: #64748b;
+  font-size: 12px; color: var(--text-muted);
 }
 
 .pdf-footer-btns { display: flex; gap: 10px; }
 
+/* ── Responsive ── */
 @media (max-width: 640px) {
-  .pdf-footer { flex-direction: column; align-items: stretch; }
-  .pdf-footer-btns { justify-content: flex-end; }
-  .pdf-header { flex-wrap: wrap; }
+  .pdf-preview-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  
+  .modal-card--pdf {
+    max-width: 100%;
+    width: 100%;
+    height: 95vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+  
+  .pdf-preview-header {
+    flex-direction: column;
+    padding: 20px 16px 16px;
+    padding-top: calc(24px + env(safe-area-inset-top)); /* Más espacio arriba */
+    gap: 16px;
+  }
+  
+  .pdf-header-actions {
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0 8px;
+  }
+  
+  .btn-icon-mobile {
+    padding: 0;
+    font-size: 12px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    .btn-text {
+      display: none; /* Ocultar texto en móvil, mostrar solo ícono */
+    }
+    
+    .btn-icon {
+      font-size: 20px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+  
+  .pdf-title {
+    font-size: 14px;
+    text-align: center;
+    width: 100%;
+  }
+  
+  .pdf-subtitle {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .pdf-header-info {
+    width: 100%;
+    align-items: center;
+  }
+  
+  .pdf-preview-footer { 
+    flex-direction: column; 
+    align-items: stretch;
+    padding: 12px 16px;
+  }
+  
+  .pdf-footer-btns { 
+    justify-content: flex-end;
+    width: 100%;
+    gap: 8px;
+    
+    .btn {
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+  }
+  
+  .pdf-footer-note {
+    text-align: center;
+    font-size: 11px;
+  }
 }
   `],
 })

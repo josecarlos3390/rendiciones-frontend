@@ -54,3 +54,13 @@
     }
   }
 }
+
+// ── Corrección layout tarjeta móvil ──────────────────────────────
+@media (max-width: 640px) {
+  .data-table td[data-label="Nombre"] {
+    grid-column: auto;
+  }
+  .data-table td[data-label="Código"] {
+    grid-column: 1 / -1;
+  }
+}
