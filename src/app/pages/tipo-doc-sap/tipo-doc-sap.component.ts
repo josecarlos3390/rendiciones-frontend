@@ -3,17 +3,22 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { TipoDocSapService, TipoDocSap } from '../../services/tipo-doc-sap.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { AuthService } from '../../auth/auth.service';
-import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { TipoDocSapService, TipoDocSap } from '@services/tipo-doc-sap.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { FormModalComponent } from '@shared/form-modal';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { FormFieldComponent } from '@shared/form-field';
+import { FormDirtyService } from '@shared/form-dirty';
+import { AuthService } from '@auth/auth.service';
+import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
+import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
 
 @Component({
   selector:        'app-tipo-doc-sap',
   standalone:      true,
-  changeDetection: ChangeDetectionStrategy.Default,
-  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, AppSelectComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, AppSelectComponent, ActionMenuComponent, FormModalComponent, StatusBadgeComponent, FormFieldComponent],
   templateUrl:     './tipo-doc-sap.component.html',
   styleUrls:       ['./tipo-doc-sap.component.scss'],
 })
@@ -45,6 +50,7 @@ export class TipoDocSapComponent implements OnInit {
     private fb:    FormBuilder,
     private toast: ToastService,
     private cdr:   ChangeDetectorRef,
+    private dirtyService: FormDirtyService,
   ) {}
 
   ngOnInit() {
@@ -83,8 +89,7 @@ export class TipoDocSapComponent implements OnInit {
   }
 
   get isDirty(): boolean {
-    if (!this.editingItem) return true;
-    return JSON.stringify(this.form.getRawValue()) !== JSON.stringify(this.initialValues);
+    return this.dirtyService.isDirty(this.form, this.initialValues);
   }
 
   openCreate() {
@@ -175,6 +180,32 @@ export class TipoDocSapComponent implements OnInit {
   }
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+
+  // ── Action Menu ──────────────────────────────────────────
+  getActionMenuItems(item: TipoDocSap): ActionMenuItem[] {
+    if (!this.auth.puedeEditarConf) return [];
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        cssClass: 'danger',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, item: TipoDocSap): void {
+    if (actionId === 'edit') {
+      this.openEdit(item);
+    } else if (actionId === 'delete') {
+      this.remove(item);
+    }
+  }
 
   // ── Helpers ──────────────────────────────────────────────
   tipoLabel(t: TipoDocSap): string {

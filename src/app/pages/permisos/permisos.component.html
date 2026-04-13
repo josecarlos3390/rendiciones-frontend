@@ -3,47 +3,23 @@
     <h2>Administración de Permisos</h2>
     <p class="page-subtitle">Asigná perfiles de rendición a cada usuario. Un usuario puede tener múltiples perfiles activos.</p>
   </div>
-  <button class="btn btn-primary btn-sm"
-    [disabled]="!selectedUsuarioId || !selectedPerfilId || isSaving"
-    (click)="asignar()">
-    <span *ngIf="isSaving">Guardando...</span>
-    <span *ngIf="!isSaving">+ Adicionar</span>
-  </button>
-</div>
-
-<!-- ── Selectores de contexto ── -->
-<div class="filter-bar">
-  <div class="filter-left">
-    <div class="filter-field filter-field--select" *ngIf="usuarioOptions.length > 0">
-      <label class="filter-label">Usuario</label>
-      <app-select
-        label="Usuario"
-        placeholder="— Seleccione —"
-        icon="👤"
-        [options]="usuarioOptions"
-        [value]="selectedUsuarioId"
-        [clearable]="false"
-        (valueChange)="onUsuarioSelect($event)">
-      </app-select>
-    </div>
-    <div class="filter-field filter-field--select" *ngIf="selectedUsuarioId && perfilDisponiblesOptions.length > 0">
-      <label class="filter-label">Perfil</label>
-      <app-select
-        label="Perfil"
-        placeholder="— Seleccione —"
-        icon="🏷️"
-        [options]="perfilDisponiblesOptions"
-        [value]="selectedPerfilId"
-        [clearable]="false"
-        (valueChange)="onPerfilSelect($event)">
-      </app-select>
-    </div>
-  </div>
 </div>
 
 <app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
+
+<!-- ── Filtros ── -->
+<app-permisos-filter
+  [usuarioOptions]="usuarioOptions"
+  [perfilOptions]="perfilDisponiblesOptions"
+  [selectedUsuarioId]="selectedUsuarioId"
+  [selectedPerfilId]="selectedPerfilId"
+  [isSaving]="isSaving"
+  (usuarioChange)="onUsuarioSelect($event)"
+  (perfilChange)="onPerfilSelect($event)"
+  (asignar)="asignar()">
+</app-permisos-filter>
 
 <!-- ── Estados vacíos ─────────────────────────────────────── -->
 <div *ngIf="!selectedUsuarioId" class="empty-state">
@@ -53,7 +29,7 @@
   Cargando permisos...
 </div>
 
-<!-- ── Tabla de permisos actuales ────────────────────────── -->
+<!-- ── Lista de permisos ────────────────────────── -->
 <div class="permisos-panel" *ngIf="selectedUsuarioId && !loading">
 
   <div class="panel-header">
@@ -64,31 +40,13 @@
   </div>
 
   <div *ngIf="permisos.length === 0" class="panel-empty">
-    Este usuario no tiene perfiles asignados. Seleccioná un perfil en el selector de arriba y presioná <strong>+ Adicionar Permiso</strong>.
+    Este usuario no tiene perfiles asignados. Seleccioná un perfil en el selector de arriba y presioná <strong>+ Adicionar</strong>.
   </div>
-  <table class="data-table" *ngIf="permisos.length > 0">
-    <thead>
-      <tr>
-        <th>Código Perfil</th>
-        <th>Nombre del Perfil</th>
-        <th class="actions">Eliminar</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let p of permisos">
-        <td class="text-center" data-label="Código Perfil">{{ p.U_IDPERFIL }}</td>
-        <td data-label="Nombre del Perfil">{{ p.U_NOMBREPERFIL }}</td>
-        <td class="actions">
-          <button *ngIf="auth.puedeEditarConf" class="btn-remove" title="Quitar permiso" (click)="confirmRemove(p)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+
+  <app-permisos-list
+    *ngIf="permisos.length > 0"
+    [permisos]="permisos"
+    (delete)="confirmRemove($event)">
+  </app-permisos-list>
 
 </div>

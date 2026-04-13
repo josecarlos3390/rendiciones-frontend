@@ -191,12 +191,13 @@
 }
 
 // ── Modal con Tabs ────────────────────────────────────────────
-// NOTA: .modal-backdrop usa el patrón centralizado de _modals.scss
-// Solo se sobreescribe padding para este componente específico
+// NOTA: El ajuste de sidebar se maneja globalmente en styles.scss
+// Solo ajustes específicos de padding para este componente
 
 .modal-backdrop {
   align-items: flex-start;
   padding: 32px 24px;
+  
   @media (max-width: 480px) { 
     padding: 0; 
     align-items: flex-end; 
@@ -335,9 +336,15 @@
   overflow-x: auto;
   flex-shrink: 0;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Ocultar scrollbar en Firefox */
+  -ms-overflow-style: none; /* Ocultar scrollbar en IE/Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Ocultar scrollbar en Chrome/Safari */
+  }
 
-  @media (max-width: 480px) {
-    padding: 0 12px;
+  @media (max-width: 640px) {
+    padding: 0 8px;
   }
 }
 
@@ -352,6 +359,19 @@
   margin-bottom: -1px;
   transition: color var(--transition), border-color var(--transition);
   white-space: nowrap;
+  flex-shrink: 0; /* Evitar que se encojan */
+  min-width: fit-content; /* Ajustar al contenido */
+
+  @media (max-width: 640px) {
+    padding: 10px 12px;
+    font-size: 13px;
+    gap: 4px;
+  }
+  
+  @media (max-width: 380px) {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
 
   &:hover { color: var(--text-heading); }
 
@@ -1843,5 +1863,1470 @@ label.btn {
   .pdf-batch-stats {
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+// ═══════════════════════════════════════════════════════════════
+// ESTILOS PARA MODAL PDF - ZONA DE UPLOAD
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
+}
+
+.btn-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+
+  svg {
+    color: var(--color-primary);
+  }
+
+  span {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+  }
+
+  small {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+}
+
+.pdf-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-md);
+}
+
+.pdf-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+
+  &::before {
+    content: '📄';
+    font-size: 1.2em;
+  }
+}
+
+.pdf-name {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.pdf-batch-results {
+  padding: 16px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-md);
+
+  h4 {
+    margin: 0 0 12px 0;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-secondary);
+  }
+}
+
+.batch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+
+  &.success {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+  }
+
+  &.error {
+    border-color: var(--color-danger);
+    background: var(--color-danger-bg);
+  }
+}
+
+.batch-status {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.batch-filename {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.batch-message {
+  font-size: var(--text-xs);
+  color: var(--color-danger-text);
+}
+
+// Footer personalizado para modal PDF
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+// Modo oscuro - ajustes adicionales
+:host-context([data-theme="dark"]) {
+  .pdf-upload-zone {
+    background: var(--bg-card-dark);
+    border-color: var(--border-color-dark);
+
+    &:hover {
+      border-color: var(--color-primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+  }
+
+  .btn-upload {
+    color: var(--text-muted-dark);
+
+    span {
+      color: var(--text-primary-dark);
+    }
+
+    small {
+      color: var(--text-muted-dark);
+    }
+  }
+
+  .pdf-files-list,
+  .pdf-batch-results {
+    background: var(--bg-card-dark);
+  }
+
+  .pdf-file-item,
+  .batch-item {
+    background: var(--bg-surface-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .pdf-name,
+  .batch-filename {
+    color: var(--text-primary-dark);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// ESTILOS PARA MODAL BATCH PDF (múltiples archivos)
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-batch-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+// Estadísticas
+.pdf-batch-stats {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 60px;
+
+  .stat-value {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+  }
+
+  .stat-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  &.completed .stat-value {
+    color: var(--color-success);
+  }
+
+  &.errors .stat-value {
+    color: var(--color-danger);
+  }
+
+  &.processing .stat-value {
+    color: var(--color-primary);
+  }
+}
+
+// Lista de items
+.pdf-batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.batch-card {
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+
+  &.completed {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+  }
+
+  &.error {
+    border-color: var(--color-danger);
+    background: var(--color-danger-bg);
+  }
+
+  &.processing {
+    border-color: var(--color-primary);
+  }
+}
+
+.batch-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.batch-file-icon {
+  font-size: 20px;
+}
+
+.batch-file-name {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.batch-status-badge {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: var(--weight-bold);
+
+  &.completed {
+    background: var(--color-success);
+    color: white;
+  }
+
+  &.error {
+    background: var(--color-danger);
+    color: white;
+  }
+
+  &.processing {
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+    animation: pulse 1.5s infinite;
+  }
+}
+
+// Barra de progreso
+.batch-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  min-width: 35px;
+  text-align: right;
+}
+
+// Datos extraídos
+.batch-data {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.data-row {
+  display: flex;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+
+.data-label {
+  color: var(--text-muted);
+  min-width: 100px;
+}
+
+.data-value {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.data-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+
+  &.siat {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+
+  &.ai_claude {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+  }
+
+  &.manual {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+  }
+}
+
+.confidence {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+// Error
+.batch-error {
+  padding: 12px;
+  background: var(--color-danger-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+
+  p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-danger-text);
+  }
+}
+
+// Acciones
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  .btn-danger {
+    color: var(--color-danger);
+
+    &:hover {
+      background: var(--color-danger-bg);
+    }
+  }
+}
+
+// Footer del modal batch
+.pdf-batch-footer {
+  width: 100%;
+}
+
+// Animación pulse
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+// Modo oscuro
+:host-context([data-theme="dark"]) {
+  .pdf-batch-stats {
+    background: var(--bg-card-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .batch-card {
+    background: var(--bg-surface-dark);
+    border-color: var(--border-color-dark);
+
+    &.completed {
+      border-color: var(--color-success);
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    &.error {
+      border-color: var(--color-danger);
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .batch-data {
+    background: var(--bg-card-dark);
+  }
+
+  .progress-bar {
+    background: var(--bg-card-dark);
+  }
+
+  .source-badge {
+    &.siat {
+      background: rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+    }
+
+    &.ai_claude {
+      background: rgba(167, 139, 250, 0.2);
+      color: #a78bfa;
+    }
+
+    &.manual {
+      background: rgba(156, 163, 175, 0.2);
+      color: #9ca3af;
+    }
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL BATCH PDF V2 - DISEÑO MODERNO CON CARDS
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-batch-container-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+// Header con estadísticas tipo cards
+.batch-header-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.batch-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+
+  .stat-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-faint);
+    border-radius: var(--radius-md);
+  }
+
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &.success {
+    border-color: var(--color-success);
+    background: var(--color-success-bg);
+    
+    .stat-icon {
+      background: var(--color-success);
+      color: white;
+    }
+    
+    .stat-value {
+      color: var(--color-success);
+    }
+  }
+
+  &.error {
+    border-color: var(--color-danger);
+    background: var(--color-danger-bg);
+    
+    .stat-icon {
+      background: var(--color-danger);
+      color: white;
+    }
+    
+    .stat-value {
+      color: var(--color-danger);
+    }
+  }
+
+  &.processing {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+    
+    .stat-icon {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .stat-value {
+      color: var(--color-primary);
+    }
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// Grid de cards de facturas
+.batch-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.factura-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  &.status-completed {
+    border-color: var(--color-success);
+    
+    .status-indicator {
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      
+      .status-dot {
+        background: var(--color-success);
+        box-shadow: 0 0 0 3px var(--color-success-bg);
+      }
+    }
+  }
+
+  &.status-error {
+    border-color: var(--color-danger);
+    
+    .status-indicator {
+      background: var(--color-danger-bg);
+      color: var(--color-danger);
+      
+      .status-dot {
+        background: var(--color-danger);
+        box-shadow: 0 0 0 3px var(--color-danger-bg);
+      }
+    }
+  }
+
+  &.status-processing {
+    border-color: var(--color-primary);
+    
+    .status-indicator {
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      
+      .status-dot {
+        background: var(--color-primary);
+        animation: pulse-dot 1.5s infinite;
+      }
+    }
+  }
+}
+
+// Card Header
+.factura-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--bg-faint);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+
+  .file-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .file-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .file-name {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-size {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+// Barra de progreso
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-faint);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill-animated {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light, #818cf8) 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-percent {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  min-width: 40px;
+  text-align: right;
+}
+
+// Contenido de datos
+.factura-data-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.source-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+
+  &.siat {
+    background: rgba(59, 130, 246, 0.15);
+    color: #2563eb;
+  }
+
+  &.ai_claude {
+    background: rgba(139, 92, 246, 0.15);
+    color: #7c3aed;
+  }
+
+  &.manual {
+    background: rgba(107, 114, 128, 0.15);
+    color: #4b5563;
+  }
+
+  .pill-icon {
+    font-size: 14px;
+  }
+}
+
+.confidence-badge {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-full);
+}
+
+// Grid de datos
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.data-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-md);
+
+  &.wide {
+    grid-column: 1 / -1;
+  }
+
+  &.highlight {
+    background: var(--color-primary-bg);
+    
+    .item-value {
+      color: var(--color-primary);
+      font-weight: var(--weight-bold);
+    }
+  }
+
+  .item-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .item-value {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &.amount {
+      font-size: var(--text-lg);
+      font-family: var(--font-mono, monospace);
+    }
+
+    &.cuf {
+      font-size: var(--text-xs);
+      font-family: var(--font-mono, monospace);
+      color: var(--text-muted);
+    }
+  }
+}
+
+// Contenido de error
+.factura-error-content {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: var(--color-danger-bg);
+  border-bottom: 1px solid var(--color-danger-border, rgba(239, 68, 68, 0.2));
+}
+
+.error-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.error-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-danger-text);
+  margin: 0;
+}
+
+.error-message {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.error-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0 0;
+  padding: 10px 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: #92400e;
+
+  .hint-icon {
+    font-size: 16px;
+  }
+}
+
+// Acciones del card
+.factura-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-faint);
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+
+  .btn-icon {
+    font-size: 14px;
+  }
+
+  &.primary {
+    background: var(--color-primary);
+    color: white;
+    
+    &:hover {
+      background: var(--color-primary-dark);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.3);
+    
+    &:hover {
+      background: rgba(245, 158, 11, 0.2);
+    }
+  }
+
+  &.danger {
+    background: transparent;
+    color: var(--color-danger);
+    border-color: var(--border-color);
+    
+    &:hover {
+      background: var(--color-danger-bg);
+      border-color: var(--color-danger);
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .batch-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .batch-header-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .data-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Modo oscuro
+:host-context([data-theme="dark"]) {
+  .batch-stat-card {
+    background: var(--bg-card-dark);
+    border-color: var(--border-color-dark);
+
+    &.success {
+      background: rgba(34, 197, 94, 0.1);
+      
+      .stat-icon {
+        background: var(--color-success);
+      }
+    }
+
+    &.error {
+      background: rgba(239, 68, 68, 0.1);
+      
+      .stat-icon {
+        background: var(--color-danger);
+      }
+    }
+
+    &.processing {
+      background: rgba(99, 102, 241, 0.1);
+      
+      .stat-icon {
+        background: var(--color-primary);
+      }
+    }
+  }
+
+  .factura-card {
+    background: var(--bg-card-dark);
+    border-color: var(--border-color-dark);
+
+    &.status-completed {
+      border-color: #22c55e;
+    }
+
+    &.status-error {
+      border-color: #ef4444;
+    }
+
+    &.status-processing {
+      border-color: #6366f1;
+    }
+  }
+
+  .factura-card-header,
+  .factura-card-actions {
+    background: var(--bg-surface-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .data-item {
+    background: var(--bg-card-dark);
+
+    &.highlight {
+      background: rgba(99, 102, 241, 0.15);
+    }
+  }
+
+  .source-pill {
+    &.siat {
+      background: rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+    }
+
+    &.ai_claude {
+      background: rgba(167, 139, 250, 0.2);
+      color: #a78bfa;
+    }
+  }
+
+  .error-hint {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+  }
+
+  .action-btn {
+    &.warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      
+      &:hover {
+        background: rgba(245, 158, 11, 0.25);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Modal PDF — Lista de archivos compacta con progreso inline
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.pdf-file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background 0.15s;
+  
+  &:hover {
+    border-color: var(--border-focus);
+  }
+  
+  &.processing {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-border);
+  }
+  
+  &.success {
+    background: var(--status-closed-bg);
+    border-color: var(--status-closed-border);
+  }
+  
+  &.error {
+    background: var(--status-cancelled-bg);
+    border-color: var(--status-cancelled-border);
+  }
+}
+
+.pdf-file-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: 1rem;
+}
+
+.pdf-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pdf-file-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdf-file-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.pdf-progress-bar {
+  flex: 1;
+  height: 4px;
+  max-width: 120px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pdf-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light, #8b5cf6) 100%);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.pdf-file-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pdf-file-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  
+  &:hover {
+    background: var(--bg-surface);
+    color: var(--text-heading);
+  }
+  
+  &.danger:hover {
+    background: var(--status-cancelled-bg);
+    color: var(--status-cancelled-color);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Botón de adjuntos con badge mejorado
+// ═══════════════════════════════════════════════════════════════
+
+.btn-adjuntos {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-heading);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  
+  &:hover {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-border);
+    color: var(--color-primary-text);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.adjuntos-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  border: 2px solid var(--bg-surface);
+  animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badge-pop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+// Responsive: ajuste de badge en móvil
+@media (max-width: 640px) {
+  .btn-adjuntos {
+    padding: 8px;
+    
+    span {
+      display: none;
+    }
+  }
+  
+  .adjuntos-badge {
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Resultados de procesamiento batch de PDFs
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-batch-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pdf-result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  
+  &.success {
+    border-color: var(--status-closed-border);
+    background: var(--status-closed-bg);
+  }
+  
+  &.warning {
+    border-color: var(--status-pending-border);
+    background: var(--status-pending-bg);
+  }
+  
+  &.error {
+    border-color: var(--status-cancelled-border);
+    background: var(--status-cancelled-bg);
+  }
+}
+
+.pdf-result-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  
+  .success & {
+    background: var(--status-closed-color);
+    color: white;
+  }
+  
+  .warning & {
+    background: var(--status-pending-color);
+    color: white;
+  }
+  
+  .error & {
+    background: var(--status-cancelled-color);
+    color: white;
+  }
+}
+
+.pdf-result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pdf-result-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-heading);
+}
+
+.pdf-result-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.pdf-result-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Resumen de procesamiento PDF
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-faint);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.pdf-summary-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pdf-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  
+  .stat-value {
+    font-weight: var(--weight-bold);
+    font-family: var(--font-mono);
+  }
+  
+  .stat-label {
+    color: var(--text-muted);
+  }
+  
+  &.success .stat-value { color: var(--status-closed-color); }
+  &.warning .stat-value { color: var(--status-pending-color); }
+  &.error .stat-value { color: var(--status-cancelled-color); }
+}
+
+.pdf-summary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Estado vacío del modal PDF
+// ═══════════════════════════════════════════════════════════════
+
+.pdf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-subtle);
+    border-radius: 50%;
+    font-size: 2rem;
+  }
+  
+  .empty-title {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    color: var(--text-heading);
+  }
+  
+  .empty-desc {
+    font-size: var(--text-sm);
+    max-width: 280px;
   }
 }

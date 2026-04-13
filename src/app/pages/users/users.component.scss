@@ -142,16 +142,3 @@
     color: var(--color-warning, #c97a00);
   }
 }
-// ── Responsive móvil — buscador a ancho completo ────────────────
-
-@media (max-width: 640px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-search {
-    max-width: none;
-    width: 100%;
-  }
-}

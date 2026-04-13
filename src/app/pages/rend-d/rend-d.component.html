@@ -3,80 +3,18 @@
 </app-confirm-dialog>
 
 <!-- ── Cabecera ── -->
-<div class="page-header">
-  <div class="page-title-group">
-    <button class="back-btn" (click)="goBack()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      Volver
-    </button>
-    <div class="title-block">
-      <h2>
-        Detalle de Rendición
-        <span class="rend-id-badge" *ngIf="cabecera">N° {{ cabecera.U_IdRendicion }}</span>
-      </h2>
-      <p class="page-subtitle" *ngIf="cabecera">
-        {{ cabecera.U_NombrePerfil }} · {{ cabecera.U_Objetivo }}
-        <span *ngIf="cabecera.U_NombreEmpleado"> · {{ cabecera.U_NombreEmpleado }}</span>
-      </p>
-    </div>
-  </div>
-  <div class="header-actions">
-
-    <!-- Fila 1 móvil: Importar + Exportar lado a lado -->
-    <div class="action-row-top">
-      <!-- Importar (solo si no es readonly) -->
-      <label class="btn btn-ghost btn-sm" *ngIf="!isReadonly" title="Importar desde Excel">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="17,8 12,3 7,8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-        <span *ngIf="!importando">Importar</span>
-        <span *ngIf="importando">Importando...</span>
-        <input type="file" accept=".xlsx,.xls" style="display:none"
-          (change)="onImportarFile($event)" [disabled]="importando" />
-      </label>
-
-      <!-- Exportar (siempre visible si hay documentos) -->
-      <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
-        (click)="exportarExcel()" title="Exportar tabla a Excel">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="7,10 12,15 17,10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Exportar
-      </button>
-    </div>
-
-    <!-- Fila 2 móvil: Formato (solo si no es readonly) -->
-    <button class="btn btn-ghost btn-sm" *ngIf="!isReadonly"
-      (click)="descargarFormato()" title="Descargar formato Excel">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14,2 14,8 20,8"/>
-      </svg>
-      Formato
-    </button>
-
-    <!-- Fila 3 móvil: Imprimir -->
-    <button class="btn btn-ghost btn-sm" *ngIf="documentos.length > 0"
-      (click)="abrirVistaPreliminar()" title="Imprimir PDF de la rendición">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6,9 6,2 18,2 18,9"/>
-        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
-        <rect x="6" y="14" width="12" height="8"/>
-      </svg>
-      Imprimir
-    </button>
-
-    <button class="btn btn-primary btn-sm" *ngIf="!isReadonly" (click)="openNew()">
-      + Adicionar Documento
-    </button>
-  </div>
-</div>
+<app-page-header
+  [cabecera]="cabecera"
+  [isReadonly]="isReadonly"
+  [documentosCount]="documentos.length"
+  [importando]="importando"
+  (back)="goBack()"
+  (importar)="onImportarFileDirecto($event)"
+  (exportar)="exportarExcel()"
+  (formato)="descargarFormato()"
+  (imprimir)="abrirVistaPreliminar()"
+  (adicionar)="openNew()">
+</app-page-header>
 
 <!-- Error de importación -->
 <div class="import-error-banner" *ngIf="importError">
@@ -85,369 +23,186 @@
 </div>
 
 <!-- ── Panel datos maestros ── -->
-<div class="maestros-panel" *ngIf="cabecera">
-  <div class="maestro-grid">
-    <div class="maestro-item">
-      <span class="maestro-label">Rendición N°</span>
-      <span class="maestro-value mono">{{ cabecera.U_IdRendicion }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Perfil</span>
-      <span class="maestro-value">{{ cabecera.U_NombrePerfil }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Usuario</span>
-      <span class="maestro-value">{{ cabecera.U_NomUsuario }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Cuenta</span>
-      <span class="maestro-value mono">{{ cabecera.U_Cuenta }}</span>
-      <span class="maestro-sub" *ngIf="cabecera.U_NombreCuenta">{{ cabecera.U_NombreCuenta }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Empleado</span>
-      <span class="maestro-value mono">{{ cabecera.U_Empleado || '—' }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Objetivo</span>
-      <span class="maestro-value">{{ cabecera.U_Objetivo }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Fecha Inicio</span>
-      <span class="maestro-value">{{ cabecera.U_FechaIni | ddmmyyyy }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Fecha Final</span>
-      <span class="maestro-value">{{ cabecera.U_FechaFinal | ddmmyyyy }}</span>
-    </div>
-    <div class="maestro-item">
-      <span class="maestro-label">Monto Inicial</span>
-      <span class="maestro-value mono">{{ cabecera.U_Monto | number:'1.2-2' }}</span>
-    </div>
-  </div>
-  <div class="maestros-banner readonly-banner" *ngIf="isReadonly">
-    ⚠ Esta rendición está en estado
-    <strong>{{ cabecera!.U_Estado === 2 ? 'CERRADO' : 'ENVIADO' }}</strong> — solo lectura.
-  </div>
-</div>
+<app-maestros-panel 
+  [cabecera]="cabecera"
+  [isReadonly]="isReadonly">
+</app-maestros-panel>
 
 <!-- ── Panel de control de saldo ── -->
-<div class="saldo-panel" *ngIf="cabecera && montoInicial > 0">
-  <div class="saldo-row">
-    <div class="saldo-item">
-      <span class="saldo-label">Monto Inicial</span>
-      <span class="saldo-value mono">{{ montoInicial | number:'1.2-2' }}</span>
-    </div>
-    <div class="saldo-item">
-      <span class="saldo-label">Total Rendido</span>
-      <span class="saldo-value mono">{{ totalRendido | number:'1.2-2' }}</span>
-    </div>
-    <div class="saldo-item" [class.saldo-ok]="!estaExcedido && !estaExacto"
-                            [class.saldo-exacto]="estaExacto"
-                            [class.saldo-excedido]="estaExcedido">
-      <span class="saldo-label">{{ estaExcedido ? 'Excedido en' : estaExacto ? 'Saldo' : 'Falta rendir' }}</span>
-      <span class="saldo-value mono">
-        {{ estaExcedido ? '-' : '' }}{{ (estaExcedido ? (totalRendido - montoInicial) : saldoRestante) | number:'1.2-2' }}
-      </span>
-    </div>
-  </div>
-
-  <!-- Barra de progreso -->
-  <div class="saldo-bar-wrap">
-    <div class="saldo-bar">
-      <div class="saldo-bar-fill"
-        [class.saldo-bar-ok]="!estaExcedido && !estaExacto"
-        [class.saldo-bar-exacto]="estaExacto"
-        [class.saldo-bar-excedido]="estaExcedido"
-        [style.width.%]="porcentajeRendido">
-      </div>
-    </div>
-    <span class="saldo-pct">{{ porcentajeRendido | number:'1.0-0' }}%</span>
-  </div>
-</div>
+<app-saldo-panel
+  *ngIf="cabecera && montoInicial > 0"
+  [montoInicial]="montoInicial"
+  [totalRendido]="totalRendido">
+</app-saldo-panel>
 
 <!-- ══ MODAL SELECTOR DE MODO ══ -->
-<div class="modal-backdrop" *ngIf="showModeSelector">
-  <div class="modal-card modal-card--mode" role="dialog" aria-modal="true">
+<app-mode-selector-modal
+  [isOpen]="showModeSelector"
+  (modeSelect)="onModeSelect($event)"
+  (cancel)="closeModeSelector()">
+</app-mode-selector-modal>
 
-    <div class="modal-header">
-      <h3>📄 Agregar Documento</h3>
-      <button class="modal-close" type="button" (click)="closeModeSelector()">✕</button>
-    </div>
-
-    <div class="mode-body">
-      <p class="mode-subtitle">¿Cómo querés registrar el documento?</p>
-      <div class="mode-options">
-
-        <button class="mode-card" type="button" (click)="elegirQR()">
-          <span class="mode-icon">📷</span>
-          <span class="mode-label">Registrar por QR</span>
-          <span class="mode-desc">Escaneá el código QR de la factura con la cámara</span>
-        </button>
-
-        <button class="mode-card" type="button" (click)="elegirManual()">
-          <span class="mode-icon">✏️</span>
-          <span class="mode-label">Registro Manual</span>
-          <span class="mode-desc">Completá los datos del documento manualmente</span>
-        </button>
-
-        <button class="mode-card" type="button" (click)="elegirUrl()">
-          <span class="mode-icon">🔗</span>
-          <span class="mode-label">Registrar por URL</span>
-          <span class="mode-desc">Pegá el enlace de la factura electrónica</span>
-        </button>
-
-        <button class="mode-card" type="button" (click)="elegirPdf()">
-          <span class="mode-icon">📄</span>
-          <span class="mode-label">Registrar por PDF</span>
-          <span class="mode-desc">Subí el archivo PDF de tu factura</span>
-        </button>
-
-      </div>
-    </div>
-
-  </div>
-</div>
+<!-- ══ MODAL QR SCANNER ══ -->
+<app-qr-scanner-modal
+  [isOpen]="showQrScanner"
+  [loading]="qrLoadingFactura"
+  [error]="qrError"
+  (scan)="onQrScanned($event)"
+  (retry)="reiniciarQrScanner()"
+  (cancel)="cerrarQrScanner()">
+</app-qr-scanner-modal>
 
 <!-- ══ MODAL URL ══ -->
-<div class="modal-backdrop" *ngIf="showUrlModal">
-  <div class="modal-card modal-card--mode" role="dialog" aria-modal="true">
-    <div class="modal-header">
-      <h3>🔗 Registrar por URL</h3>
-      <button class="modal-close" type="button" (click)="closeUrlModal()">✕</button>
-    </div>
-    <div class="mode-body">
-
-      <!-- Cargando SIAT -->
-      <div class="qr-loading" *ngIf="urlLoadingFactura">
-        <div class="qr-loading-spinner"></div>
-        <p class="qr-loading-text">Consultando SIAT...</p>
-        <p class="qr-loading-sub">Obteniendo datos de la factura</p>
-      </div>
-
-      <!-- Formulario -->
-      <ng-container *ngIf="!urlLoadingFactura">
-        <p class="mode-subtitle">Pegá el enlace de la factura electrónica del SIAT</p>
-
-        <div class="qr-error" *ngIf="urlError" style="margin-bottom:12px">
-          <span class="qr-error-icon">⚠️</span>
-          <p>{{ urlError }}</p>
-        </div>
-
-        <div class="url-input-wrap">
-          <input
-            class="url-input"
-            type="url"
-            placeholder="https://siat.impuestos.gob.bo/consulta/QR?nit=..."
-            [(ngModel)]="urlInput"
-            autocomplete="off"
-            (keydown.enter)="confirmarUrl()" />
-        </div>
-        <div class="mode-footer-actions">
-          <button class="btn btn-ghost" type="button" (click)="closeUrlModal()">Cancelar</button>
-          <button class="btn btn-primary" type="button"
-            [disabled]="!urlInput.trim()"
-            (click)="confirmarUrl()">
-            Obtener datos
-          </button>
-        </div>
-      </ng-container>
-
-    </div>
-  </div>
-</div>
+<app-url-import-modal
+  [isOpen]="showUrlModal"
+  [loading]="urlLoadingFactura"
+  [error]="urlError"
+  (confirm)="onUrlConfirm($event)"
+  (cancel)="closeUrlModal()">
+</app-url-import-modal>
 
 <!-- ══ MODAL PDF ══ -->
-<div class="modal-backdrop" *ngIf="showPdfModal">
-  <div class="modal-card modal-card--batch" role="dialog" aria-modal="true">
-    <div class="modal-header">
-      <h3>📄 Registrar por PDF</h3>
-      <button class="modal-close" type="button" (click)="closePdfModal()" [disabled]="pdfBatchProcessing">✕</button>
+<app-form-modal
+  [title]="'Registrar por PDF'"
+  [isOpen]="showPdfModal"
+  [loading]="pdfBatchProcessing"
+  [isEditing]="true"
+  [submitDisabled]="pdfFiles.length === 0 && pdfBatchResults.length === 0"
+  (save)="pdfBatchResults.length > 0 ? confirmarBatch() : confirmarPdf()"
+  (cancel)="closePdfModal()">
+  
+  <ng-template #formContent>
+    <div class="pdf-upload-zone" *ngIf="pdfFiles.length === 0 && pdfBatchResults.length === 0">
+      <input type="file" accept=".pdf" multiple (change)="onPdfSelected($event)" #pdfInput style="display:none" />
+      <button type="button" class="btn-upload" (click)="pdfInput.click()">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17,8 12,3 7,8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span>Seleccionar archivos PDF</span>
+        <small>O arrastrá archivos aquí</small>
+      </button>
     </div>
-    <div class="mode-body">
 
-      <!-- Lista de archivos con progreso -->
-      <ng-container *ngIf="pdfBatchResults.length > 0">
-        <div class="pdf-batch-list">
-          <div class="pdf-batch-item" *ngFor="let item of pdfBatchResults; let i = index" 
-               [class.processing]="item.status === 'processing'"
-               [class.completed]="item.status === 'completed'"
-               [class.error]="item.status === 'error'">
-            
-            <div class="pdf-batch-icon">
-              <span *ngIf="item.status === 'pending'">⏳</span>
-              <span *ngIf="item.status === 'processing'" class="spinner-small">⟳</span>
-              <span *ngIf="item.status === 'completed'">✅</span>
-              <span *ngIf="item.status === 'error'">❌</span>
-            </div>
-            
-            <div class="pdf-batch-info">
-              <span class="pdf-batch-name" [title]="item.file.name">{{ item.file.name }}</span>
-              <div class="pdf-batch-progress" *ngIf="item.status === 'processing'">
-                <div class="progress-bar">
-                  <div class="progress-fill" [style.width.%]="item.progress"></div>
-                </div>
-                <span class="progress-text">{{ item.progress }}%</span>
-              </div>
-              <span class="pdf-batch-status" *ngIf="item.status === 'completed' && item.result">
-                <span class="badge" [class.badge-success]="item.result.source === 'siat'" [class.badge-primary]="item.result.source === 'ai_claude'">
-                  {{ item.result.source === 'siat' ? 'SIAT' : 'IA' }}
-                </span>
-                <span *ngIf="getItemNumeroFactura(item) !== '—'">
-                  N° {{ getItemNumeroFactura(item) }}
-                </span>
-              </span>
-              <span class="pdf-batch-error" *ngIf="item.status === 'error'">{{ item.error }}</span>
-              <span class="pdf-batch-cuf" *ngIf="item.cuf">🔖 CUF: {{ item.cuf | slice:0:16 }}...</span>
-            </div>
-            
-            <div class="pdf-batch-actions" *ngIf="!pdfBatchProcessing">
-              <button class="btn-icon" *ngIf="item.status === 'completed'" 
-                      (click)="revisarBatchItem(item, i)" title="Revisar">
-                👁️
-              </button>
-              <button class="btn-icon" *ngIf="item.status === 'error'" 
-                      (click)="reprocesarBatchItem(i)" title="Reintentar">
-                🔄
-              </button>
-              <button class="btn-icon" (click)="eliminarBatchItem(i)" title="Eliminar">
-                🗑️
-              </button>
+    <!-- Lista de archivos con barra de progreso compacta inline -->
+    <div class="pdf-files-list" *ngIf="pdfFiles.length > 0 && pdfBatchResults.length === 0">
+      <div class="pdf-file-item" *ngFor="let file of pdfFiles; let i = index" 
+           [class.processing]="pdfBatchProcessing && i === currentProcessingIndex"
+           [class.success]="pdfBatchProcessing && i < currentProcessingIndex">
+        <!-- Icono PDF -->
+        <div class="pdf-file-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <path d="M9 13h6M9 17h3"/>
+          </svg>
+        </div>
+        
+        <!-- Info del archivo -->
+        <div class="pdf-file-info">
+          <span class="pdf-file-name" [title]="file.name">{{ file.name }}</span>
+          <div class="pdf-file-status">
+            <span *ngIf="!pdfBatchProcessing">{{ (file.size / 1024).toFixed(1) }} KB</span>
+            <span *ngIf="pdfBatchProcessing && i > currentProcessingIndex">Pendiente</span>
+            <span *ngIf="pdfBatchProcessing && i === currentProcessingIndex">Procesando...</span>
+            <span *ngIf="pdfBatchProcessing && i < currentProcessingIndex">Completado</span>
+            <!-- Barra de progreso inline -->
+            <div class="pdf-progress-bar" *ngIf="pdfBatchProcessing && i === currentProcessingIndex">
+              <div class="pdf-progress-fill" [style.width.%]="batchProgress"></div>
             </div>
           </div>
         </div>
-
-        <!-- Stats del batch -->
-        <div class="pdf-batch-stats" *ngIf="pdfBatchProcessing || batchStats.completed > 0 || batchStats.errors > 0">
-          <span>📊 {{ batchStats.completed }} completados</span>
-          <span *ngIf="batchStats.errors > 0" class="stat-error">{{ batchStats.errors }} errores</span>
-          <span *ngIf="batchStats.processing > 0">⏳ {{ batchStats.processing }} procesando...</span>
-        </div>
-      </ng-container>
-
-      <!-- Formulario de selección -->
-      <ng-container *ngIf="pdfBatchResults.length === 0">
-        <p class="mode-subtitle">Subí los PDFs de las facturas — se leerán los códigos QR automáticamente</p>
-
-        <div class="qr-error" *ngIf="pdfError" style="margin-bottom:12px">
-          <span class="qr-error-icon">⚠️</span>
-          <p>{{ pdfError }}</p>
-        </div>
-
-        <label class="pdf-drop-zone" [class.has-file]="pdfFiles.length > 0">
-          <input type="file" accept="application/pdf" multiple (change)="onPdfSelected($event)" style="display:none" />
-          <span class="pdf-drop-icon">{{ pdfFiles.length > 0 ? '✅' : '📁' }}</span>
-          <span class="pdf-drop-label">{{ pdfFileNames || 'Tocar para seleccionar PDFs' }}</span>
-          <span class="pdf-drop-hint" *ngIf="pdfFiles.length === 0">Solo archivos .pdf — se extraerá el QR y CUF</span>
-          <span class="pdf-drop-hint" *ngIf="pdfFiles.length > 0">{{ pdfFiles.length }} archivo(s) seleccionado(s)</span>
-        </label>
-      </ng-container>
-
-      <div class="mode-footer-actions">
-        <button class="btn btn-ghost" type="button" (click)="closePdfModal()" [disabled]="pdfBatchProcessing">
-          {{ pdfBatchResults.length > 0 ? 'Cerrar' : 'Cancelar' }}
-        </button>
         
-        <button class="btn btn-primary" type="button"
-          *ngIf="pdfBatchResults.length === 0"
-          [disabled]="pdfFiles.length === 0"
-          (click)="confirmarPdf()">
-          Procesar {{ pdfFiles.length > 1 ? pdfFiles.length + ' PDFs' : 'PDF' }}
-        </button>
-        
-        <button class="btn btn-success" type="button"
-          *ngIf="pdfBatchResults.length > 0 && !pdfBatchProcessing"
-          [disabled]="batchStats.completed === 0"
-          (click)="confirmarBatch()">
-          Confirmar {{ batchStats.completed }} factura(s)
-        </button>
+        <!-- Acciones -->
+        <div class="pdf-file-actions" *ngIf="!pdfBatchProcessing">
+          <button type="button" class="pdf-file-btn danger" (click)="removePdfFile(i)" title="Eliminar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="pdf-file-actions" *ngIf="pdfBatchProcessing && i < currentProcessingIndex">
+          <span style="color: var(--status-closed-color);">✓</span>
+        </div>
       </div>
-
     </div>
-  </div>
-</div>
 
-<!-- ══ MODAL BATCH RESULTADOS ══ -->
-<div class="modal-backdrop" *ngIf="showPdfBatchModal">
-  <div class="modal-card modal-card--review" role="dialog" aria-modal="true">
-    <div class="modal-header">
-      <h3>📋 Revisar Facturas Procesadas ({{ batchStats.completed }} de {{ batchStats.total }})</h3>
-      <button class="modal-close" type="button" (click)="closePdfBatchModal()">✕</button>
-    </div>
-    <div class="mode-body">
-      
-      <div class="batch-review-list">
-        <div class="batch-review-item" *ngFor="let item of pdfBatchResults; let i = index" 
-             [class.error]="item.status === 'error'">
-          
-          <div class="batch-review-header">
-            <span class="file-name">{{ item.file.name }}</span>
-            <span class="badge" *ngIf="item.result?.source"
-                  [class.badge-success]="item.result?.source === 'siat'"
-                  [class.badge-primary]="item.result?.source === 'ai_claude'"
-                  [class.badge-secondary]="item.result?.source === 'manual'">
-              {{ item.result?.source === 'siat' ? 'SIAT ✅' : item.result?.source === 'ai_claude' ? 'IA 🤖' : 'Manual' }}
-            </span>
+    <!-- Resultados del procesamiento -->
+    <div class="pdf-batch-results" *ngIf="pdfBatchResults.length > 0">
+      <!-- Resumen -->
+      <div class="pdf-summary" *ngIf="!pdfBatchProcessing">
+        <div class="pdf-summary-stats">
+          <div class="pdf-stat success">
+            <span class="stat-value">{{ batchStats.completed || 0 }}</span>
+            <span class="stat-label">exitosos</span>
           </div>
           
-          <div class="batch-review-data" *ngIf="item.status === 'completed' && item.result">
-            <div class="data-row">
-              <span class="data-label">NIT:</span>
-              <span class="data-value">{{ getItemNit(item) }}</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Razón Social:</span>
-              <span class="data-value">{{ getItemRazonSocial(item) }}</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">N° Factura:</span>
-              <span class="data-value">{{ getItemNumeroFactura(item) }}</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Fecha:</span>
-              <span class="data-value">{{ getItemFecha(item) | date:'dd/MM/yyyy' }}</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Monto:</span>
-              <span class="data-value amount">{{ getItemMonto(item) | number:'1.2-2' }} Bs</span>
-            </div>
-            <div class="data-row" *ngIf="getItemCuf(item)">
-              <span class="data-label">CUF:</span>
-              <span class="data-value cuf">{{ getItemCuf(item) | slice:0:20 }}...</span>
-            </div>
-          </div>
-          
-          <div class="batch-review-error" *ngIf="item.status === 'error'">
-            ⚠️ {{ item.error }}
-          </div>
-          
-          <div class="batch-review-actions">
-            <button class="btn btn-ghost btn-sm" (click)="revisarBatchItem(item, i)" *ngIf="item.status === 'completed'">
-              ✏️ Editar
-            </button>
-            <button class="btn btn-ghost btn-sm" (click)="reprocesarBatchItem(i)" *ngIf="item.status === 'error'">
-              🔄 Reintentar
-            </button>
-            <button class="btn btn-danger btn-sm" (click)="eliminarBatchItem(i)">
-              🗑️ Eliminar
-            </button>
+          <div class="pdf-stat error" *ngIf="batchStats.errors > 0">
+            <span class="stat-value">{{ batchStats.errors }}</span>
+            <span class="stat-label">con errores</span>
           </div>
         </div>
       </div>
       
-      <div class="mode-footer-actions">
-        <button class="btn btn-ghost" type="button" (click)="closePdfBatchModal()">Cancelar</button>
-        <button class="btn btn-success" type="button"
-          [disabled]="batchStats.completed === 0"
-          (click)="confirmarBatch()">
-          ✅ Confirmar {{ batchStats.completed }} factura(s)
-        </button>
+      <!-- Lista de resultados -->
+      <div class="pdf-result-item" *ngFor="let item of pdfBatchResults" 
+           [class.success]="item.status === 'completed'" 
+           
+           [class.error]="item.status === 'error'">
+        <div class="pdf-result-icon">
+          <span *ngIf="item.status === 'completed'">✓</span>
+          
+          <span *ngIf="item.status === 'error'">✕</span>
+          <span *ngIf="item.status === 'processing'" class="spinner">⟳</span>
+        </div>
+        <div class="pdf-result-content">
+          <div class="pdf-result-title" [title]="item.file.name">{{ item.file.name }}</div>
+          <div class="pdf-result-desc" *ngIf="item.error">{{ item.error }}</div>
+        </div>
+        <div class="pdf-result-actions">
+          <button type="button" class="pdf-file-btn" *ngIf="item.status === 'error'" (click)="retryPdfItem(item)" title="Reintentar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+          <button type="button" class="pdf-file-btn" *ngIf="item.status === 'completed'" (click)="viewPdfItem(item)" title="Ver">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Estado vacío si no hay resultados válidos -->
+      <div class="pdf-empty-state" *ngIf="!pdfBatchProcessing && batchStats.total === 0">
+        <span class="summary-success" *ngIf="batchStats.completed > 0">✓ {{ batchStats.completed }} exitosos</span>
+        <span class="summary-error" *ngIf="batchStats.errors > 0">✗ {{ batchStats.errors }} con error</span>
       </div>
     </div>
-  </div>
-</div>
+  </ng-template>
+  
+  <!-- Footer personalizado para controlar el texto del botón -->
+  <ng-template #formFooter>
+    <div class="modal-footer-actions">
+      <button type="button" class="btn btn-ghost" (click)="closePdfModal()">Cancelar</button>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        (click)="pdfBatchResults.length > 0 ? confirmarBatch() : confirmarPdf()"
+        [disabled]="pdfFiles.length === 0 && pdfBatchResults.length === 0 || pdfBatchProcessing">
+        <span *ngIf="pdfBatchProcessing">Procesando...</span>
+        <span *ngIf="!pdfBatchProcessing && pdfBatchResults.length === 0">Procesar PDF</span>
+        <span *ngIf="!pdfBatchProcessing && pdfBatchResults.length > 0">Confirmar</span>
+      </button>
+    </div>
+  </ng-template>
+</app-form-modal>
 
-<!-- ══ MODAL PREVIEW IA (single - legacy) ══ -->
+<!-- ══ MODAL PREVIEW IA (BATCH) ══ -->
 <app-ai-factura-preview
   *ngIf="showAiPreviewModal && aiPreviewResult"
   [result]="aiPreviewResult"
@@ -455,563 +210,74 @@
   (cancel)="onAiPreviewCancel()">
 </app-ai-factura-preview>
 
-<!-- ══ MODAL REVISIÓN ITEM BATCH ══ -->
-<app-ai-factura-preview
-  *ngIf="showBatchItemReviewModal && batchItemBeingReviewed?.result"
-  [result]="batchItemBeingReviewed!.result!"
-  (confirm)="onBatchItemConfirm($event)"
+<!-- ══ MODAL BATCH PDF (múltiples archivos) ══ -->
+<app-pdf-batch-results-modal
+  [isOpen]="showPdfBatchModal"
+  [isProcessing]="pdfBatchProcessing"
+  [results]="pdfBatchResults"
+  [stats]="batchStats"
+  (reviewItem)="revisarBatchItem($event.item, $event.index)"
+  (retryItem)="reprocesarBatchItem($event)"
+  (deleteItem)="eliminarBatchItem($event)"
+  (confirm)="confirmarBatch()"
+  (cancel)="closePdfBatchModal()">
+</app-pdf-batch-results-modal>
+
+<!-- ══ MODAL PREVIEW BATCH ITEM (revisión individual) ══ -->
+<app-form-modal
+  *ngIf="showBatchItemReviewModal && batchItemBeingReviewed"
+  [title]="'Revisar Documento del Batch'"
+  [isOpen]="showBatchItemReviewModal"
+  [isEditing]="true"
+  [submitDisabled]="!batchItemBeingReviewed.result"
+  (save)="onBatchItemConfirm($event)"
   (cancel)="closeBatchItemReviewModal()">
-</app-ai-factura-preview>
-
-<!-- ══ MODAL ESCÁNER QR ══ -->
-<div class="modal-backdrop" *ngIf="showQrScanner">
-  <div class="modal-card modal-card--qr" role="dialog" aria-modal="true">
-
-    <div class="modal-header">
-      <h3>📷 Escanear QR</h3>
-      <button class="modal-close" type="button" (click)="cerrarQrScanner()">✕</button>
+  
+  <ng-template #formContent>
+    <app-ai-factura-preview
+      *ngIf="batchItemBeingReviewed.result"
+      [result]="batchItemBeingReviewed.result"
+      (confirm)="onBatchItemConfirm($event)"
+      (cancel)="closeBatchItemReviewModal()">
+    </app-ai-factura-preview>
+    
+    <div class="error-state" *ngIf="!batchItemBeingReviewed.result">
+      <p>No se pudo procesar este documento.</p>
+      <p *ngIf="batchItemBeingReviewed.error">{{ batchItemBeingReviewed.error }}</p>
     </div>
+  </ng-template>
+</app-form-modal>
 
-    <div class="qr-body">
-
-      <!-- Error -->
-      <div class="qr-error" *ngIf="qrError">
-        <span class="qr-error-icon">⚠️</span>
-        <p>{{ qrError }}</p>
-        <div class="qr-error-actions">
-          <button class="btn btn-ghost btn-sm" type="button" (click)="cerrarQrScanner()">Cerrar</button>
-          <button class="btn btn-primary btn-sm" type="button" (click)="abrirQrScanner()">Reintentar</button>
-        </div>
-      </div>
-
-      <!-- Cargando datos del SIAT -->
-      <div class="qr-loading" *ngIf="qrLoadingFactura && !qrError">
-        <div class="qr-loading-spinner"></div>
-        <p class="qr-loading-text">Consultando SIAT...</p>
-        <p class="qr-loading-sub">Obteniendo datos de la factura</p>
-      </div>
-
-      <!-- Visor de cámara -->
-      <div class="qr-viewport" *ngIf="!qrError && !qrLoadingFactura">
-        <video id="qr-video" class="qr-video" autoplay playsinline muted></video>
-        <div class="qr-overlay">
-          <div class="qr-frame">
-            <span class="qr-corner tl"></span>
-            <span class="qr-corner tr"></span>
-            <span class="qr-corner bl"></span>
-            <span class="qr-corner br"></span>
-            <div class="qr-scanline"></div>
-          </div>
-        </div>
-        <p class="qr-hint">Apuntá la cámara al código QR de la factura</p>
-      </div>
-
-    </div>
-
-  </div>
-</div>
-
-<!-- ══ MODAL ══ -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="user-modal doc-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <!-- Header -->
-    <div class="modal-header modal-header--doc">
-      <div class="doc-modal-title">
-        <h3>
-          {{ editingDoc ? 'Editar Documento' : 'Nuevo Documento' }}
-          <span class="dirty-badge" *ngIf="editingDoc && isDirty">● sin guardar</span>
-        </h3>
-        <div class="doc-modal-meta">
-          <span class="doc-meta-item">
-            <span class="doc-meta-label">Rendición</span>
-            <span class="doc-meta-value">N° {{ cabecera?.U_IdRendicion }}</span>
-          </span>
-          <span class="doc-meta-sep">·</span>
-          <span class="doc-meta-item">
-            <span class="doc-meta-label">Perfil</span>
-            <span class="doc-meta-value">{{ cabecera?.U_NombrePerfil }}</span>
-          </span>
-        </div>
-      </div>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
-    <!-- Tabs -->
-    <div class="modal-tabs">
-      <button class="modal-tab" [class.active]="activeTab === 'doc'"
-        (click)="setTab('doc')" type="button">
-        Identificación
-      </button>
-      <button class="modal-tab" [class.active]="activeTab === 'montos'"
-        (click)="setTab('montos')" type="button">
-        Montos y Normas
-      </button>
-      <button class="modal-tab" [class.active]="activeTab === 'impuestos'"
-        (click)="setTab('impuestos')" type="button">
-        Cálculo Impuestos
-      </button>
-    </div>
-
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-      <div class="modal-body">
-
-        <!-- ══ PESTAÑA 1: IDENTIFICACIÓN ══ -->
-        <div class="tab-panel" [class.active]="activeTab === 'doc'">
-          <div class="doc-grid">
-
-            <div class="form-field cuenta-field" [class.field-changed]="fieldChanged('cuenta')">
-              <label>Cuenta</label>
-              <app-cuenta-search
-                [cueCar]="cueCar"
-                [cueTexto]="cueTexto"
-                [listaCuentas]="listaCuentas"
-                [initialCode]="form.get('cuenta')?.value"
-                [initialName]="form.get('nombreCuenta')?.value"
-                placeholder="— Buscar cuenta —"
-                (cuentaChange)="onCuentaSelected($event)">
-              </app-cuenta-search>
-            </div>
-
-            <div class="form-field" [class.field-changed]="fieldChanged('fecha')">
-              <label>Fecha <span class="required">*</span></label>
-              <input type="date" formControlName="fecha" />
-              <span class="field-error" *ngIf="form.get('fecha')?.invalid && form.get('fecha')?.touched">Obligatoria</span>
-            </div>
-
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('tipoDoc')">
-              <label>Tipo Documento <span class="required">*</span></label>
-              <app-select
-                label="Tipo"
-                [searchable]="false"
-                [options]="tipoDocOptions"
-                [value]="form.get('tipoDoc')?.value"
-                (valueChange)="form.get('tipoDoc')?.setValue($event); onTipoDocChange($event)">
-              </app-select>
-            </div>
-
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('numDocumento')">
-              <label>Nro Documento</label>
-              <input type="text" formControlName="numDocumento" maxlength="20" placeholder="0" autocomplete="off" />
-            </div>
-
-            <!-- Toggle Facturación en Línea — ocupa col completa alineado a la derecha -->
-            <div class="form-field col-span-2 toggle-field">
-              <label class="toggle-label">
-                <span class="toggle-label-text">Facturación en Línea</span>
-                <label class="u-toggle">
-                  <input type="checkbox" [checked]="facturaLinea" (change)="toggleFacturaLinea()" />
-                  <span class="u-toggle-slider"></span>
-                </label>
-              </label>
-            </div>
-
-            <!-- CUF — solo activo en Facturación en Línea -->
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('cuf')"
-              [class.field-disabled]="!facturaLinea">
-              <label>CUF</label>
-              <input type="text" formControlName="cuf" maxlength="250"
-                placeholder="Factura electrónica" autocomplete="off" />
-            </div>
-
-            <!-- Proveedor + botón nuevo proveedor eventual -->
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('prov')">
-              <label>Proveedor</label>
-              <div class="prov-row">
-                <app-proveedor-search #provSearch
-                  [proCar]="proCar"
-                  [proTexto]="proTexto"
-                  [initialCode]="form.get('codProv')?.value"
-                  [selected]="proveedorSeleccionado"
-                  placeholder="— Buscar proveedor —"
-                  (proveedorChange)="onProveedorSelected($event)">
-                </app-proveedor-search>
-                <button type="button" class="btn-nuevo-prov" title="Registrar proveedor eventual"
-                  (click)="abrirNuevoProv()">+</button>
-              </div>
-            </div>
-
-            <!-- Nro Autorización — solo activo en modo manual -->
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('nroAutor')"
-              [class.field-disabled]="facturaLinea">
-              <label>Nro Autorización</label>
-              <input type="text" formControlName="nroAutor" maxlength="250" placeholder="0" autocomplete="off" />
-            </div>
-
-            <!-- Código de Control — solo activo en modo manual -->
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('ctrl')"
-              [class.field-disabled]="facturaLinea">
-              <label>Código de Control</label>
-              <input type="text" formControlName="ctrl" maxlength="25" placeholder="0" autocomplete="off" />
-            </div>
-
-            <div class="form-field col-span-4 concepto-field" [class.field-changed]="fieldChanged('concepto')">
-              <label>Concepto <span class="required">*</span></label>
-              <div class="concepto-input-wrapper">
-                <input type="text" formControlName="concepto" maxlength="200" placeholder="Descripción del gasto" autocomplete="off" />
-                
-                <!-- Botón flotante de ayuda IA -->
-                <button 
-                  type="button"
-                  class="btn-ayuda-ia"
-                  *ngIf="mostrarBotonAyudaIA && !iaSugerencia && !iaSugerenciaLoading"
-                  (click)="solicitarSugerenciaIA()"
-                  title="¿Necesitas ayuda para clasificar este gasto?">
-                  <span class="ia-icon">🤖</span>
-                  <span class="ia-text">Sugerir cuenta</span>
-                </button>
-              </div>
-              
-              <span class="field-error" *ngIf="form.get('concepto')?.invalid && form.get('concepto')?.touched">Obligatorio</span>
-              
-              <!-- Sugerencia de IA -->
-              <app-ai-suggestion
-                [sugerencia]="iaSugerencia"
-                [isLoading]="iaSugerenciaLoading"
-                [loadingMessage]="iaLoadingMessage"
-                [visible]="!!iaSugerencia || iaSugerenciaLoading"
-                (aplicar)="aplicarSugerenciaIA($event)"
-                (ignorar)="ignorarSugerenciaIA()">
-              </app-ai-suggestion>
-              
-              <!-- Notificación cuando IA no está habilitada -->
-              <app-ai-disabled-notice [visible]="!iaEnabled && form.get('concepto')?.value?.length > 10">
-              </app-ai-disabled-notice>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- ══ PESTAÑA 2: MONTOS Y NORMAS ══ -->
-        <div class="tab-panel" [class.active]="activeTab === 'montos'">
-          <div class="doc-grid">
-
-            <div class="form-field" [class.field-changed]="fieldChanged('importe')">
-              <label>Importe <span class="required">*</span></label>
-              <input type="number" formControlName="importe" min="0" step="0.01"
-                placeholder="0.00" />
-            </div>
-
-            <div class="form-field" [class.field-changed]="fieldChanged('descuento')">
-              <label class="label-with-toggle">
-                Descuento
-                <label class="u-toggle u-toggle--sm">
-                  <input type="checkbox" [checked]="descuentoActivo" (change)="toggleDescuento()" />
-                  <span class="u-toggle-slider"></span>
-                </label>
-              </label>
-              <input *ngIf="descuentoActivo" type="number" formControlName="descuento" min="0" step="0.01" />
-              <div *ngIf="!descuentoActivo" class="calc-display calc-zero-display">—</div>
-            </div>
-
-            <div class="form-field"
-              [class.field-changed]="fieldChanged('exento')"
-              [class.field-disabled]="exentoEsFijo">
-              <label [class]="exentoEsVariable ? 'label-with-toggle' : ''">
-                Exento
-                <span *ngIf="exentoEsFijo" class="label-pct">
-                  {{ configDocActivo?.U_EXENTOpercent }}%
-                </span>
-                <!-- Toggle solo cuando es variable (-1) -->
-                <label *ngIf="exentoEsVariable" class="u-toggle u-toggle--sm">
-                  <input type="checkbox" [checked]="exentoActivo" (change)="toggleExento()" />
-                  <span class="u-toggle-slider"></span>
-                </label>
-              </label>
-              <!-- Variable (-1): toggle activo → input, toggle apagado → dash -->
-              <ng-container *ngIf="exentoEsVariable">
-                <input *ngIf="exentoActivo"
-                  type="number" formControlName="exento" min="0" step="0.01" />
-                <div *ngIf="!exentoActivo" class="calc-display calc-zero-display">—</div>
-              </ng-container>
-              <!-- Sin config o 0: siempre dash -->
-              <div *ngIf="!exentoEsVariable && !exentoEsFijo" class="calc-display calc-zero-display">—</div>
-              <!-- % fijo (> 0): valor calculado automático -->
-              <div *ngIf="exentoEsFijo" class="calc-display">
-                {{ +form.get('exento')?.value !== 0 ? (form.get('exento')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field"
-              [class.field-changed]="fieldChanged('tasa')"
-              [class.field-disabled]="tasaEsFijo">
-              <label>
-                Tasas
-                <span *ngIf="tasaEsFijo && configDocActivo?.U_TASA !== 0" class="label-pct">
-                  {{ configDocActivo?.U_TASA }}
-                </span>
-              </label>
-              <input *ngIf="tasaEsVariable || !configDocActivo"
-                type="number" formControlName="tasa" min="0" step="0.01" />
-              <div *ngIf="tasaEsFijo" class="calc-display">
-                {{ +form.get('tasa')?.value !== 0 ? (form.get('tasa')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field" [class.field-changed]="fieldChanged('giftCard')">
-              <label class="label-with-toggle">
-                GIFTCARD
-                <label class="u-toggle u-toggle--sm">
-                  <input type="checkbox" [checked]="giftCardActivo" (change)="toggleGiftCard()" />
-                  <span class="u-toggle-slider"></span>
-                </label>
-              </label>
-              <input *ngIf="giftCardActivo" type="number" formControlName="giftCard" min="0" step="0.01" />
-              <div *ngIf="!giftCardActivo" class="calc-display calc-zero-display">—</div>
-            </div>
-
-            <div class="form-field" [class.field-changed]="fieldChanged('tasaCero')">
-              <label class="label-with-toggle">
-                Tasa Cero
-                <label class="u-toggle u-toggle--sm">
-                  <input type="checkbox" [checked]="tasaCeroActivo" (change)="toggleTasaCero()" />
-                  <span class="u-toggle-slider"></span>
-                </label>
-              </label>
-              <input *ngIf="tasaCeroActivo" type="number" formControlName="tasaCero" min="0" step="0.01" />
-              <div *ngIf="!tasaCeroActivo" class="calc-display calc-zero-display">—</div>
-            </div>
-
-            <div class="form-field col-span-2"
-              [class.field-changed]="fieldChanged('ice')"
-              [class.field-disabled]="iceEsFijo">
-              <label>
-                ICE
-                <span *ngIf="iceEsFijo" class="label-pct">
-                  {{ configDocActivo?.U_ICE }}%
-                </span>
-              </label>
-              <!-- Variable (-1): input editable directo, sin toggle -->
-              <input *ngIf="iceEsVariable"
-                type="number" formControlName="ice" min="0" step="0.01" />
-              <!-- Sin config o 0: siempre dash -->
-              <div *ngIf="!iceEsVariable && !iceEsFijo" class="calc-display calc-zero-display">—</div>
-              <!-- % fijo (> 0): valor calculado automático, solo lectura -->
-              <div *ngIf="iceEsFijo" class="calc-display">
-                {{ +form.get('ice')?.value !== 0 ? (form.get('ice')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field col-span-2" [class.field-changed]="fieldChanged('proyecto')">
-              <label class="label-with-toggle">
-                Proyecto
-                <label class="u-toggle u-toggle--sm">
-                  <input type="checkbox" [checked]="proyectoActivo" (change)="toggleProyecto()" />
-                  <span class="u-toggle-slider"></span>
-                </label>
-              </label>
-              <app-project-search
-                *ngIf="proyectoActivo"
-                [initialCode]="form.get('proyecto')?.value"
-                (projectChange)="onProjectSelected($event)">
-              </app-project-search>
-              <div *ngIf="!proyectoActivo" class="calc-display calc-zero-display">—</div>
-            </div>
-
-            <!-- Normas de Reparto dinámicas (máx 3) -->
-            <ng-container *ngFor="let norma of normasActivas">
-              <div class="form-field col-span-2" [class.field-changed]="fieldChanged('n' + norma.slot)">
-                <label>Norma Reparto {{ norma.slot }}
-                  <span class="label-dim">{{ norma.dimension.dimensionName }}</span>
-                </label>
-                <app-select
-                  [label]="norma.dimension.dimensionName"
-                  [searchable]="true"
-                  [options]="norma.rules"
-                  [value]="form.get('n' + norma.slot)?.value"
-                  (valueChange)="form.get('n' + norma.slot)?.setValue($event)">
-                </app-select>
-              </div>
-            </ng-container>
-
-          </div>
-        </div>
-
-        <!-- ══ PESTAÑA 3: CÁLCULO IMPUESTOS ══ -->
-        <div class="tab-panel" [class.active]="activeTab === 'impuestos'">
-          <div class="doc-grid">
-
-            <!-- ── Bloque impuestos calculados ── -->
-            <div class="calc-group col-span-4">
-              <span class="calc-group-label">Impuestos retenidos</span>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoIVA')?.value === 0">
-              <label>IVA</label>
-              <div class="calc-display">
-                {{ +form.get('montoIVA')?.value !== 0 ? (form.get('montoIVA')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoIT')?.value === 0">
-              <label>IT</label>
-              <div class="calc-display">
-                {{ +form.get('montoIT')?.value !== 0 ? (form.get('montoIT')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoIUE')?.value === 0">
-              <label>IUE</label>
-              <div class="calc-display">
-                {{ +form.get('montoIUE')?.value !== 0 ? (form.get('montoIUE')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('montoRCIVA')?.value === 0">
-              <label>RCIVA</label>
-              <div class="calc-display">
-                {{ +form.get('montoRCIVA')?.value !== 0 ? (form.get('montoRCIVA')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <!-- ── Totales ── -->
-            <div class="calc-group col-span-4">
-              <span class="calc-group-label">Totales</span>
-            </div>
-
-            <div class="form-field calc-field calc-highlight" [class.calc-zero]="+form.get('impRet')?.value === 0">
-              <label>Imp/Ret</label>
-              <div class="calc-display">
-                {{ +form.get('impRet')?.value !== 0 ? (form.get('impRet')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field calc-highlight calc-total" [class.calc-zero]="+form.get('total')?.value === 0">
-              <label>Monto Total</label>
-              <div class="calc-display">
-                {{ +form.get('total')?.value !== 0 ? (form.get('total')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field col-span-2" [class.calc-zero]="+form.get('descuento')?.value === 0">
-              <label>Descuento</label>
-              <div class="calc-display">
-                {{ +form.get('descuento')?.value !== 0 ? (form.get('descuento')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <!-- ── Deducciones de base imponible ── -->
-            <div class="calc-group col-span-4">
-              <span class="calc-group-label">Deducciones de base imponible</span>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('tasa')?.value === 0">
-              <label>Tasas</label>
-              <div class="calc-display">
-                {{ +form.get('tasa')?.value !== 0 ? (form.get('tasa')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('tasaCero')?.value === 0">
-              <label>Tasa Cero</label>
-              <div class="calc-display">
-                {{ +form.get('tasaCero')?.value !== 0 ? (form.get('tasaCero')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('giftCard')?.value === 0">
-              <label>GIFTCARD</label>
-              <div class="calc-display">
-                {{ +form.get('giftCard')?.value !== 0 ? (form.get('giftCard')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('exento')?.value === 0">
-              <label>Exento</label>
-              <div class="calc-display">
-                {{ +form.get('exento')?.value !== 0 ? (form.get('exento')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-            <div class="form-field calc-field" [class.calc-zero]="+form.get('ice')?.value === 0">
-              <label>ICE</label>
-              <div class="calc-display">
-                {{ +form.get('ice')?.value !== 0 ? (form.get('ice')?.value | number:'1.2-2') : '—' }}
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-      </div><!-- /modal-body -->
-
-      <!-- Footer -->
-      <div class="modal-footer">
-        <div class="footer-nav">
-          <button type="button" class="btn btn-ghost btn-sm"
-            [disabled]="activeTab === 'doc'"
-            (click)="prevTab()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Anterior
-          </button>
-          <button type="button" class="btn btn-ghost btn-sm"
-            [disabled]="activeTab === 'impuestos'"
-            (click)="nextTab()">Siguiente →</button>
-        </div>
-        <div class="footer-actions">
-          <ng-container *ngIf="isDirty; else noChanges">
-            <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-            <button type="submit"
-              [class]="editingDoc ? 'btn btn-save-changes' : 'btn btn-primary'"
-              [disabled]="form.invalid || isSaving">
-              <span *ngIf="isSaving">Guardando...</span>
-              <span *ngIf="!isSaving">{{ editingDoc ? '💾 Guardar cambios' : '➕ Agregar' }}</span>
-            </button>
-          </ng-container>
-          <ng-template #noChanges>
-            <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
-          </ng-template>
-        </div>
-      </div>
-
-    </form>
-  </div>
-</div>
+<!-- ══ MODAL PRINCIPAL FORMULARIO DOCUMENTO ══ -->
+<app-doc-form
+  [isOpen]="showForm"
+  [isSaving]="isSaving"
+  [isEditing]="editingDoc !== null"
+  [config]="docFormConfig"
+  [initialData]="editingDoc"
+  [tiposDocs]="tiposDocs"
+  [perfil]="perfil"
+  [facturaLinea]="facturaLinea"
+  [proveedorSeleccionado]="proveedorSeleccionado"
+  (save)="onDocFormSave($event)"
+  (cancel)="closeForm()"
+  (tabChange)="setTab($event)"
+  (cuentaChange)="onCuentaSelected($event)"
+  (tipoDocChange)="onTipoDocChange($event)"
+  (toggleFacturaLinea)="toggleFacturaLinea()"
+  (proveedorChange)="onProveedorSelected($event)"
+  (nuevoProv)="abrirNuevoProv()"
+  (dimensionChange)="onDimensionChange($event.slot, $event.value)"
+  (projectChange)="onProjectSelected($event)">
+</app-doc-form>
 
 <!-- ══ MODAL NUEVO PROVEEDOR EVENTUAL ══ -->
-<div class="modal-backdrop" *ngIf="showNuevoProv">
-  <div class="modal-card modal-card--prov" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <div class="modal-header">
-      <h3>🏢 Registrar Proveedor Eventual</h3>
-      <button class="modal-close" type="button" (click)="cerrarNuevoProv()">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <div class="doc-grid">
-
-        <div class="form-field col-span-2">
-          <label>NIT <span class="required">*</span></label>
-          <input type="text" [(ngModel)]="nuevoProvNit" maxlength="255"
-            placeholder="Número de identificación tributaria" autocomplete="off" />
-        </div>
-
-        <div class="form-field col-span-2">
-          <label>Razón Social <span class="required">*</span></label>
-          <input type="text" [(ngModel)]="nuevoProvNombre" maxlength="255"
-            placeholder="Nombre o razón social del proveedor" autocomplete="off" />
-        </div>
-
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <div></div>
-      <div class="footer-actions">
-        <button type="button" class="btn btn-ghost" (click)="cerrarNuevoProv()">Cancelar</button>
-        <button type="button" class="btn btn-primary"
-          [disabled]="!nuevoProvNit.trim() || !nuevoProvNombre.trim() || guardandoProv"
-          (click)="guardarNuevoProv()">
-          <span *ngIf="guardandoProv">Guardando...</span>
-          <span *ngIf="!guardandoProv">➕ Registrar</span>
-        </button>
-      </div>
-    </div>
-
-  </div>
-</div>
+<app-prov-eventual-modal
+  [isOpen]="showNuevoProv"
+  [loading]="guardandoProv"
+  (confirm)="onProvEventualConfirm($event)"
+  (cancel)="cerrarNuevoProv()">
+</app-prov-eventual-modal>
 
 
 <app-skeleton-loader *ngIf="loadingDocs" variant="table" [rows]="6"
@@ -1022,265 +288,32 @@
   <a (click)="loadDocs()">Reintentar</a>
 </div>
 
-<!-- ── Pestañas de la tabla ── -->
-<div class="table-tabs" *ngIf="!loadingDocs && !loadError && documentos.length > 0">
-  <button class="table-tab" [class.active]="tablaActiva === 'documentos'" (click)="tablaActiva = 'documentos'">Documentos</button>
-  <button class="table-tab" [class.active]="tablaActiva === 'impuestos'"  (click)="tablaActiva = 'impuestos'">Impuestos</button>
-</div>
+<!-- ── Tabla de Documentos ── -->
+<app-document-table
+  *ngIf="!loadingDocs && !loadError"
+  [documentos]="documentos"
+  [paged]="paged"
+  [tiposDocs]="tiposDocs"
+  [config]="tableConfig"
+  [page]="page"
+  [limit]="limit"
+  [totalPages]="totalPages"
+  [activeTab]="tablaActiva"
+  [totales]="totalesDocumentos"
+  [totalesImpuestos]="totalesImpuestos"
+  (action)="onDocumentAction($event)"
+  (tabChange)="tablaActiva = $event"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)">
+</app-document-table>
 
-<!-- ── Tabla ── -->
-<div class="table-wrapper table-scroll-wrapper" *ngIf="!loadingDocs && !loadError">
-
-  <div *ngIf="documentos.length === 0" class="empty-state">
+<!-- Empty state cuando no hay documentos -->
+<div class="table-wrapper table-scroll-wrapper" *ngIf="!loadingDocs && !loadError && documentos.length === 0">
+  <div class="empty-state">
     No hay documentos registrados.
     <a *ngIf="!isReadonly" (click)="openNew()">Agregar el primero</a>
   </div>
-
-  <!-- ══ Vista Documentos ══ -->
-  <table class="data-table" *ngIf="documentos.length > 0 && tablaActiva === 'documentos'">
-    <thead>
-      <tr>
-        <th class="text-center col-acciones-adjuntos" title="Acciones y Adjuntos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </th>
-        <th class="col-sticky">Concepto · Cuenta</th>
-        <th>Fecha</th>
-        <th>Tipo Doc.</th>
-        <th>N° Doc.</th>
-        <th class="text-right">Importe</th>
-        <th class="text-right col-reduccion">− Exento</th>
-        <th class="text-right col-reduccion">− ICE</th>
-        <th class="text-right col-reduccion">− Tasas</th>
-        <th class="text-right col-reduccion">− T.Cero</th>
-        <th class="text-right col-reduccion">− GiftCard</th>
-        <th class="text-right col-base">Base Imp.</th>
-        <th class="text-right">Imp/Ret</th>
-        <th class="text-right col-total">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let d of paged">
-        <!-- ACCIONES + ADJUNTOS (columna combinada) -->
-        <td class="text-center col-acciones-adjuntos" data-label="Acciones">
-          <div class="acciones-adjuntos-wrap">
-            <!-- Menú de acciones (3 puntos verticales) -->
-            <div class="row-menu-wrap" 
-                 [class.open]="openMenuId === d.U_RD_IdRD"
-                 dropdownPosition
-                 *ngIf="!isReadonly">
-              <button class="btn-more btn-more-vertical" 
-                      (click)="toggleMenu(d, $event)"
-                      title="Acciones">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="6" r="2"/>
-                  <circle cx="12" cy="12" r="2"/>
-                  <circle cx="12" cy="18" r="2"/>
-                </svg>
-              </button>
-              <div class="row-dropdown">
-                <button class="row-item" (click)="onMenuAction(d, 'edit')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                  <span>Editar</span>
-                </button>
-                <button class="row-item" (click)="onMenuAction(d, 'dist')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="12" r="3"/>
-                    <path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
-                  </svg>
-                  <span>Distribuir</span>
-                </button>
-                <div class="row-divider"></div>
-                <button class="row-item item-danger" (click)="onMenuAction(d, 'delete')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                  <span>Eliminar</span>
-                </button>
-              </div>
-            </div>
-            <!-- Solo botón de distribuir en modo readonly -->
-            <button class="btn btn-sm btn-ghost btn-dist" 
-                    *ngIf="isReadonly"
-                    title="Distribución porcentual"
-                    (click)="abrirPrctjModal(d)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="9" cy="12" r="3"/><path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
-              </svg>
-            </button>
-            <!-- Botón adjuntos -->
-            <button class="btn btn-sm btn-ghost btn-adjuntos" 
-              title="Ver adjuntos"
-              (click)="abrirAdjuntosModal(d)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-              </svg>
-              <span class="adjuntos-badge" *ngIf="getAdjuntosCount(d.U_RD_IdRD)">{{ getAdjuntosCount(d.U_RD_IdRD) }}</span>
-            </button>
-          </div>
-        </td>
-        
-        <!-- RESTO DE COLUMNAS -->
-        <td class="col-sticky" data-label="Concepto">
-          <span class="sticky-id">{{ d.U_RD_IdRD }} · {{ d.U_RD_Concepto }}</span>
-          <span class="sticky-concepto" *ngIf="d.U_RD_Cuenta">
-            <code class="sticky-code">{{ d.U_RD_Cuenta }}</code>
-            <span *ngIf="d.U_RD_NombreCuenta"> {{ d.U_RD_NombreCuenta }}</span>
-          </span>
-          <span class="sticky-concepto text-muted-cell" *ngIf="!d.U_RD_Cuenta">Sin cuenta</span>
-        </td>
-        <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
-        <td data-label="Tipo"><span class="type-tag">{{ getTipoDocName(d.U_RD_TipoDoc) }}</span></td>
-        <td class="mono-cell"   data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
-        <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-reduccion" data-label="Exento">{{ (d.U_RD_Exento ?? 0) | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-reduccion" data-label="ICE">{{ d.U_ICE | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-reduccion" data-label="Tasas">{{ (d.U_TASA ?? 0) | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-reduccion" data-label="T.Cero">{{ (d.U_RD_TasaCero ?? 0) | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-reduccion" data-label="GiftCard">{{ (d.U_GIFTCARD ?? 0) | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-base" data-label="Base Imp.">
-          {{ (d.U_RD_Importe - (d.U_RD_Exento ?? 0) - d.U_ICE - (d.U_TASA ?? 0) - (d.U_RD_TasaCero ?? 0) - (d.U_GIFTCARD ?? 0)) | number:'1.2-2' }}
-        </td>
-        <td class="text-right mono-cell" data-label="Imp/Ret">{{ (d.U_RD_ImpRet ?? 0) | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-total" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr class="totals-row">
-        <td class="totals-label"></td>
-        <td colspan="4" class="totals-label">Totales</td>
-        <td class="text-right mono-cell total-cell">{{ totalImporte   | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-reduccion">{{ totalExento    | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-reduccion">{{ totalIce       | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-reduccion">{{ totalTasa      | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-reduccion">{{ totalTasaCero  | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-reduccion">{{ totalGiftCard  | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-base">{{ totalBaseImp   | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell">{{ totalImpRet    | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-total">{{ totalGeneral   | number:'1.2-2' }}</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  <!-- ══ Vista Impuestos ══ -->
-  <div class="table-scroll-wrapper" *ngIf="documentos.length > 0 && tablaActiva === 'impuestos'">
-  <table class="data-table tabla-impuestos">
-    <thead>
-      <tr>
-        <th class="col-sticky">N° · Proveedor</th>
-        <th>Fecha</th>
-        <th>N° Doc.</th>
-        <th>NIT</th>
-        <th class="text-right">Importe</th>
-        <th class="text-right col-base">Base Imp.</th>
-        <th class="text-right col-impuesto">IVA</th>
-        <th class="text-right col-impuesto">IT</th>
-        <th class="text-right col-impuesto">IUE</th>
-        <th class="text-right col-impuesto">RCIIVA</th>
-        <th class="text-right">Imp/Ret</th>
-        <th class="text-right col-total">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let d of paged">
-        <td class="col-sticky" data-label="Proveedor">
-          <span class="sticky-id">{{ d.U_RD_IdRD }}</span>
-          <span class="sticky-concepto">{{ d.U_RD_Prov || '—' }}</span>
-        </td>
-        <td class="text-center" data-label="Fecha">{{ d.U_RD_Fecha | ddmmyyyy }}</td>
-        <td class="mono-cell"   data-label="N° Doc.">{{ d.U_RD_NumDocumento || '—' }}</td>
-        <td class="mono-cell"   data-label="NIT">{{ d.U_RD_NIT || '—' }}</td>
-        <td class="text-right mono-cell" data-label="Importe">{{ d.U_RD_Importe | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell col-base" data-label="Base Imp.">
-          {{ (d.U_RD_Importe - (d.U_RD_Exento ?? 0) - d.U_ICE - (d.U_TASA ?? 0) - (d.U_RD_TasaCero ?? 0) - (d.U_GIFTCARD ?? 0)) | number:'1.2-2' }}
-        </td>
-        <td class="text-right mono-cell col-impuesto" data-label="IVA">
-          <span [class.imp-valor]="d.U_MontoIVA > 0">{{ d.U_MontoIVA | number:'1.2-2' }}</span>
-        </td>
-        <td class="text-right mono-cell col-impuesto" data-label="IT">
-          <span [class.imp-valor]="d.U_MontoIT > 0">{{ d.U_MontoIT | number:'1.2-2' }}</span>
-        </td>
-        <td class="text-right mono-cell col-impuesto" data-label="IUE">
-          <span [class.imp-valor]="d.U_MontoIUE > 0">{{ d.U_MontoIUE | number:'1.2-2' }}</span>
-        </td>
-        <td class="text-right mono-cell col-impuesto" data-label="RCIIVA">
-          <span [class.imp-valor]="d.U_MontoRCIVA > 0">{{ d.U_MontoRCIVA | number:'1.2-2' }}</span>
-        </td>
-        <td class="text-right mono-cell imp-ret-cell" data-label="Imp/Ret">{{ (d.U_RD_ImpRet ?? 0) | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-total" data-label="Total">{{ (d.U_RD_Total ?? 0) | number:'1.2-2' }}</td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr class="totals-row">
-        <td colspan="4" class="totals-label">Totales</td>
-        <td class="text-right mono-cell total-cell">{{ totalImporte   | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-base">{{ totalBaseImp   | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-impuesto">{{ totalIVA       | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-impuesto">{{ totalIT        | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-impuesto">{{ totalIUE       | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-impuesto">{{ totalRCIVA     | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell">{{ totalImpRet    | number:'1.2-2' }}</td>
-        <td class="text-right mono-cell total-cell col-total">{{ totalGeneral   | number:'1.2-2' }}</td>
-      </tr>
-    </tfoot>
-  </table>
-  </div><!-- /table-scroll-wrapper -->
-
-  <!-- Totales móvil específicos para impuestos -->
-  <div class="totals-mobile impuestos-totals" *ngIf="documentos.length > 0 && tablaActiva === 'impuestos'">
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">IVA</span>
-      <span class="totals-mobile-value">{{ totalIVA | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">IT</span>
-      <span class="totals-mobile-value">{{ totalIT | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">IUE</span>
-      <span class="totals-mobile-value">{{ totalIUE | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">RCIVA</span>
-      <span class="totals-mobile-value">{{ totalRCIVA | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-divider"></div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">Total General</span>
-      <span class="totals-mobile-value">{{ totalGeneral | number:'1.2-2' }}</span>
-    </div>
-  </div>
-
-  <div class="totals-mobile" *ngIf="documentos.length > 0 && tablaActiva !== 'impuestos'">
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">Importe</span>
-      <span class="totals-mobile-value">{{ totalImporte | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">ICE</span>
-      <span class="totals-mobile-value">{{ totalIVA | number:'1.2-2' }}</span>
-    </div>
-    <div class="totals-mobile-divider"></div>
-    <div class="totals-mobile-row">
-      <span class="totals-mobile-label">Total General</span>
-      <span class="totals-mobile-value grand-total">{{ totalGeneral | number:'1.2-2' }}</span>
-    </div>
-  </div>
-
-  <app-paginator *ngIf="documentos.length > 0"
-    [page]="page" [limit]="limit"
-    [total]="documentos.length" [totalPages]="totalPages"
-    (pageChange)="onPageChange($event)"
-    (limitChange)="onLimitChange($event)">
-  </app-paginator>
-
-
+</div>
 
 <!-- ── Modal Distribución Porcentual PRCTJ ── -->
 <app-prctj-modal
@@ -1303,28 +336,29 @@
 </app-rendicion-pdf-preview>
 
 <!-- ── Modal Adjuntos ── -->
-<div class="modal-backdrop" *ngIf="showAdjuntosModal && adjuntosDoc" (click)="cerrarAdjuntosModal()">
-  <div class="modal-card modal-card--adjuntos" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>
-        📎 Adjuntos - Documento N° {{ adjuntosDoc.U_RD_IdRD }}
-        <small>{{ adjuntosDoc.U_RD_Concepto }}</small>
-      </h3>
-      <button class="modal-close" (click)="cerrarAdjuntosModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div *ngIf="adjuntosLoading" class="loading">Cargando adjuntos...</div>
-      <app-adjuntos-list
-        *ngIf="!adjuntosLoading"
-        [idRendicion]="idRendicion"
-        [idRD]="adjuntosDoc.U_RD_IdRD"
-        [adjuntos]="adjuntosList"
-        [canEdit]="!isReadonly"
-        (adjuntoSubido)="onAdjuntoSubido($event)"
-        (adjuntoEliminado)="onAdjuntoEliminado($event)">
-      </app-adjuntos-list>
-    </div>
-  </div>
-</div>
-
-</div>
+<app-form-modal
+  [title]="'Adjuntos - Documento N° ' + (adjuntosDoc?.U_RD_IdRD || '')"
+  [subtitle]="adjuntosDoc?.U_RD_Concepto ?? null"
+  [isOpen]="showAdjuntosModal && !!adjuntosDoc"
+  [loading]="adjuntosLoading"
+  [isEditing]="false"
+  [submitDisabled]="true"
+  (save)="cerrarAdjuntosModal()"
+  (cancel)="cerrarAdjuntosModal()">
+  
+  <ng-template #formContent>
+    <app-adjuntos-list
+      *ngIf="!adjuntosLoading && adjuntosDoc"
+      [idRendicion]="idRendicion"
+      [idRD]="adjuntosDoc!.U_RD_IdRD"
+      [adjuntos]="adjuntosList"
+      [canEdit]="!isReadonly"
+      (adjuntoSubido)="onAdjuntoSubido($event)"
+      (adjuntoEliminado)="onAdjuntoEliminado($event)">
+    </app-adjuntos-list>
+  </ng-template>
+  
+  <ng-template #formFooter>
+    <button type="button" class="btn btn-ghost" (click)="cerrarAdjuntosModal()">Cerrar</button>
+  </ng-template>
+</app-form-modal>

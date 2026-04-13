@@ -3,20 +3,22 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { PermisosService } from './permisos.service';
-import { ToastService }    from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { Permiso, UsuarioSimple } from '../../models/permiso.model';
-import { Perfil } from '../../models/perfil.model';
-import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
-import { AuthService } from '../../auth/auth.service';
+import { ToastService }    from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { Permiso, UsuarioSimple } from '@models/permiso.model';
+import { Perfil } from '@models/perfil.model';
+import { SelectOption } from '@shared/app-select/app-select.component';
+import { AuthService } from '@auth/auth.service';
+
+import { PermisosFilterComponent, PermisosListComponent } from './components';
 
 @Component({
   standalone: true,
   selector: 'app-permisos',
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, AppSelectComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, PermisosFilterComponent, PermisosListComponent],
   templateUrl: './permisos.component.html',
   styleUrls: ['./permisos.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PermisosComponent implements OnInit {
 
@@ -193,4 +195,23 @@ export class PermisosComponent implements OnInit {
   }
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+
+  // ── Action Menu ───────────────────────────────────────────
+
+  getActionMenuItems(p: Permiso): any[] {
+    return [
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+        cssClass: 'danger',
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, p: Permiso): void {
+    if (actionId === 'delete') {
+      this.confirmRemove(p);
+    }
+  }
 }

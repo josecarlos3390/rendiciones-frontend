@@ -1,0 +1,59 @@
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center col-codigo">Cod. Perfil</th>
+        <th class="col-sap col-hide-tablet">Código SYS</th>
+        <th>Código Cuenta</th>
+        <th>Nombre Cuenta</th>
+        <th class="text-center col-hide-mobile">Cuenta Asociada</th>
+        <th class="col-acciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of paged">
+        <!-- Cod. Perfil -->
+        <td class="text-center col-codigo" data-label="Cod. Perfil">{{ c.U_IdPerfil }}</td>
+        
+        <!-- Código SYS (oculto en móvil) -->
+        <td class="col-mono col-hide-tablet" data-label="Código SYS">{{ c.U_CuentaSys }}</td>
+        
+        <!-- Código Cuenta -->
+        <td class="col-mono" data-label="Código Cuenta">{{ c.U_CuentaFormatCode }}</td>
+        
+        <!-- Nombre: Título principal -->
+        <td class="col-mobile-primary" data-label="Nombre Cuenta">{{ c.U_CuentaNombre }}</td>
+        
+        <!-- Cuenta Asociada (oculto en móvil pequeño) -->
+        <td class="text-center col-hide-mobile col-mobile-badge" data-label="Cuenta Asociada">
+          <app-status-badge [type]="c.U_CuentaAsociada === 'Y' ? 'success' : 'neutral'" [pill]="true">
+            {{ c.U_CuentaAsociada === 'Y' ? 'Sí' : 'No' }}
+          </app-status-badge>
+        </td>
+        
+        <!-- Acciones -->
+        <td class="col-acciones" data-label="Acciones">
+          <app-action-menu *ngIf="puedeEditar"
+            [actions]="getActionMenuItems(c)"
+            [itemLabel]="c.U_CuentaNombre"
+            (actionClick)="onActionClick($event, c)">
+          </app-action-menu>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-paginator
+    [page]="page" 
+    [limit]="limit" 
+    [total]="filteredCount" 
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)" 
+    (limitChange)="onLimitChange($event)">
+  </app-paginator>
+</div>

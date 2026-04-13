@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef, Input, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
@@ -22,13 +22,14 @@ interface ChatMensaje {
       (click)="toggleChat()"
       [class.open]="isOpen"
       [class.pulse]="!isOpen && unreadCount > 0"
+      [style.left]="fabLeft"
       title="Asistente de Rendiciones">
       <span class="fab-icon">🤖</span>
       <span class="fab-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
     </button>
 
     <!-- Panel del chat -->
-    <div class="chat-panel" *ngIf="isOpen" [@slideIn]>
+    <div class="chat-panel" *ngIf="isOpen" [style.left]="fabLeft">
       <!-- Header -->
       <div class="chat-header">
         <div class="header-info">
@@ -125,7 +126,7 @@ interface ChatMensaje {
     .chat-fab {
       position: fixed;
       bottom: 24px;
-      left: 24px;  /* ← Cambiado de right a left */
+      /* left es controlado dinámicamente por [style.left]="fabLeft" */
       width: 56px;
       height: 56px;
       border-radius: 50%;
@@ -139,7 +140,8 @@ interface ChatMensaje {
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease;
+      /* Sincroniza con la transición del sidebar (0.22s) + transform/opacity propios */
+      transition: left 0.22s cubic-bezier(.4,0,.2,1), transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
     }
 
     .chat-fab:hover { transform: scale(1.1); }
@@ -173,8 +175,9 @@ interface ChatMensaje {
       position: fixed;
       top: 60px;       /* justo debajo del header */
       bottom: 24px;
-      left: 24px;
+      /* left es controlado dinámicamente por [style.left]="fabLeft" */
       width: 380px;
+      max-width: calc(100vw - 48px); /* nunca más ancho que la pantalla menos márgenes */
       height: auto;    /* usa top+bottom en vez de altura fija */
       background: var(--bg-surface);
       border-radius: var(--radius-xl, 20px);
@@ -184,6 +187,8 @@ interface ChatMensaje {
       flex-direction: column;
       overflow: hidden;
       animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      /* Sincroniza con la transición del sidebar */
+      transition: left 0.22s cubic-bezier(.4,0,.2,1);
       border: 1px solid var(--border-color);
     }
 
@@ -609,15 +614,12 @@ interface ChatMensaje {
       color: var(--text-faint);
     }
 
-    @media (max-width: 480px) {
-      .chat-fab {
-        bottom: 16px;
-        left: 16px;
-      }
+    @media (max-width: 768px) {
+      /* En móvil, fabLeft devuelve '16px' — no hace falta override aquí */
       .chat-panel {
         top: 56px;     /* header mobile = 56px */
         bottom: 0;
-        left: 0;
+        left: 0 !important; /* en móvil ocupa todo el ancho */
         right: 0;
         width: 100%;
         border-radius: 0;
@@ -628,7 +630,10 @@ interface ChatMensaje {
     }
   `]
 })
-export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
+export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked, OnChanges {
+  /** Recibe el estado del sidebar desde el layout padre */
+  @Input() sidebarCollapsed = false;
+
   isOpen = false;
   iaEnabled = false;
   mensajes: ChatMensaje[] = [];
@@ -645,8 +650,30 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     private aiService: AiService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
   ) {}
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Marcar para verificación cuando el sidebar cambia para actualizar la posición
+    if (changes['sidebarCollapsed']) {
+      this.cdr.markForCheck();
+    }
+  }
+
+  /**
+   * Calcula el `left` del botón y el panel según el estado del sidebar.
+   * Usa la variable CSS --sidebar-width si está disponible, si no usa valores por defecto.
+   * - Desktop expandido : sidebar = 240px → left = 240 + 24 = 264px
+   * - Desktop colapsado : sidebar =  72px → left =  72 + 24 =  96px
+   * - Móvil             : sidebar =   0px → left = 24px
+   */
+  get fabLeft(): string {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      return '24px';
+    }
+    // Añade margen adicional para no tocar el borde del sidebar
+    const margin = 24;
+    return this.sidebarCollapsed ? `calc(72px + ${margin}px)` : `calc(240px + ${margin}px)`;
+  }
 
   ngOnInit() {
     // Suscribirse al estado de IA
@@ -654,7 +681,7 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       .pipe(takeUntil(this.destroy$))
       .subscribe(status => {
         this.iaEnabled = !!(status?.ia?.enabled && status?.ia?.configured);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       });
     
     // Cargar estado inicial si no está cargado
@@ -683,7 +710,7 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.cargarSugerencias();
       this.shouldScroll = true;
     }
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   cargarSugerencias() {
@@ -751,7 +778,7 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
         });
         this.isLoading = false;
         this.shouldScroll = true;
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.mensajes.push({
@@ -761,7 +788,7 @@ export class AiChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
         });
         this.isLoading = false;
         this.shouldScroll = true;
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       }
     });
   }

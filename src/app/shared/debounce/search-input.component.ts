@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
@@ -20,6 +20,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   selector: 'app-search-input',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="search-input-wrapper">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -86,7 +87,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
     .search-input {
       width: 100%;
       min-width: 0;
-      padding: 10px 40px 10px 40px;
+      padding: 10px 48px 10px 40px;
       font-size: var(--text-base);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);

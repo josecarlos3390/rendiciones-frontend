@@ -1,0 +1,346 @@
+// ═══════════════════════════════════════════════════════════════
+// DOCUMENT TABLE — Tabla de documentos de rendición
+// Móvil: Usa clases globales de _tables.scss
+// ═══════════════════════════════════════════════════════════════
+
+// ========================================
+// WRAPPER Y TABS
+// ========================================
+
+.table-wrapper {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg);
+  // overflow: hidden; // REMOVIDO - causa que los badges se corten
+}
+
+.table-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #f9fafb);
+}
+
+.table-tab {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted, #6b7280);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--text-primary, #111827);
+    background: var(--bg-hover, #f3f4f6);
+  }
+
+  &.active {
+    color: var(--primary-color, #6366f1);
+    border-bottom-color: var(--primary-color, #6366f1);
+    background: var(--bg-primary, #ffffff);
+  }
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+}
+
+// ========================================
+// TABLA BASE (Desktop)
+// ========================================
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #4b5563);
+    background: var(--bg-secondary, #f9fafb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+}
+
+// ========================================
+// COMPONENTES ESPECÍFICOS
+// ========================================
+
+.acciones-adjuntos-wrap {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  padding: 4px 8px;
+  min-height: 36px; // Asegurar altura suficiente para los botones
+}
+
+
+
+// Fix: Asegurar que el action menu se vea por encima de otros elementos
+::ng-deep .action-menu-dropdown {
+  z-index: 1000 !important;
+}
+
+// Botón adjuntos con contador integrado (versión inline)
+.btn-adjuntos {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-heading);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  
+  svg {
+    display: block;
+    flex-shrink: 0;
+  }
+  
+  &:hover {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-border);
+    color: var(--color-primary);
+  }
+}
+
+// Contador de adjuntos - Versión inline (siempre visible)
+.adjuntos-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sticky-id {
+  display: block;
+  font-weight: 500;
+}
+
+.sticky-concepto {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.sticky-code {
+  font-family: ui-monospace, monospace;
+  background: var(--bg-secondary, #f3f4f6);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.type-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-secondary, #f3f4f6);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.mono {
+  font-family: ui-monospace, monospace;
+}
+
+.total-cell {
+  font-weight: 600;
+}
+
+.col-total {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.col-base {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.col-reduccion {
+  color: var(--text-muted, #6b7280);
+}
+
+.col-impuesto .imp-valor {
+  color: var(--primary-color, #6366f1);
+  font-weight: 500;
+}
+
+// Vista Impuestos
+.impuestos-prov {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.impuestos-id {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.impuestos-nombre {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+}
+
+.imp-valor-iva.con-valor {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+// Footer
+tfoot {
+  background: var(--bg-secondary, #f9fafb);
+
+  .totals-label {
+    font-weight: 600;
+    color: var(--text-secondary, #4b5563);
+  }
+}
+
+// ========================================
+// RESPONSIVE MÓVIL — Clases globales manejan el layout
+// Solo estilos específicos complementarios
+// ========================================
+
+@media (max-width: 640px) {
+  // Ocultar tfoot en móvil
+  tfoot { display: none; }
+  
+  // Vista Documentos: El título ya usa col-mobile-primary
+  // Solo ajustes específicos si son necesarios
+  td.col-sticky {
+    .sticky-id {
+      font-size: 15px;
+      font-weight: var(--weight-semibold);
+    }
+  }
+  
+  // Vista Impuestos: Ajustes específicos
+  td.col-prov {
+    .impuestos-id {
+      font-size: 15px;
+      font-weight: var(--weight-semibold);
+    }
+  }
+}
+
+// ========================================
+// DARK MODE
+// ========================================
+
+:host-context([data-theme="dark"]) {
+  .table-wrapper {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .table-tabs {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .table-tab {
+    color: #9ca3af;
+
+    &:hover {
+      color: #f9fafb;
+      background: #374151;
+    }
+
+    &.active {
+      color: #818cf8;
+      border-bottom-color: #818cf8;
+      background: #1f2937;
+    }
+  }
+
+  .data-table th {
+    color: #9ca3af;
+    background: #111827;
+    border-bottom-color: #374151;
+  }
+
+  .data-table td {
+    border-bottom-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .sticky-id {
+    color: #f9fafb;
+  }
+
+  .sticky-concepto {
+    color: #9ca3af;
+  }
+
+  .sticky-code {
+    background: #374151;
+    color: #e5e7eb;
+  }
+
+  .type-tag {
+    background: #374151;
+    color: #e5e7eb;
+  }
+
+  .col-reduccion {
+    color: #9ca3af;
+  }
+
+  tfoot {
+    background: #111827;
+  }
+
+  .totals-label {
+    color: #9ca3af;
+  }
+
+  .col-total {
+    background: rgba(129, 140, 248, 0.1);
+  }
+
+  .col-base {
+    background: rgba(96, 165, 250, 0.1);
+  }
+
+  .impuestos-id {
+    color: #f9fafb;
+  }
+
+  .impuestos-nombre {
+    color: #9ca3af;
+  }
+
+  .imp-valor-iva.con-valor {
+    color: #60a5fa;
+  }
+}

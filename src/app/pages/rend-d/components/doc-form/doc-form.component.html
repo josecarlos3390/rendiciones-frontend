@@ -1,0 +1,286 @@
+<app-form-modal
+  [title]="isEditing ? 'Editar Documento' : 'Nuevo Documento'"
+  [subtitle]="subtitle"
+  [isOpen]="isOpen"
+  [loading]="isSaving"
+  [isEditing]="isEditing"
+  [isDirty]="isDirty"
+  [wide]="true"
+  [submitDisabled]="form.invalid"
+  [tabs]="tabs"
+  [activeTab]="activeTab"
+  [showTabNav]="true"
+  (tabChange)="onTabChange($event)"
+  (save)="onSave()"
+  (cancel)="onCancel()">
+  
+  <ng-template #formContent>
+    <form [formGroup]="form" (ngSubmit)="onSave()" novalidate *ngIf="form">
+      <div class="modal-body">
+
+        <!-- ══ PESTAÑA 1: IDENTIFICACIÓN ══ -->
+        <div class="tab-panel" [class.active]="activeTab === 'doc'" *ngIf="activeTab === 'doc'">
+          <div class="doc-grid">
+            <!-- Cuenta -->
+            <div class="form-field cuenta-field">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [cueCar]="config.cueCar"
+                [cueTexto]="config.cueTexto"
+                [listaCuentas]="config.listaCuentas"
+                [initialCode]="form.get('cuenta')?.value"
+                [initialName]="form.get('nombreCuenta')?.value"
+                placeholder="— Buscar cuenta —"
+                (cuentaChange)="onCuentaChange($event)">
+              </app-cuenta-search>
+            </div>
+
+            <!-- Fecha -->
+            <div class="form-field">
+              <label>Fecha <span class="required">*</span></label>
+              <input type="date" formControlName="fecha" />
+            </div>
+
+            <!-- Tipo Documento -->
+            <div class="form-field col-span-2">
+              <label>Tipo Documento <span class="required">*</span></label>
+              <app-select
+                label="Tipo"
+                placeholder="Seleccione tipo de documento"
+                [searchable]="false"
+                [options]="config.tipoDocOptions"
+                [value]="form.get('tipoDoc')?.value"
+                (valueChange)="onTipoDocChange($event)">
+              </app-select>
+            </div>
+
+            <!-- Nro Documento -->
+            <div class="form-field col-span-2">
+              <label>Nro Documento</label>
+              <input type="text" formControlName="numDocumento" maxlength="20" placeholder="0" autocomplete="off" />
+            </div>
+
+            <!-- Toggle Facturación en Línea -->
+            <div class="form-field col-span-2 toggle-field">
+              <label class="toggle-label">
+                <span class="toggle-label-text">Facturación en Línea</span>
+                <label class="u-toggle">
+                  <input type="checkbox" [checked]="facturaLinea" (change)="onToggleFacturaLinea()" />
+                  <span class="u-toggle-slider"></span>
+                </label>
+              </label>
+            </div>
+
+            <!-- CUF -->
+            <div class="form-field col-span-2" [class.field-disabled]="!facturaLinea">
+              <label>CUF</label>
+              <input type="text" formControlName="cuf" maxlength="250" placeholder="Factura electrónica" autocomplete="off" />
+            </div>
+
+            <!-- Proveedor -->
+            <div class="form-field col-span-2">
+              <label>Proveedor</label>
+              <div class="prov-row">
+                <app-proveedor-search
+                  [proCar]="config.proCar"
+                  [proTexto]="config.proTexto"
+                  [initialCode]="form.get('codProv')?.value"
+                  [selected]="proveedorSeleccionado"
+                  placeholder="— Buscar proveedor —"
+                  (proveedorChange)="onProveedorChange($event)">
+                </app-proveedor-search>
+                <button type="button" class="btn-nuevo-prov" title="Registrar proveedor eventual" (click)="onNuevoProv()">+</button>
+              </div>
+            </div>
+
+            <!-- Nro Autorización -->
+            <div class="form-field col-span-2" [class.field-disabled]="facturaLinea">
+              <label>Nro Autorización</label>
+              <input type="text" formControlName="nroAutor" maxlength="250" placeholder="0" autocomplete="off" />
+            </div>
+
+            <!-- Código de Control -->
+            <div class="form-field col-span-2" [class.field-disabled]="facturaLinea">
+              <label>Código de Control</label>
+              <input type="text" formControlName="ctrl" maxlength="25" placeholder="0" autocomplete="off" />
+            </div>
+
+            <!-- Concepto -->
+            <div class="form-field col-span-4 concepto-field">
+              <label>Concepto <span class="required">*</span></label>
+              <div class="concepto-input-row">
+                <input type="text" formControlName="concepto" maxlength="250" placeholder="Descripción del gasto" autocomplete="off" />
+                <!-- Botón IA -->
+                <button 
+                  type="button" 
+                  class="btn-ia-sugerencia"
+                  [class.loading]="iaLoading"
+                  [disabled]="iaLoading || !puedeSolicitarIA()"
+                  (click)="solicitarSugerenciaIA()"
+                  title="Sugerir cuenta y dimensiones con IA">
+                  <span *ngIf="!iaLoading" class="ia-icon">🤖</span>
+                  <span *ngIf="iaLoading" class="ia-spinner"></span>
+                  <span class="ia-text">IA</span>
+                </button>
+              </div>
+              <!-- Tarjeta de sugerencia IA pendiente -->
+              <div class="ia-sugerencia-card" *ngIf="tieneSugerenciaPendiente">
+                <div class="ia-sugerencia-header">
+                  <span class="ia-icon">🤖</span>
+                  <span class="ia-titulo">Sugerencia de IA</span>
+                  <span class="ia-confianza">{{ iaSugerenciaPendiente?.confianza }}% confianza</span>
+                </div>
+                <div class="ia-sugerencia-body">
+                  <div class="ia-sugerencia-item" *ngIf="iaSugerenciaPendiente?.cuenta">
+                    <span class="ia-label">Cuenta Contable:</span>
+                    <span class="ia-valor">{{ iaSugerenciaPendiente?.cuenta?.nombre }} ({{ iaSugerenciaPendiente?.cuenta?.codigo }})</span>
+                  </div>
+                  <div class="ia-sugerencia-item" *ngIf="iaSugerenciaPendiente?.tipoDoc">
+                    <span class="ia-label">Tipo de Documento:</span>
+                    <span class="ia-valor">{{ iaSugerenciaPendiente?.tipoDoc?.nombre }}</span>
+                  </div>
+                  <div class="ia-sugerencia-item" *ngIf="iaSugerenciaPendiente?.dimensiones?.length">
+                    <span class="ia-label">Dimensiones:</span>
+                    <span class="ia-valor">{{ iaSugerenciaPendiente?.dimensiones?.join(', ') }}</span>
+                  </div>
+                </div>
+                <div class="ia-sugerencia-footer">
+                  <button type="button" class="btn btn-sm btn-ghost" (click)="rechazarSugerenciaIA()">
+                    Rechazar
+                  </button>
+                  <button type="button" class="btn btn-sm btn-primary" (click)="aceptarSugerenciaIA()">
+                    ✓ Aplicar sugerencia
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Mensaje de sugerencia aplicada -->
+              <div class="ia-sugerencia-aplicada" *ngIf="iaSugerenciaMensaje">
+                <span class="ia-badge">{{ iaSugerenciaMensaje }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PESTAÑA 2: MONTOS Y NORMAS ══ -->
+        <div class="tab-panel" [class.active]="activeTab === 'montos'" *ngIf="activeTab === 'montos'">
+          <div class="doc-grid">
+            <!-- Importe -->
+            <div class="form-field">
+              <label>Importe <span class="required">*</span></label>
+              <input type="number" formControlName="importe" min="0" step="0.01" />
+            </div>
+
+            <!-- Exento -->
+            <div class="form-field">
+              <label>Exento</label>
+              <input type="number" formControlName="exento" min="0" step="0.01" />
+            </div>
+
+            <!-- ICE -->
+            <div class="form-field">
+              <label>ICE</label>
+              <input type="number" formControlName="ice" min="0" step="0.01" />
+            </div>
+
+            <!-- TASA -->
+            <div class="form-field">
+              <label>Tasas</label>
+              <input type="number" formControlName="tasa" min="0" step="0.01" />
+            </div>
+
+            <!-- Tasa Cero -->
+            <div class="form-field">
+              <label>Tasa Cero</label>
+              <input type="number" formControlName="tasaCero" min="0" step="0.01" />
+            </div>
+
+            <!-- GiftCard -->
+            <div class="form-field">
+              <label>GiftCard</label>
+              <input type="number" formControlName="giftCard" min="0" step="0.01" />
+            </div>
+
+            <!-- Descuento -->
+            <div class="form-field">
+              <label>Descuento</label>
+              <input type="number" formControlName="descuento" min="0" step="0.01" />
+            </div>
+
+            <!-- Campos de dimensiones/normas N1-N5 -->
+            <ng-container *ngFor="let slot of config.normaSlots">
+              <div class="form-field col-span-2" *ngIf="slot.dimensionId && slot.slot >= 1 && slot.slot <= 5">
+                <label>{{ slot.label }}</label>
+                <app-select
+                  [placeholder]="'Seleccione ' + slot.label"
+                  [searchable]="true"
+                  [options]="slot.rules"
+                  [value]="form.get('n' + slot.slot)?.value"
+                  (valueChange)="onDimensionChange(slot.slot, $event)">
+                </app-select>
+              </div>
+            </ng-container>
+
+            <!-- Proyecto -->
+            <div class="form-field col-span-2">
+              <label>Proyecto</label>
+              <app-project-search
+                [initialCode]="form.get('proyecto')?.value"
+                [initialName]="form.get('proyecto')?.value"
+                placeholder="— Buscar proyecto —"
+                (projectChange)="onProjectChange($event)">
+              </app-project-search>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PESTAÑA 3: CÁLCULO IMPUESTOS ══ -->
+        <div class="tab-panel" [class.active]="activeTab === 'impuestos'" *ngIf="activeTab === 'impuestos'">
+          <div class="calc-grid">
+            <div class="calc-section">
+              <h4>Detalle de Impuestos</h4>
+              
+              <div class="calc-row">
+                <span class="calc-label">Base Imponible:</span>
+                <span class="calc-value">{{ baseImponible | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="calc-row">
+                <span class="calc-label">IVA ({{ form.get('iva')?.value || 0 }}%):</span>
+                <span class="calc-value">{{ montoIVA | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="calc-row">
+                <span class="calc-label">IT ({{ form.get('it')?.value || 0 }}%):</span>
+                <span class="calc-value">{{ montoIT | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="calc-row">
+                <span class="calc-label">IUE ({{ form.get('iue')?.value || 0 }}%):</span>
+                <span class="calc-value">{{ montoIUE | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="calc-row">
+                <span class="calc-label">RC-IVA ({{ form.get('rciva')?.value || 0 }}%):</span>
+                <span class="calc-value">{{ montoRCIVA | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="calc-divider"></div>
+              
+              <div class="calc-row total">
+                <span class="calc-label">Total Impuestos/Retenciones:</span>
+                <span class="calc-value">{{ totalImpuestos | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="calc-row grand-total">
+                <span class="calc-label">Total Documento:</span>
+                <span class="calc-value">{{ totalCalculado | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  </ng-template>
+</app-form-modal>

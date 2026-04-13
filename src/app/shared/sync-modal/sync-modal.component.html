@@ -1,0 +1,174 @@
+<div class="sync-modal-backdrop" *ngIf="visible" (click)="close()">
+  <div class="sync-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header" [class.sync-retry-mode]="isRetry">
+      <h3>
+        <!-- Icono diferente para reintento -->
+        <svg *ngIf="!isRetry" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+          <path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/>
+        </svg>
+        <svg *ngIf="isRetry" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        {{ title }}
+        <span class="rend-id-badge" [class.error-badge]="isRetry" *ngIf="config">N° {{ config.idRendicion }}</span>
+      </h3>
+      <button class="modal-close" type="button" (click)="close()">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body" *ngIf="!result?.show">
+      <!-- Info de la rendición -->
+      <div class="sync-info" *ngIf="config">
+        <div class="info-row">
+          <span class="info-label">Objetivo</span>
+          <span class="info-value">{{ config.objetivo || '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Monto</span>
+          <span class="info-value mono-cell">{{ config.monto | number:'1.2-2' }} Bs</span>
+        </div>
+        <!-- Mostrar estado cuando es reintento -->
+        <div class="info-row" *ngIf="isRetry">
+          <span class="info-label">Estado</span>
+          <span class="info-value" style="color: var(--color-danger);">ERROR SYNC</span>
+        </div>
+      </div>
+
+      <!-- Credenciales SAP -->
+      <div class="sync-credentials">
+        <div class="form-group">
+          <label class="form-label">Usuario SAP</label>
+          <input
+            type="text"
+            class="form-input"
+            [(ngModel)]="sapUser"
+            placeholder="Ingrese usuario SAP"
+            [disabled]="loading"
+            (keyup.enter)="confirm()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña SAP</label>
+          <div class="password-input-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="form-input"
+              [(ngModel)]="sapPassword"
+              placeholder="Ingrese contraseña SAP"
+              [disabled]="loading"
+              (keyup.enter)="confirm()">
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePassword()"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <svg *ngIf="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error de validación -->
+      <div class="sync-error" *ngIf="error">
+        <span class="error-icon">⚠</span> {{ error }}
+      </div>
+
+      <!-- Info banner -->
+      <div class="info-banner" [class.info-neutral]="!isRetry" [class.info-warning]="isRetry">
+        <span>ℹ</span>
+        <span *ngIf="!isRetry">Se generará un <strong>asiento preliminar</strong> en SAP Business One.</span>
+        <span *ngIf="isRetry">Esta rendición tiene un <strong>error previo de sincronización</strong>. Se intentará nuevamente crear el asiento en SAP.</span>
+      </div>
+
+      <!-- Loading -->
+      <div class="sync-loading" *ngIf="loading">
+        <div class="spinner"></div>
+        <span>{{ isRetry ? 'Reintentando sincronización con SAP...' : 'Sincronizando con SAP Business One...' }}</span>
+      </div>
+    </div>
+
+    <!-- Resultado de sincronización -->
+    <div class="modal-body" *ngIf="result?.show">
+      <div class="sync-result" [class.sync-success]="result?.success" [class.sync-error]="!result?.success">
+        <div class="result-icon">
+          <!-- Icono éxito -->
+          <svg *ngIf="result?.success" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 12l2 2 4-4"/>
+          </svg>
+          <!-- Icono error -->
+          <svg *ngIf="!result?.success" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div class="result-content">
+          <h4 *ngIf="result?.success">¡Sincronización Exitosa!</h4>
+          <h4 *ngIf="!result?.success">Error de Sincronización</h4>
+          
+          <p *ngIf="result?.success && result?.nroDocERP" class="result-doc">
+            Asiento Preliminar SAP: <strong>N° {{ result?.nroDocERP }}</strong>
+          </p>
+          <p *ngIf="result?.success && !result?.nroDocERP" class="result-doc">
+            Rendición sincronizada correctamente
+          </p>
+          
+          <p *ngIf="!result?.success && result?.mensaje" class="result-error-msg">
+            {{ result?.mensaje }}
+          </p>
+          
+          <p *ngIf="result?.success" class="result-hint">
+            El modal se cerrará automáticamente en unos segundos...
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer normal -->
+    <div class="modal-footer" *ngIf="!result?.show">
+      <button
+        class="btn btn-secondary"
+        type="button"
+        [disabled]="loading"
+        (click)="close()">
+        Cancelar
+      </button>
+      <button
+        [class]="isRetry ? 'btn btn-warning' : 'btn btn-success'"
+        type="button"
+        [disabled]="loading"
+        (click)="confirm()">
+        <span *ngIf="loading">{{ isRetry ? 'Reintentando...' : 'Sincronizando...' }}</span>
+        <span *ngIf="!loading">
+          <!-- Icono diferente para reintento -->
+          <svg *ngIf="isRetry" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <svg *ngIf="!isRetry" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+            <path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/>
+          </svg>
+          {{ isRetry ? 'Reintentar Sincronización' : 'Confirmar Sincronización' }}
+        </span>
+      </button>
+    </div>
+
+    <!-- Footer alternativo cuando hay resultado -->
+    <div class="modal-footer" *ngIf="result?.show">
+      <button
+        class="btn btn-secondary"
+        type="button"
+        (click)="close()">
+        {{ result?.success ? 'Cerrar' : 'Aceptar' }}
+      </button>
+      <button
+        *ngIf="!result?.success"
+        class="btn btn-warning"
+        type="button"
+        (click)="retry()">
+        Intentar Nuevamente
+      </button>
+    </div>
+  </div>
+</div>

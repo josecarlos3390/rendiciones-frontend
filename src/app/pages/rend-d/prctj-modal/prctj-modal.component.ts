@@ -11,6 +11,7 @@ import { PrctjService }              from '../prctj.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../../core/confirm-dialog/confirm-dialog.component';
 import { SapService, DimensionWithRules } from '../../../services/sap.service';
 import { CuentaSearchComponent }     from '../../../shared/cuenta-search/cuenta-search.component';
+import { FormModalComponent } from '../../../shared/form-modal';
 import { RendD }                     from '../../../models/rend-d.model';
 import { PrctjLineaForm }            from '../../../models/prctj.model';
 
@@ -18,156 +19,145 @@ import { PrctjLineaForm }            from '../../../models/prctj.model';
   standalone: true,
   selector:   'app-prctj-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CuentaSearchComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, CuentaSearchComponent, ConfirmDialogComponent, FormModalComponent],
   template: `
-<div class="modal-backdrop" (click)="cancel()">
-  <div class="modal-card modal-card-lg prctj-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <!-- Cabecera -->
-    <div class="modal-header">
-      <div>
-        <h3>⚖ Distribución porcentual</h3>
-        <p class="modal-subtitle" *ngIf="doc">
-          Línea {{ doc.U_RD_IdRD }} — {{ doc.U_RD_Concepto }}
-          &nbsp;<span class="doc-meta-value">{{ importeBase | number:'1.2-2' }} Bs</span>
-        </p>
-      </div>
-      <button class="modal-close" type="button" (click)="cancel()">✕</button>
+<app-form-modal
+  [title]="'Distribución porcentual'"
+  [subtitle]="doc ? 'Línea ' + doc.U_RD_IdRD + ' — ' + doc.U_RD_Concepto + ' (' + (importeBase | number:'1.2-2') + ' Bs)' : null"
+  [isOpen]="true"
+  [loading]="isSaving"
+  [isEditing]="tieneDistribucion"
+  [wide]="true"
+  [submitDisabled]="!puedeGuardar"
+  (save)="guardar()"
+  (cancel)="cancel()">
+  
+  <ng-template #formContent>
+    <!-- Info de ayuda -->
+    <div class="prctj-help">
+      <span class="help-icon">ℹ</span>
+      Dividí el gasto entre varios centros de costo. Los porcentajes deben sumar exactamente 100%.
     </div>
 
-    <!-- Cuerpo -->
-    <div class="modal-body">
+    <!-- Validación de suma -->
+    <div class="pct-summary" [class.pct-ok]="totalPct === 100" [class.pct-error]="totalPct !== 100">
+      <span class="pct-label">Total:</span>
+      <span class="pct-value">{{ totalPct | number:'1.2-2' }}%</span>
+      <span class="pct-hint" *ngIf="totalPct !== 100">
+        {{ totalPct < 100 ? 'Falta ' + (100 - totalPct | number:'1.2-2') + '%' : 'Excede ' + (totalPct - 100 | number:'1.2-2') + '%' }}
+      </span>
+      <span class="pct-hint ok" *ngIf="totalPct === 100">✓ Correcto</span>
+    </div>
 
-      <!-- Info de ayuda -->
-      <div class="prctj-help">
-        <span class="help-icon">ℹ</span>
-        Dividí el gasto entre varios centros de costo. Los porcentajes deben sumar exactamente 100%.
-      </div>
+    <!-- Tabla de líneas -->
+    <div class="prctj-table-wrapper">
+      <table class="prctj-table">
+        <thead>
+          <tr>
+            <th class="col-pct">%</th>
+            <th class="col-monto">Monto</th>
+            <th class="col-cuenta">Cuenta</th>
+            <ng-container *ngFor="let dim of dimensiones">
+              <th class="col-dim">{{ dim.dimensionName }}</th>
+            </ng-container>
+            <th *ngIf="dimensiones.length === 0" class="col-dim">Centro de costo</th>
+            <th class="col-proyecto">Proyecto</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let l of lineas; let i = index" [class.row-error]="l.porcentaje <= 0 || !l.cuenta">
+            <!-- Porcentaje -->
+            <td class="col-pct">
+              <input type="number" class="input-pct"
+                [(ngModel)]="l.porcentaje"
+                (ngModelChange)="recalcular(i)"
+                min="0.01" max="100" step="0.01"
+                placeholder="0" />
+            </td>
+            <!-- Monto calculado -->
+            <td class="col-monto mono">
+              {{ calcMonto(l.porcentaje) | number:'1.2-2' }}
+            </td>
+            <!-- Cuenta -->
+            <td class="col-cuenta">
+              <app-cuenta-search
+                [initialCode]="l.cuenta"
+                [initialName]="l.nomCuenta"
+                (cuentaChange)="onCuentaChange(i, $event)">
+              </app-cuenta-search>
+            </td>
+            <!-- Dimensiones dinámicas -->
+            <ng-container *ngFor="let dim of dimensiones; let di = index">
+              <td class="col-dim">
+                <select class="input-select"
+                  [ngModel]="getDimValue(l, di)"
+                  (ngModelChange)="setDimValue(i, di, $event)">
+                  <option value="">— —</option>
+                  <option *ngFor="let r of dim.rules" [value]="r.factorCode">
+                    {{ r.factorCode }} - {{ r.factorDescription }}
+                  </option>
+                </select>
+              </td>
+            </ng-container>
+            <td *ngIf="dimensiones.length === 0" class="col-dim">
+              <input type="text" class="input-text" [(ngModel)]="l.n1" placeholder="CC" maxlength="100" />
+            </td>
+            <!-- Proyecto -->
+            <td class="col-proyecto">
+              <input type="text" class="input-text" [(ngModel)]="l.proyecto" placeholder="Proyecto" maxlength="100" />
+            </td>
+            <!-- Eliminar -->
+            <td class="col-del">
+              <button type="button" class="btn-del" title="Eliminar línea" (click)="removeLinea(i)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
 
-      <!-- Validación de suma -->
-      <div class="pct-summary" [class.pct-ok]="totalPct === 100" [class.pct-error]="totalPct !== 100">
-        <span class="pct-label">Total:</span>
-        <span class="pct-value">{{ totalPct | number:'1.2-2' }}%</span>
-        <span class="pct-hint" *ngIf="totalPct !== 100">
-          {{ totalPct < 100 ? 'Falta ' + (100 - totalPct | number:'1.2-2') + '%' : 'Excede ' + (totalPct - 100 | number:'1.2-2') + '%' }}
-        </span>
-        <span class="pct-hint ok" *ngIf="totalPct === 100">✓ Correcto</span>
-      </div>
+          <!-- Fila vacía si no hay líneas -->
+          <tr *ngIf="lineas.length === 0">
+            <td colspan="10" class="empty-row">No hay líneas — agregá al menos una.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <!-- Tabla de líneas -->
-      <div class="prctj-table-wrapper">
-        <table class="prctj-table">
-          <thead>
-            <tr>
-              <th class="col-pct">%</th>
-              <th class="col-monto">Monto</th>
-              <th class="col-cuenta">Cuenta</th>
-              <ng-container *ngFor="let dim of dimensiones">
-                <th class="col-dim">{{ dim.dimensionName }}</th>
-              </ng-container>
-              <th *ngIf="dimensiones.length === 0" class="col-dim">Centro de costo</th>
-              <th class="col-proyecto">Proyecto</th>
-              <th class="col-del"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let l of lineas; let i = index" [class.row-error]="l.porcentaje <= 0 || !l.cuenta">
-              <!-- Porcentaje -->
-              <td class="col-pct">
-                <input type="number" class="input-pct"
-                  [(ngModel)]="l.porcentaje"
-                  (ngModelChange)="recalcular(i)"
-                  min="0.01" max="100" step="0.01"
-                  placeholder="0" />
-              </td>
-              <!-- Monto calculado -->
-              <td class="col-monto mono">
-                {{ calcMonto(l.porcentaje) | number:'1.2-2' }}
-              </td>
-              <!-- Cuenta -->
-              <td class="col-cuenta">
-                <app-cuenta-search
-                  [initialCode]="l.cuenta"
-                  [initialName]="l.nomCuenta"
-                  (cuentaChange)="onCuentaChange(i, $event)">
-                </app-cuenta-search>
-              </td>
-              <!-- Dimensiones dinámicas -->
-              <ng-container *ngFor="let dim of dimensiones; let di = index">
-                <td class="col-dim">
-                  <select class="input-select"
-                    [ngModel]="getDimValue(l, di)"
-                    (ngModelChange)="setDimValue(i, di, $event)">
-                    <option value="">— —</option>
-                    <option *ngFor="let r of dim.rules" [value]="r.factorCode">
-                      {{ r.factorCode }} - {{ r.factorDescription }}
-                    </option>
-                  </select>
-                </td>
-              </ng-container>
-              <td *ngIf="dimensiones.length === 0" class="col-dim">
-                <input type="text" class="input-text" [(ngModel)]="l.n1" placeholder="CC" maxlength="100" />
-              </td>
-              <!-- Proyecto -->
-              <td class="col-proyecto">
-                <input type="text" class="input-text" [(ngModel)]="l.proyecto" placeholder="Proyecto" maxlength="100" />
-              </td>
-              <!-- Eliminar -->
-              <td class="col-del">
-                <button type="button" class="btn-del" title="Eliminar línea" (click)="removeLinea(i)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-
-            <!-- Fila vacía si no hay líneas -->
-            <tr *ngIf="lineas.length === 0">
-              <td colspan="10" class="empty-row">No hay líneas — agregá al menos una.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Botón agregar -->
-      <button type="button" class="btn-add-linea" (click)="addLinea()">
-        + Agregar línea
+    <!-- Botón agregar -->
+    <button type="button" class="btn-add-linea" (click)="addLinea()">
+      + Agregar línea
+    </button>
+  </ng-template>
+  
+  <ng-template #formFooter>
+    <div class="footer-left">
+      <button type="button" class="btn btn-ghost btn-sm"
+        *ngIf="tieneDistribucion"
+        title="Eliminar toda la distribución"
+        (click)="eliminarTodo()">
+        🗑 Quitar distribución
       </button>
-
     </div>
-
-    <!-- Footer -->
-    <div class="modal-footer">
-      <div class="footer-left">
-        <button type="button" class="btn btn-ghost btn-sm"
-          *ngIf="tieneDistribucion"
-          title="Eliminar toda la distribución"
-          (click)="eliminarTodo()">
-          🗑 Quitar distribución
-        </button>
-      </div>
-      <div class="footer-right">
-        <button type="button" class="btn btn-ghost" (click)="cancel()">Cancelar</button>
-        <button type="button" class="btn btn-primary"
-          [disabled]="!puedeGuardar || isSaving"
-          (click)="guardar()">
-          {{ isSaving ? 'Guardando...' : 'Guardar distribución' }}
-        </button>
-      </div>
+    <div class="footer-right">
+      <button type="button" class="btn btn-ghost" (click)="cancel()">Cancelar</button>
+      <button type="button" class="btn btn-primary"
+        [disabled]="!puedeGuardar || isSaving"
+        (click)="guardar()">
+        {{ isSaving ? 'Guardando...' : 'Guardar distribución' }}
+      </button>
     </div>
+  </ng-template>
+</app-form-modal>
 
-  </div>
-
-  <!-- Confirm dialog: quitar distribucion -->
-  <app-confirm-dialog
-    [config]="dialogConfig"
-    [visible]="showDialog"
-    (confirmed)="onDialogConfirm()"
-    (cancelled)="onDialogCancel()">
-  </app-confirm-dialog>
-
-</div>
+<!-- Confirm dialog: quitar distribucion -->
+<app-confirm-dialog
+  [config]="dialogConfig"
+  [visible]="showDialog"
+  (confirmed)="onDialogConfirm()"
+  (cancelled)="onDialogCancel()">
+</app-confirm-dialog>
   `,
   styles: [`
     .prctj-card {

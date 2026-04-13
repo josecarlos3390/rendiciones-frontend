@@ -10,93 +10,88 @@
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
 
-<!-- ── Modal ──────────────────────────────────────────────────── -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="offline-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <div class="modal-header">
-      <h3>
-        {{ editingItem ? 'Editar — ' + editingItem.COA_CODE : 'Nueva Cuenta Contable' }}
-        <span class="dirty-badge" *ngIf="editingItem && isDirty">● cambios sin guardar</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
+<!-- ── Modal con FormModalComponent ─────────────────────────── -->
+<app-form-modal
+  [title]="'Cuenta Contable'"
+  [subtitle]="editingItem ? editingItem.COA_CODE : null"
+  [isOpen]="showForm"
+  [loading]="isSaving"
+  [isEditing]="editingItem !== null"
+  [isDirty]="isDirty"
+  [submitDisabled]="form.invalid"
+  (save)="save()"
+  (cancel)="closeForm()">
+  
+  <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-      <div class="modal-body">
+      
+      <div class="form-section-label">Datos de la cuenta</div>
 
-        <div class="form-section-label">Datos de la cuenta</div>
+      <div class="form-row">
+        <app-form-field 
+          label="Código" 
+          [required]="true"
+          controlName="COA_CODE"
+          [showChanged]="editingItem !== null"
+          [initialValue]="initialValues?.COA_CODE">
+          <input type="text" formControlName="COA_CODE"
+            placeholder="1.1.01.001" maxlength="50" autocomplete="off" />
+        </app-form-field>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label>Código <span class="required">*</span></label>
-            <input type="text" formControlName="COA_CODE"
-              placeholder="1.1.01.001" maxlength="50" autocomplete="off" />
-            <span class="field-error"
-              *ngIf="form.get('COA_CODE')?.invalid && form.get('COA_CODE')?.touched">
-              Obligatorio
-            </span>
-          </div>
-          <div class="form-field">
-            <label>Código Formato</label>
-            <input type="text" formControlName="COA_FORMAT_CODE"
-              placeholder="110100001" maxlength="50" autocomplete="off" />
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label>Nombre <span class="required">*</span></label>
-          <input type="text" formControlName="COA_NAME"
-            placeholder="Caja y Bancos" maxlength="250" autocomplete="off" />
-          <span class="field-error"
-            *ngIf="form.get('COA_NAME')?.invalid && form.get('COA_NAME')?.touched">
-            Obligatorio
-          </span>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label>¿Es cuenta asociada?</label>
-            <app-select
-              label="Asociada"
-              [searchable]="false"
-              [options]="siNoOptions"
-              [value]="form.get('COA_ASOCIADA')?.value"
-              (valueChange)="form.get('COA_ASOCIADA')?.setValue($event)">
-            </app-select>
-            <span class="field-hint">Cuenta asociada no permite ingreso manual en el detalle.</span>
-          </div>
-          <div class="form-field">
-            <label>¿Activa?</label>
-            <app-select
-              label="Activa"
-              [searchable]="false"
-              [options]="activaOptions"
-              [value]="form.get('COA_ACTIVA')?.value"
-              (valueChange)="form.get('COA_ACTIVA')?.setValue($event)">
-            </app-select>
-          </div>
-        </div>
-
+        <app-form-field 
+          label="Código Formato"
+          controlName="COA_FORMAT_CODE"
+          [showChanged]="editingItem !== null"
+          [initialValue]="initialValues?.COA_FORMAT_CODE">
+          <input type="text" formControlName="COA_FORMAT_CODE"
+            placeholder="110100001" maxlength="50" autocomplete="off" />
+        </app-form-field>
       </div>
 
-      <div class="modal-footer">
-        <ng-container *ngIf="isDirty; else noChanges">
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-          <button type="submit"
-            [class]="editingItem ? 'btn btn-save-changes' : 'btn btn-primary'"
-            [disabled]="form.invalid || isSaving">
-            <span *ngIf="isSaving">Guardando...</span>
-            <span *ngIf="!isSaving">{{ editingItem ? '💾 Guardar cambios' : 'Crear Cuenta' }}</span>
-          </button>
-        </ng-container>
-        <ng-template #noChanges>
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
-        </ng-template>
+      <app-form-field 
+        label="Nombre" 
+        [required]="true"
+        controlName="COA_NAME"
+        [showChanged]="editingItem !== null"
+        [initialValue]="initialValues?.COA_NAME">
+        <input type="text" formControlName="COA_NAME"
+          placeholder="Caja y Bancos" maxlength="250" autocomplete="off" />
+      </app-form-field>
+
+      <div class="form-row">
+        <app-form-field 
+          label="¿Es cuenta asociada?"
+          controlName="COA_ASOCIADA"
+          hint="Cuenta asociada no permite ingreso manual en el detalle."
+          [showChanged]="editingItem !== null"
+          [initialValue]="initialValues?.COA_ASOCIADA">
+          <label class="toggle-wrapper">
+            <input type="checkbox" 
+              [checked]="form.get('COA_ASOCIADA')?.value === 'Y'"
+              (change)="form.get('COA_ASOCIADA')?.setValue($event.target.checked ? 'Y' : 'N')" />
+            <span class="toggle-switch"></span>
+            <span class="toggle-label">{{ form.get('COA_ASOCIADA')?.value === 'Y' ? 'Sí' : 'No' }}</span>
+          </label>
+        </app-form-field>
+
+        <app-form-field 
+          label="¿Activa?"
+          controlName="COA_ACTIVA"
+          [showChanged]="editingItem !== null"
+          [initialValue]="initialValues?.COA_ACTIVA">
+          <label class="toggle-wrapper">
+            <input type="checkbox" 
+              [checked]="form.get('COA_ACTIVA')?.value === 'Y'"
+              (change)="form.get('COA_ACTIVA')?.setValue($event.target.checked ? 'Y' : 'N')" />
+            <span class="toggle-switch"></span>
+            <span class="toggle-label">{{ form.get('COA_ACTIVA')?.value === 'Y' ? 'Activa' : 'Inactiva' }}</span>
+          </label>
+        </app-form-field>
       </div>
+
     </form>
-  </div>
-</div>
+  </ng-template>
+</app-form-modal>
 
 <!-- ── Filtros ── -->
 <div class="filter-bar">
@@ -104,10 +99,10 @@
     <div class="filter-field">
       <label>Buscar</label>
       <div class="filter-search">
-        <span class="search-icon">🔍</span>
+
         <input type="text" class="search-input" placeholder="Buscar por código o nombre..."
           [(ngModel)]="search" (input)="applyFilter()" />
-        <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
+
       </div>
     </div>
     <div class="filter-field">
@@ -139,34 +134,49 @@
       <tr>
         <th>Código</th>
         <th>Nombre</th>
-        <th>Cód. Formato</th>
-        <th class="text-center">Asociada</th>
+        <th class="col-hide-tablet">Cód. Formato</th>
+        <th class="text-center col-hide-mobile">Asociada</th>
         <th class="text-center">Activa</th>
-        <th class="actions">Acciones</th>
+        <th class="col-acciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let c of paged">
-        <td><code class="code-cell">{{ c.COA_CODE }}</code></td>
-        <td class="col-nombre">{{ c.COA_NAME }}</td>
-        <td>{{ c.COA_FORMAT_CODE }}</td>
-        <td class="text-center">
-          <span class="bool-dot" [class.bool-dot--on]="c.COA_ASOCIADA === 'Y'"
-                                 [class.bool-dot--off]="c.COA_ASOCIADA !== 'Y'">
-          </span>
+        <!-- Código -->
+        <td data-label="Código"><code class="code-cell">{{ c.COA_CODE }}</code></td>
+        
+        <!-- Nombre: Título principal -->
+        <td class="col-nombre col-mobile-primary" data-label="Nombre">{{ c.COA_NAME }}</td>
+        
+        <!-- Formato (oculto en móvil) -->
+        <td class="col-hide-tablet" data-label="Formato">{{ c.COA_FORMAT_CODE }}</td>
+        
+        <!-- Asociada (oculto en móvil pequeño) -->
+        <td class="text-center col-hide-mobile" data-label="Asociada">
+          <app-status-badge [type]="c.COA_ASOCIADA === 'Y' ? 'success' : 'neutral'" [dot]="true">
+            {{ c.COA_ASOCIADA === 'Y' ? 'Sí' : 'No' }}
+          </app-status-badge>
         </td>
-        <td class="text-center">
-          <span class="bool-dot" [class.bool-dot--on]="c.COA_ACTIVA === 'Y'"
-                                 [class.bool-dot--off]="c.COA_ACTIVA !== 'Y'">
-          </span>
+        
+        <!-- Activa -->
+        <td class="text-center col-mobile-badge" data-label="Activa">
+          <app-status-badge [type]="c.COA_ACTIVA === 'Y' ? 'success' : 'neutral'" [dot]="true">
+            {{ c.COA_ACTIVA === 'Y' ? 'Activa' : 'Inactiva' }}
+          </app-status-badge>
         </td>
-        <td class="actions">
-          <button class="btn btn-icon btn-sm btn-ghost" title="Editar" (click)="openEdit(c)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar" (click)="confirmDelete(c)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          </button>
+        
+        <!-- Acciones -->
+        <td class="col-acciones" data-label="Acciones">
+          <app-action-menu
+            [actions]="getActionMenuItems(c)"
+            [itemLabel]="c.COA_CODE"
+            (actionClick)="onActionClick($event, c)">
+          </app-action-menu>
         </td>
       </tr>
     </tbody>

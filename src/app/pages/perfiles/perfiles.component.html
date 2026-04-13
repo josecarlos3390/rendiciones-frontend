@@ -10,18 +10,20 @@
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
 
-<!-- ── Modal ─────────────────────────────────────────────────── -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="user-modal perfil-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <div class="modal-header">
-      <h3>
-        {{ editingPerfil ? 'Editar Perfil — ' + editingPerfil.U_NombrePerfil : 'Nuevo Perfil' }}
-        <span class="dirty-badge" *ngIf="editingPerfil && isDirty">● cambios sin guardar</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
+<!-- ── Modal con FormModalComponent ─────────────────────────── -->
+<app-form-modal
+  [title]="'Perfil'"
+  [subtitle]="editingPerfil ? editingPerfil.U_NombrePerfil : null"
+  [isOpen]="showForm"
+  [loading]="isSaving"
+  [isEditing]="editingPerfil !== null"
+  [isDirty]="isDirty"
+  [submitDisabled]="form.invalid || !isDirty"
+  [wide]="true"
+  (save)="save()"
+  (cancel)="closeForm()">
+  
+  <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-2col-layout">
 
       <!-- ══ Columna izquierda ══ -->
@@ -29,19 +31,19 @@
 
         <div class="form-section-label">Datos del perfil</div>
 
-        <div class="form-field">
-          <label>Nombre del Perfil <span class="required">*</span></label>
+        <app-form-field 
+          label="Nombre del Perfil" 
+          [required]="true"
+          controlName="nombrePerfil"
+          hint="Nombre descriptivo del perfil (ej: CAJA CHICA GENERAL-Moneda Local(BS))">
           <input type="text" formControlName="nombrePerfil"
             placeholder="CAJA CHICA GENERAL-Moneda Local(BS)" maxlength="300" autocomplete="off" />
-          <span class="field-error"
-            *ngIf="form.get('nombrePerfil')?.invalid && form.get('nombrePerfil')?.touched">
-            Obligatorio
-          </span>
-        </div>
+        </app-form-field>
 
         <div class="form-row">
-          <div class="form-field">
-            <label>Moneda de Trabajo</label>
+          <app-form-field 
+            label="Moneda de Trabajo"
+            controlName="trabaja">
             <app-select
               label="Moneda"
               [searchable]="false"
@@ -49,9 +51,11 @@
               [value]="form.get('trabaja')?.value"
               (valueChange)="form.get('trabaja')?.setValue($event)">
             </app-select>
-          </div>
-          <div class="form-field">
-            <label>Máx. Líneas <span class="label-muted">(por documento)</span></label>
+          </app-form-field>
+          <app-form-field 
+            label="Máx. Líneas"
+            controlName="cntLineas"
+            hint="por documento">
             <app-select
               label="Líneas"
               [searchable]="false"
@@ -59,12 +63,14 @@
               [value]="form.get('cntLineas')?.value"
               (valueChange)="form.get('cntLineas')?.setValue($event)">
             </app-select>
-          </div>
+          </app-form-field>
         </div>
 
         <div class="form-row">
-          <div class="form-field">
-            <label>Permitir Cuenta Vacía</label>
+          <app-form-field 
+            label="Permitir Cuenta Vacía"
+            controlName="perCtaBl"
+            hint="Si Sí, el documento puede guardarse sin cuenta asignada.">
             <app-select
               label="Permitir vacía"
               [searchable]="false"
@@ -72,10 +78,11 @@
               [value]="form.get('perCtaBl')?.value"
               (valueChange)="form.get('perCtaBl')?.setValue($event)">
             </app-select>
-            <span class="field-hint">Si Sí, el documento puede guardarse sin cuenta asignada.</span>
-          </div>
-          <div class="form-field">
-            <label>Control de Partida</label>
+          </app-form-field>
+          <app-form-field 
+            label="Control de Partida"
+            controlName="controlPartida"
+            hint="Valida que la partida esté configurada.">
             <app-select
               label="Control partida"
               [searchable]="false"
@@ -83,8 +90,7 @@
               [value]="form.get('controlPartida')?.value"
               (valueChange)="form.get('controlPartida')?.setValue($event)">
             </app-select>
-            <span class="field-hint">Valida que la partida esté configurada.</span>
-          </div>
+          </app-form-field>
         </div>
 
       </div><!-- /col izquierda -->
@@ -96,8 +102,9 @@
         <p class="field-hint" style="margin: -6px 0 10px;">Restringe los proveedores visibles al crear documentos.</p>
 
         <div class="form-row">
-          <div class="form-field">
-            <label>Característica</label>
+          <app-form-field 
+            label="Característica"
+            controlName="proCar">
             <app-select
               label="Característica"
               [searchable]="false"
@@ -105,19 +112,22 @@
               [value]="form.get('proCar')?.value"
               (valueChange)="form.get('proCar')?.setValue($event)">
             </app-select>
-          </div>
-          <div class="form-field">
-            <label>Texto <span class="label-muted">(filtro)</span></label>
+          </app-form-field>
+          <app-form-field 
+            label="Texto"
+            controlName="proTexto"
+            hint="filtro">
             <input type="text" formControlName="proTexto" maxlength="25" placeholder="Ej: PL, P, ..." />
-          </div>
+          </app-form-field>
         </div>
 
         <div class="form-section-label">Filtro Cuentas</div>
         <p class="field-hint" style="margin: -6px 0 10px;">Restringe las cuentas contables disponibles.</p>
 
         <div class="form-row">
-          <div class="form-field">
-            <label>Característica</label>
+          <app-form-field 
+            label="Característica"
+            controlName="cueCar">
             <app-select
               label="Característica"
               [searchable]="false"
@@ -125,19 +135,22 @@
               [value]="form.get('cueCar')?.value"
               (valueChange)="form.get('cueCar')?.setValue($event)">
             </app-select>
-          </div>
-          <div class="form-field">
-            <label>Texto <span class="label-muted">(filtro)</span></label>
+          </app-form-field>
+          <app-form-field 
+            label="Texto"
+            controlName="cueTexto"
+            hint="filtro">
             <input type="text" formControlName="cueTexto" maxlength="30" placeholder="Ej: /1/2/5/6/8" />
-          </div>
+          </app-form-field>
         </div>
 
         <div class="form-section-label">Filtro Empleados</div>
         <p class="field-hint" style="margin: -6px 0 10px;">Restringe los empleados seleccionables.</p>
 
         <div class="form-row">
-          <div class="form-field">
-            <label>Característica</label>
+          <app-form-field 
+            label="Característica"
+            controlName="empCar">
             <app-select
               label="Característica"
               [searchable]="false"
@@ -145,120 +158,72 @@
               [value]="form.get('empCar')?.value"
               (valueChange)="form.get('empCar')?.setValue($event)">
             </app-select>
-          </div>
-          <div class="form-field">
-            <label>Texto <span class="label-muted">(filtro)</span></label>
+          </app-form-field>
+          <app-form-field 
+            label="Texto"
+            controlName="empTexto"
+            hint="filtro">
             <input type="text" formControlName="empTexto" maxlength="10" placeholder="Ej: EL, ..." />
-          </div>
+          </app-form-field>
         </div>
 
       </div><!-- /col derecha -->
 
-      <!-- Footer -->
-      <div class="modal-footer modal-2col-footer">
-        <ng-container *ngIf="isDirty; else noChanges">
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-          <button type="submit"
-            [class]="editingPerfil ? 'btn btn-save-changes' : 'btn btn-primary'"
-            [disabled]="form.invalid || isSaving">
-            <span *ngIf="isSaving">Guardando...</span>
-            <span *ngIf="!isSaving">{{ editingPerfil ? '💾 Guardar cambios' : 'Crear Perfil' }}</span>
-          </button>
-        </ng-container>
-        <ng-template #noChanges>
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
-        </ng-template>
-      </div>
-
     </form>
-  </div>
-</div>
+  </ng-template>
+
+  <!-- Footer personalizado con lógica de dirty -->
+  <ng-template #formFooter>
+    <ng-container *ngIf="isDirty; else noChangesFooter">
+      <button type="button" class="btn btn-ghost" (click)="closeForm()" [disabled]="isSaving">
+        Cancelar
+      </button>
+      <button type="button" 
+        [class]="editingPerfil ? 'btn btn-save-changes' : 'btn btn-primary'"
+        [disabled]="form.invalid || isSaving"
+        (click)="save()">
+        <span *ngIf="isSaving">Guardando...</span>
+        <span *ngIf="!isSaving">{{ editingPerfil ? '💾 Guardar cambios' : 'Crear Perfil' }}</span>
+      </button>
+    </ng-container>
+    <ng-template #noChangesFooter>
+      <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+    </ng-template>
+  </ng-template>
+</app-form-modal>
 
 <!-- ── Filtros ── -->
-<div class="filter-bar">
-  <div class="filter-left">
-    <div class="filter-field">
-      <label>Buscar</label>
-      <app-search-input
-        placeholder="Buscar perfil..."
-        [debounceTime]="300"
-        [(search)]="search"
-        (valueChange)="applyFilter()"
-        (cleared)="applyFilter()">
-      </app-search-input>
-    </div>
-  </div>
-  <span class="filter-count" *ngIf="!loading">
-    {{ filtered.length }} perfil{{ filtered.length !== 1 ? 'es' : '' }}
-  </span>
-</div>
+<app-perfiles-filter
+  [search]="search"
+  [count]="filtered.length"
+  [loading]="loading"
+  (searchChange)="onSearchChange($event)"
+  (searchCleared)="onSearchCleared()">
+</app-perfiles-filter>
 
+<!-- ── Estados ── -->
 <div *ngIf="loading" class="empty-state">Cargando perfiles...</div>
 <div *ngIf="!loading && loadError" class="empty-state">
   No se pudo cargar la lista de perfiles.
   <a (click)="load()">Reintentar</a>
 </div>
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-  No hay perfiles registrados. <ng-container *ngIf="auth.puedeEditarConf"><a (click)="openNew()">Crear el primero</a></ng-container>
-</div>
+<app-perfiles-empty
+  *ngIf="!loading && !loadError && filtered.length === 0"
+  [canCreate]="auth.puedeEditarConf"
+  (create)="openNew()">
+</app-perfiles-empty>
 
 <!-- ── Tabla ── -->
-<div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="text-center">Cód.</th>
-        <th>Nombre Perfil</th>
-        <th class="text-center">Moneda</th>
-        <th class="text-center">Líneas</th>
-        <th>Proveedores</th>
-        <th>Cuentas</th>
-        <th>Empleados</th>
-        <th class="actions text-center">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let p of paged">
-        <td class="text-center" data-label="Cód.">
-          <span class="cod-badge">{{ p.U_CodPerfil }}</span>
-        </td>
-        <td class="col-nombre" data-label="Nombre Perfil">{{ p.U_NombrePerfil }}</td>
-        <td class="text-center" data-label="Moneda">
-          <span class="code-tag">{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</span>
-        </td>
-        <td class="text-center" data-label="Líneas">
-          <span class="badge badge-secondary">{{ p.U_CntLineas || 10 }}</span>
-        </td>
-        <td data-label="Proveedores">
-          <span class="carac-badge">{{ p.U_PRO_CAR }}</span>
-          <span class="carac-text" *ngIf="p.U_PRO_Texto">{{ p.U_PRO_Texto }}</span>
-        </td>
-        <td data-label="Cuentas">
-          <span class="carac-badge">{{ p.U_CUE_CAR }}</span>
-          <span class="carac-text" *ngIf="p.U_CUE_Texto">{{ p.U_CUE_Texto }}</span>
-        </td>
-        <td data-label="Empleados">
-          <span class="carac-badge">{{ p.U_EMP_CAR }}</span>
-          <span class="carac-text" *ngIf="p.U_EMP_TEXTO">{{ p.U_EMP_TEXTO }}</span>
-        </td>
-        <td class="actions text-center">
-          <button *ngIf="auth.puedeEditarConf" class="btn btn-icon btn-sm btn-ghost" title="Editar perfil" (click)="openEdit(p)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button *ngIf="auth.puedeEditarConf" class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar perfil" (click)="confirmDelete(p)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <app-paginator
-    [page]="page"
-    [limit]="limit"
-    [total]="filtered.length"
-    [totalPages]="totalPages"
-    (pageChange)="onPageChange($event)"
-    (limitChange)="onLimitChange($event)">
-  </app-paginator>
-</div>
+<app-perfiles-table
+  *ngIf="!loading && !loadError && filtered.length > 0"
+  [paged]="paged"
+  [page]="page"
+  [limit]="limit"
+  [total]="filtered.length"
+  [totalPages]="totalPages"
+  [canEdit]="auth.puedeEditarConf"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)"
+  (edit)="openEdit($event)"
+  (delete)="confirmDelete($event)">
+</app-perfiles-table>

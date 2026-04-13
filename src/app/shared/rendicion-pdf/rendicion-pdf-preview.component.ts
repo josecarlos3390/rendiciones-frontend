@@ -28,29 +28,29 @@ import { RendicionPdfService } from './rendicion-pdf.service';
         <span class="pdf-subtitle">{{ rend.U_Objetivo }}</span>
       </div>
       <div class="pdf-header-actions">
-        <button class="btn btn-ghost btn-sm btn-icon-mobile" 
+        <button type="button" class="btn btn-ghost btn-sm btn-icon-mobile" 
           [class.active]="pdfOrientation === 'portrait'"
           (click)="pdfOrientation = 'portrait'"
           title="Vista vertical">
           <span class="btn-icon">📄</span>
           <span class="btn-text">Vertical</span>
         </button>
-        <button class="btn btn-ghost btn-sm btn-icon-mobile"
+        <button type="button" class="btn btn-ghost btn-sm btn-icon-mobile"
           [class.active]="pdfOrientation === 'landscape'"
           (click)="pdfOrientation = 'landscape'"
           title="Vista horizontal">
           <span class="btn-icon">📑</span>
           <span class="btn-text">Horizontal</span>
         </button>
-        <button class="btn btn-ghost btn-sm btn-icon-mobile" (click)="descargar()" [disabled]="generating" title="Descargar PDF">
+        <button type="button" class="btn btn-ghost btn-sm btn-icon-mobile" (click)="descargar()" [disabled]="generating" title="Descargar PDF">
           <span class="btn-icon">⬇</span>
           <span class="btn-text">Descargar</span>
         </button>
-        <button class="btn btn-ghost btn-sm btn-icon-mobile" (click)="abrirNuevaVentana()" [disabled]="generating" title="Abrir en nueva pestaña para imprimir">
+        <button type="button" class="btn btn-ghost btn-sm btn-icon-mobile" (click)="abrirNuevaVentana()" [disabled]="generating" title="Abrir en nueva pestaña para imprimir">
           <span class="btn-icon">🖨</span>
           <span class="btn-text">Imprimir</span>
         </button>
-        <button class="modal-close" (click)="cerrar()">✕</button>
+        <button type="button" class="modal-close" (click)="cerrar()" title="Cerrar">✕</button>
       </div>
     </div>
 
@@ -91,22 +91,22 @@ import { RendicionPdfService } from './rendicion-pdf.service';
     <!-- Footer -->
     <div class="modal-footer pdf-preview-footer">
       <span class="pdf-footer-note" *ngIf="mode !== 'reprint'">
-        ℹ Descargá o imprimí el comprobante antes de confirmar el envío
+        ℹ️ Descargá o imprimí el comprobante antes de confirmar el envío
       </span>
       <span class="pdf-footer-note" *ngIf="mode === 'reprint'">
-        ℹ Podés descargar o imprimir este comprobante cuando quieras
+        ℹ️ Podés descargar o imprimir este comprobante cuando quieras
       </span>
       <div class="pdf-footer-btns">
-        <button class="btn btn-ghost" (click)="cerrar()" [disabled]="confirming">
+        <button type="button" class="btn btn-ghost" (click)="cerrar()" [disabled]="confirming">
           {{ mode === 'reprint' ? 'Cerrar' : 'Cancelar' }}
         </button>
-        <button
+        <button type="button"
           *ngIf="mode !== 'reprint'"
           class="btn btn-primary"
           (click)="confirmar()"
           [disabled]="generating || confirming">
           <span *ngIf="confirming">Enviando...</span>
-          <span *ngIf="!confirming">✉ Confirmar y Enviar</span>
+          <span *ngIf="!confirming">✉️ Confirmar y Enviar</span>
         </button>
       </div>
     </div>
@@ -136,44 +136,76 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 /* ── Header ── */
 .pdf-preview-header {
   /* Extiende .modal-header con ajustes específicos */
-  flex-wrap: wrap;
-  gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 16px;
   background: var(--bg-faint);
   padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .pdf-header-info {
-  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+  min-width: 0;
+  flex: 1;
 }
 
 .pdf-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: var(--weight-semibold);
   color: var(--text-heading);
   margin: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
 }
 
 .pdf-subtitle {
-  font-size: 12px; color: var(--text-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 13px; 
+  color: var(--text-muted);
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
 }
 
 .pdf-header-actions {
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  flex-shrink: 0;
 }
 
 .btn-icon-mobile {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
   
   .btn-icon {
-    display: inline;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    width: 18px;
+    height: 18px;
   }
   
   .btn-text {
     display: inline;
+    line-height: 1;
+  }
+  
+  /* Estado activo */
+  &.active {
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 }
 
@@ -235,16 +267,29 @@ import { RendicionPdfService } from './rendicion-pdf.service';
 
 /* ── Footer ── */
 .pdf-preview-footer {
-  /* Extiende .modal-footer con ajustes específicos */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 12px;
   background: var(--bg-faint);
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-color);
 }
 
 .pdf-footer-note {
-  font-size: 12px; color: var(--text-muted);
+  font-size: 12px; 
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
 }
 
-.pdf-footer-btns { display: flex; gap: 10px; }
+.pdf-footer-btns { 
+  display: flex; 
+  align-items: center;
+  gap: 10px; 
+  flex-shrink: 0;
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
@@ -262,9 +307,10 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   
   .pdf-preview-header {
     flex-direction: column;
-    padding: 20px 16px 16px;
-    padding-top: calc(24px + env(safe-area-inset-top)); /* Más espacio arriba */
-    gap: 16px;
+    align-items: stretch;
+    padding: 20px 16px 12px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+    gap: 12px;
   }
   
   .pdf-header-actions {
@@ -277,10 +323,9 @@ import { RendicionPdfService } from './rendicion-pdf.service';
   
   .btn-icon-mobile {
     padding: 0;
-    font-size: 12px;
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -293,6 +338,8 @@ import { RendicionPdfService } from './rendicion-pdf.service';
     .btn-icon {
       font-size: 20px;
       line-height: 1;
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -319,22 +366,26 @@ import { RendicionPdfService } from './rendicion-pdf.service';
     flex-direction: column; 
     align-items: stretch;
     padding: 12px 16px;
+    gap: 10px;
   }
   
   .pdf-footer-btns { 
     justify-content: flex-end;
     width: 100%;
     gap: 8px;
+    order: -1; /* Botones arriba en móvil */
     
     .btn {
-      padding: 8px 14px;
-      font-size: 13px;
+      padding: 10px 16px;
+      font-size: 14px;
+      flex: 1;
     }
   }
   
   .pdf-footer-note {
     text-align: center;
     font-size: 11px;
+    order: 1;
   }
 }
   `],

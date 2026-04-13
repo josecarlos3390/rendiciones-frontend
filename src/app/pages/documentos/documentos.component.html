@@ -8,218 +8,199 @@
   </button>
 </div>
 
-<!-- ── Selector de perfil ── -->
-<div class="filter-bar">
-  <div class="filter-left">
-    <div class="filter-field perfil-selector-inline">
-      <label>Seleccione Perfil</label>
-      <app-perfil-select
-        placeholder="— Seleccione Perfil —"
-        (perfilChange)="onPerfilSelect($event)"
-        (perfilObjChange)="selectedPerfil = $event">
-      </app-perfil-select>
-    </div>
-  </div>
-</div>
+<!-- ── Dumb Component: Filtros ────────────────────────────── -->
+<app-documentos-filters
+  [selectedPerfilId]="selectedPerfilId"
+  [search]="search"
+  [loading]="loading"
+  [filteredCount]="filtered.length"
+  (perfilChange)="onPerfilSelect($event)"
+  (perfilObjChange)="onPerfilObjChange($event)"
+  (searchChange)="onSearchChange($event)"
+  (searchCleared)="onSearchCleared()">
+</app-documentos-filters>
 
 <app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
 
-<!-- ── Modal ─────────────────────────────────────────────── -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <!-- 
-    EXCEPCIÓN: .doc-modal 
-    Razón: El modal de documentos requiere un ancho mayor (960px) que el estándar
-    de .modal-card-lg (700px) debido a la complejidad del grid de impuestos.
-    El patrón .user-modal permite hasta 900px pero aún es insuficiente.
-    Se mantiene clase propia .doc-modal con las mismas propiedades base que
-    .modal-card para consistencia visual.
-  -->
-  <div class="doc-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <div class="modal-header">
-      <h3>{{ isEditing ? 'Editar' : 'Nuevo' }} Documento — {{ selectedPerfil?.U_NombrePerfil }}</h3>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
+<!-- ── Modal con FormModalComponent (mantenido en Smart) ─── -->
+<app-form-modal
+  title="Documento"
+  [subtitle]="selectedPerfil?.U_NombrePerfil ?? null"
+  [isOpen]="showForm"
+  [loading]="isSaving"
+  [isEditing]="isEditing"
+  [isDirty]="isDirty"
+  [wide]="true"
+  [submitDisabled]="form.invalid"
+  (save)="save()"
+  (cancel)="closeForm()">
+  
+  <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-      <div class="modal-body">
+      <!-- Fila 1: Nombre, Tipo SAP, Tipo Cálculo -->
+      <div class="form-row three-col">
+        <app-form-field
+          label="Tipo Documento"
+          [required]="true"
+          controlName="tipDoc"
+          hint="Nombre del tipo de documento">
+          <input type="text" formControlName="tipDoc" maxlength="25" placeholder="Factura" />
+        </app-form-field>
 
-        <!-- Fila 1: Nombre, Tipo SAP, Tipo Cálculo -->
-        <div class="form-row three-col">
-          <div class="form-field">
-            <label>Tipo Documento <span class="required">*</span></label>
-            <input type="text" formControlName="tipDoc" maxlength="25" placeholder="Factura" />
-            <span class="field-error" *ngIf="form.get('tipDoc')?.invalid && form.get('tipDoc')?.touched">Obligatorio</span>
-          </div>
-          <div class="form-field">
-            <label>Tipo Doc SAP <span class="required">*</span></label>
-            <app-tipo-doc-sap-select
-              [value]="form.get('idTipoDoc')?.value"
-              [invalid]="!!form.get('idTipoDoc')?.invalid && !!form.get('idTipoDoc')?.touched"
-              (valueChange)="form.get('idTipoDoc')?.setValue($event)"
-              (itemChange)="onTipoDocSapSelected($event)">
-            </app-tipo-doc-sap-select>
-            <span class="field-hint">Tipo de documento SAP al que se contabilizará.</span>
-          </div>
-          <div class="form-field">
-            <label>Tipo de Cálculo <span class="required">*</span></label>
-            <app-select
-              label="Tipo de Cálculo"
-              [required]="true"
-              [options]="tipoCalcOptions"
-              [value]="form.get('tipoCalc')?.value"
-              [invalid]="!!form.get('tipoCalc')?.invalid && !!form.get('tipoCalc')?.touched"
-              (valueChange)="form.get('tipoCalc')?.setValue($event)">
-            </app-select>
-            <span class="field-hint">Define cómo se calculan los impuestos: si están incluidos en el monto o se suman por encima.</span>
-          </div>
-        </div>
+        <app-form-field
+          label="Tipo Doc SAP"
+          [required]="true"
+          controlName="idTipoDoc"
+          hint="Tipo de documento SAP al que se contabilizará.">
+          <app-tipo-doc-sap-select
+            [value]="form.get('idTipoDoc')?.value"
+            [invalid]="!!form.get('idTipoDoc')?.invalid && !!form.get('idTipoDoc')?.touched"
+            (valueChange)="form.get('idTipoDoc')?.setValue($event)"
+            (itemChange)="onTipoDocSapSelected($event)">
+          </app-tipo-doc-sap-select>
+        </app-form-field>
 
-        <!-- 
-          EXCEPCIÓN: .tax-grid 
-          Razón: Grid específico de dominio fiscal que requiere layout de 3 columnas
-          en desktop, 2 en tablet, 1 en mobile. No existe patrón estándar equivalente
-          para este caso de uso específico de tarjetas de impuestos.
-        -->
-        <div class="section-divider">Impuestos <span class="section-subtitle">— dejá en 0 los que no apliquen</span></div>
-        <div class="tax-grid">
-
-          <div class="tax-card">
-            <div class="tax-card-header"><span class="tax-label">IVA</span></div>
-            <div class="tax-card-fields">
-              <div class="form-field tax-pct-field">
-                <label>%</label>
-                <input type="number" class="input-short" formControlName="ivaPercent" step="0.01" min="0" placeholder="13" />
-              </div>
-              <div class="form-field tax-cta-field">
-                <label>Cuenta</label>
-                <app-cuenta-search
-                  [initialCode]="form.get('ivaCuenta')?.value"
-                  (accountChange)="onCuentaChange('ivaCuenta', $event)">
-                </app-cuenta-search>
-              </div>
-            </div>
-          </div>
-
-          <div class="tax-card">
-            <div class="tax-card-header"><span class="tax-label">IT</span></div>
-            <div class="tax-card-fields">
-              <div class="form-field tax-pct-field">
-                <label>%</label>
-                <input type="number" class="input-short" formControlName="itPercent" step="0.01" min="0" placeholder="3" />
-              </div>
-              <div class="form-field tax-cta-field">
-                <label>Cuenta</label>
-                <app-cuenta-search
-                  [initialCode]="form.get('itCuenta')?.value"
-                  (accountChange)="onCuentaChange('itCuenta', $event)">
-                </app-cuenta-search>
-              </div>
-            </div>
-          </div>
-
-          <div class="tax-card">
-            <div class="tax-card-header"><span class="tax-label">IUE</span></div>
-            <div class="tax-card-fields">
-              <div class="form-field tax-pct-field">
-                <label>%</label>
-                <input type="number" class="input-short" formControlName="iuePercent" step="0.01" min="0" placeholder="5" />
-              </div>
-              <div class="form-field tax-cta-field">
-                <label>Cuenta</label>
-                <app-cuenta-search
-                  [initialCode]="form.get('iueCuenta')?.value"
-                  (accountChange)="onCuentaChange('iueCuenta', $event)">
-                </app-cuenta-search>
-              </div>
-            </div>
-          </div>
-
-          <div class="tax-card">
-            <div class="tax-card-header"><span class="tax-label">RC-IVA</span></div>
-            <div class="tax-card-fields">
-              <div class="form-field tax-pct-field">
-                <label>%</label>
-                <input type="number" class="input-short" formControlName="rcivaPercent" step="0.01" min="0" placeholder="13" />
-              </div>
-              <div class="form-field tax-cta-field">
-                <label>Cuenta</label>
-                <app-cuenta-search
-                  [initialCode]="form.get('rcivaCuenta')?.value"
-                  (accountChange)="onCuentaChange('rcivaCuenta', $event)">
-                </app-cuenta-search>
-              </div>
-            </div>
-          </div>
-
-          <div class="tax-card">
-            <div class="tax-card-header"><span class="tax-label">Exento</span></div>
-            <div class="tax-card-fields">
-              <div class="form-field tax-pct-field">
-                <label>%</label>
-                <input type="number" class="input-short" formControlName="exentoPercent" step="0.01" min="-1" placeholder="-1" />
-                <span class="field-hint">-1 si variable</span>
-              </div>
-              <div class="form-field tax-cta-field">
-                <label>Cuenta</label>
-                <app-cuenta-search
-                  [initialCode]="form.get('ctaExento')?.value"
-                  (accountChange)="onCuentaChange('ctaExento', $event)">
-                </app-cuenta-search>
-              </div>
-            </div>
-          </div>
-
-          <div class="tax-card">
-            <div class="tax-card-header"><span class="tax-label">ICE / Tasa</span></div>
-            <div class="tax-card-fields">
-              <div class="form-field tax-pct-field">
-                <label>% ICE</label>
-                <input type="number" class="input-short" formControlName="ice" step="0.01" min="0" />
-              </div>
-              <div class="form-field tax-pct-field">
-                <label>% Tasa</label>
-                <input type="number" class="input-short" formControlName="tasa" step="0.01" min="-1" />
-                <span class="field-hint">-1 si variable</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
+        <app-form-field
+          label="Tipo de Cálculo"
+          [required]="true"
+          controlName="tipoCalc"
+          hint="Define cómo se calculan los impuestos: si están incluidos en el monto o se suman por encima.">
+          <app-select
+            label="Tipo de Cálculo"
+            [required]="true"
+            [options]="tipoCalcOptions"
+            [value]="form.get('tipoCalc')?.value"
+            [invalid]="!!form.get('tipoCalc')?.invalid && !!form.get('tipoCalc')?.touched"
+            (valueChange)="form.get('tipoCalc')?.setValue($event)">
+          </app-select>
+        </app-form-field>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || isSaving">
-          <span *ngIf="isSaving">Guardando...</span>
-          <span *ngIf="!isSaving">{{ isEditing ? 'Guardar Cambios' : 'Crear Documento' }}</span>
-        </button>
+      <!-- Grid de impuestos -->
+      <div class="section-divider">Impuestos <span class="section-subtitle">— dejá en 0 los que no apliquen</span></div>
+      <div class="tax-grid">
+
+        <div class="tax-card">
+          <div class="tax-card-header"><span class="tax-label">IVA</span></div>
+          <div class="tax-card-fields">
+            <app-form-field
+              class="tax-pct-field"
+              label="%"
+              controlName="ivaPercent">
+              <input type="number" class="input-short" formControlName="ivaPercent" step="0.01" min="0" placeholder="13" />
+            </app-form-field>
+            <div class="form-field tax-cta-field">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [initialCode]="form.get('ivaCuenta')?.value"
+                (accountChange)="onCuentaChange('ivaCuenta', $event)">
+              </app-cuenta-search>
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-card">
+          <div class="tax-card-header"><span class="tax-label">IT</span></div>
+          <div class="tax-card-fields">
+            <app-form-field
+              class="tax-pct-field"
+              label="%"
+              controlName="itPercent">
+              <input type="number" class="input-short" formControlName="itPercent" step="0.01" min="0" placeholder="3" />
+            </app-form-field>
+            <div class="form-field tax-cta-field">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [initialCode]="form.get('itCuenta')?.value"
+                (accountChange)="onCuentaChange('itCuenta', $event)">
+              </app-cuenta-search>
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-card">
+          <div class="tax-card-header"><span class="tax-label">IUE</span></div>
+          <div class="tax-card-fields">
+            <app-form-field
+              class="tax-pct-field"
+              label="%"
+              controlName="iuePercent">
+              <input type="number" class="input-short" formControlName="iuePercent" step="0.01" min="0" placeholder="5" />
+            </app-form-field>
+            <div class="form-field tax-cta-field">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [initialCode]="form.get('iueCuenta')?.value"
+                (accountChange)="onCuentaChange('iueCuenta', $event)">
+              </app-cuenta-search>
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-card">
+          <div class="tax-card-header"><span class="tax-label">RC-IVA</span></div>
+          <div class="tax-card-fields">
+            <app-form-field
+              class="tax-pct-field"
+              label="%"
+              controlName="rcivaPercent">
+              <input type="number" class="input-short" formControlName="rcivaPercent" step="0.01" min="0" placeholder="13" />
+            </app-form-field>
+            <div class="form-field tax-cta-field">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [initialCode]="form.get('rcivaCuenta')?.value"
+                (accountChange)="onCuentaChange('rcivaCuenta', $event)">
+              </app-cuenta-search>
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-card">
+          <div class="tax-card-header"><span class="tax-label">Exento</span></div>
+          <div class="tax-card-fields">
+            <app-form-field
+              class="tax-pct-field"
+              label="%"
+              controlName="exentoPercent"
+              hint="-1 si variable">
+              <input type="number" class="input-short" formControlName="exentoPercent" step="0.01" min="-1" placeholder="-1" />
+            </app-form-field>
+            <div class="form-field tax-cta-field">
+              <label>Cuenta</label>
+              <app-cuenta-search
+                [initialCode]="form.get('ctaExento')?.value"
+                (accountChange)="onCuentaChange('ctaExento', $event)">
+              </app-cuenta-search>
+            </div>
+          </div>
+        </div>
+
+        <div class="tax-card">
+          <div class="tax-card-header"><span class="tax-label">ICE / Tasa</span></div>
+          <div class="tax-card-fields">
+            <app-form-field
+              class="tax-pct-field"
+              label="% ICE"
+              controlName="ice">
+              <input type="number" class="input-short" formControlName="ice" step="0.01" min="0" />
+            </app-form-field>
+            <app-form-field
+              class="tax-pct-field"
+              label="% Tasa"
+              controlName="tasa"
+              hint="-1 si variable">
+              <input type="number" class="input-short" formControlName="tasa" step="0.01" min="-1" />
+            </app-form-field>
+          </div>
+        </div>
+
       </div>
     </form>
-  </div>
-</div>
-
-<!-- ── Barra de búsqueda ───────────────────────────────────── -->
-<div class="filter-bar" *ngIf="selectedPerfilId">
-  <div class="filter-left">
-    <div class="filter-field filter-field--grow">
-      <label>Buscar</label>
-      <app-search-input
-        placeholder="Buscar..."
-        [debounceTime]="300"
-        [(search)]="search"
-        (valueChange)="applyFilter()"
-        (cleared)="applyFilter()">
-      </app-search-input>
-    </div>
-  </div>
-  <span class="filter-count" *ngIf="!loading">
-    {{ filtered.length }} documento{{ filtered.length !== 1 ? 's' : '' }}
-  </span>
-</div>
+  </ng-template>
+</app-form-modal>
 
 <!-- ── Estados vacíos ─────────────────────────────────────── -->
 <div *ngIf="!selectedPerfilId" class="empty-state">Seleccioná un perfil para ver los tipos de documento habilitados y su cálculo fiscal.</div>
@@ -231,170 +212,18 @@
   No se encontraron documentos para "{{ search }}".
 </div>
 
-<!-- ── Tabla (desktop/tablet) + Cards (mobile) ─────────────── -->
-<div class="table-wrapper" *ngIf="selectedPerfilId && !loading && filtered.length > 0">
-
-  <!-- 
-    Tabla desktop/tablet 
-    EXCEPCIÓN: .doc-table extiende .data-table con columnas específicas
-    fiscales (tax-col, tax-cell, etc.) que no existen en el patrón estándar.
-  -->
-  <div class="table-scroll-outer hide-on-mobile">
-    <table class="data-table doc-table">
-      <thead>
-        <tr>
-          <th>Cód.</th>
-          <th>Tipo Documento</th>
-          <th class="col-hide-tablet">SAP</th>
-          <th class="col-hide-tablet">Cálculo</th>
-          <th class="tax-col">IVA</th>
-          <th class="tax-col col-hide-tablet">IT</th>
-          <th class="tax-col col-hide-tablet">IUE</th>
-          <th class="tax-col col-hide-tablet">RC-IVA</th>
-          <th class="tax-col col-hide-tablet">Exento</th>
-          <th class="tax-col col-hide-tablet">Tasa / ICE</th>
-          <th class="doc-actions"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let d of paged">
-          <td class="text-center" data-label="Cód">{{ d.U_CodPerfil }}</td>
-          <td data-label="Tipo Doc."><strong>{{ d.U_TipDoc }}</strong></td>
-          <td class="col-hide-tablet" data-label="SAP"><span class="col-sap-label">{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</span></td>
-          <td class="col-hide-tablet" data-label="Cálculo">
-            <!-- 
-              EXCEPCIÓN: .badge-calc 
-              Razón: Badge específico para tipos de cálculo fiscal (GD/GU) 
-              con variantes grossing-up/down que requieren colores semánticos
-              diferentes a los badges estándar (.badge-*).
-            -->
-            <span class="badge-calc" [class.grossing-up]="isGrossingUp(d.U_TipoCalc)" [class.grossing-down]="isGrossingDown(d.U_TipoCalc)">{{ tipoCalcLabel(d.U_TipoCalc) }}</span>
-          </td>
-          <td class="tax-cell" data-label="IVA">
-            <span class="tax-pct">{{ fmtPct(d.U_IVApercent) }}</span>
-            <span class="tax-cta" *ngIf="d.U_IVApercent !== 0 && d.U_IVAcuenta">{{ d.U_IVAcuenta }}</span>
-          </td>
-          <td class="tax-cell col-hide-tablet" data-label="IT">
-            <span class="tax-pct">{{ fmtPct(d.U_ITpercent) }}</span>
-            <span class="tax-cta" *ngIf="d.U_ITpercent !== 0 && d.U_ITcuenta">{{ d.U_ITcuenta }}</span>
-          </td>
-          <td class="tax-cell col-hide-tablet" data-label="IUE">
-            <span class="tax-pct">{{ fmtPct(d.U_IUEpercent) }}</span>
-            <span class="tax-cta" *ngIf="d.U_IUEpercent !== 0 && d.U_IUEcuenta">{{ d.U_IUEcuenta }}</span>
-          </td>
-          <td class="tax-cell col-hide-tablet" data-label="RC-IVA">
-            <span class="tax-pct">{{ fmtPct(d.U_RCIVApercent) }}</span>
-            <span class="tax-cta" *ngIf="d.U_RCIVApercent !== 0 && d.U_RCIVAcuenta">{{ d.U_RCIVAcuenta }}</span>
-          </td>
-          <td class="tax-cell col-hide-tablet" data-label="Exento">
-            <span class="tax-pct">{{ fmtPct(d.U_EXENTOpercent) }}</span>
-            <span class="tax-cta" *ngIf="d.U_EXENTOpercent !== 0 && d.U_CTAEXENTO">{{ d.U_CTAEXENTO }}</span>
-          </td>
-          <td class="tax-cell tax-cell-dual col-hide-tablet" data-label="Tasa/ICE">
-            <span class="tax-dual-row">
-              <span class="tax-dual-label">Tasa</span>
-              <span class="tax-pct">{{ fmtPct(d.U_TASA) }}</span>
-            </span>
-            <span class="tax-dual-row">
-              <span class="tax-dual-label">ICE</span>
-              <span class="tax-pct">{{ fmtPct(d.U_ICE) }}</span>
-            </span>
-          </td>
-          <td class="doc-actions">
-            <button class="btn-action edit" title="Editar" (click)="openEdit(d)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            <button class="btn-action remove" title="Eliminar" (click)="confirmRemove(d)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-              </svg>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- 
-    Cards mobile
-    EXCEPCIÓN: .doc-cards es un patrón mobile específico
-    Razón: La tabla de documentos tiene demasiadas columnas fiscales
-    para adaptarse al patrón estándar de cards mobile. Se requiere
-    un layout custom que agrupe los impuestos de forma compacta.
-  -->
-  <div class="doc-cards show-on-mobile">
-    <div class="doc-card" *ngFor="let d of paged">
-      <div class="doc-card-header">
-        <div class="doc-card-title">
-          <strong>{{ d.U_TipDoc }}</strong>
-          <span class="badge-calc" [class.grossing-up]="isGrossingUp(d.U_TipoCalc)" [class.grossing-down]="isGrossingDown(d.U_TipoCalc)">{{ tipoCalcLabel(d.U_TipoCalc) }}</span>
-        </div>
-        <div class="doc-card-meta">
-          <span class="doc-card-meta-item">Perfil <b>{{ d.U_CodPerfil }}</b></span>
-          <span class="doc-card-sep">·</span>
-          <span class="doc-card-meta-item">SAP <b>{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</b></span>
-        </div>
-      </div>
-
-      <div class="doc-card-taxes">
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">IVA</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_IVApercent) }}</span>
-          <span class="doc-card-tax-cta" *ngIf="d.U_IVApercent !== 0 && d.U_IVAcuenta">{{ d.U_IVAcuenta }}</span>
-        </div>
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">IT</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_ITpercent) }}</span>
-          <span class="doc-card-tax-cta" *ngIf="d.U_ITpercent !== 0 && d.U_ITcuenta">{{ d.U_ITcuenta }}</span>
-        </div>
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">IUE</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_IUEpercent) }}</span>
-          <span class="doc-card-tax-cta" *ngIf="d.U_IUEpercent !== 0 && d.U_IUEcuenta">{{ d.U_IUEcuenta }}</span>
-        </div>
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">RC-IVA</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_RCIVApercent) }}</span>
-          <span class="doc-card-tax-cta" *ngIf="d.U_RCIVApercent !== 0 && d.U_RCIVAcuenta">{{ d.U_RCIVAcuenta }}</span>
-        </div>
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">Exento</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_EXENTOpercent) }}</span>
-          <span class="doc-card-tax-cta" *ngIf="d.U_EXENTOpercent !== 0 && d.U_CTAEXENTO">{{ d.U_CTAEXENTO }}</span>
-        </div>
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">Tasa</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_TASA) }}</span>
-        </div>
-        <div class="doc-card-tax">
-          <span class="doc-card-tax-name">ICE</span>
-          <span class="doc-card-tax-pct">{{ fmtPct(d.U_ICE) }}</span>
-        </div>
-      </div>
-
-      <div class="doc-card-actions">
-        <button class="btn btn-ghost btn-sm" (click)="openEdit(d)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          Editar
-        </button>
-        <button class="btn btn-danger-soft btn-sm" (click)="confirmRemove(d)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-          </svg>
-          Eliminar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <app-paginator
-    [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
-    (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
-  </app-paginator>
-</div>
+<!-- ── Dumb Component: Tabla ──────────────────────────────── -->
+<app-documentos-table
+  *ngIf="selectedPerfilId && !loading && filtered.length > 0"
+  [items]="paged"
+  [page]="page"
+  [limit]="limit"
+  [total]="filtered.length"
+  [totalPages]="totalPages"
+  [loading]="loading"
+  [canEdit]="auth.puedeEditarConf"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)"
+  (edit)="openEdit($event)"
+  (delete)="confirmRemove($event)">
+</app-documentos-table>

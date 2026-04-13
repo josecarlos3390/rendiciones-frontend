@@ -6,27 +6,32 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UsuarioSearchComponent, UsuarioItem } from '../../../shared/usuario-search/usuario-search.component';
 import { AppSelectComponent, SelectOption } from '../../../shared/app-select/app-select.component';
+import { FormModalComponent } from '../../../shared/form-modal';
+import { FormFieldComponent } from '../../../shared/form-field';
+import { FormDirtyService } from '../../../shared/form-dirty';
 import { User } from '../../../models/user.model';
 import { DimensionWithRules } from '../../../services/sap.service';
 
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, UsuarioSearchComponent, AppSelectComponent],
-  changeDetection: ChangeDetectionStrategy.Default,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, UsuarioSearchComponent, AppSelectComponent, FormModalComponent, FormFieldComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./user-form.component.scss'],
   template: `
-<div class="modal-backdrop" *ngIf="visible">
-  <div class="user-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-
-    <div class="modal-header">
-      <h3>
-        {{ user ? 'Editar — ' + user.U_Login : 'Nuevo Usuario' }}
-        <span class="dirty-badge" *ngIf="user && isDirty">● cambios sin guardar</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="onCancel()">✕</button>
-    </div>
-
+<app-form-modal
+  [title]="'Usuario'"
+  [subtitle]="user ? user.U_Login : null"
+  [isOpen]="visible"
+  [loading]="isSaving"
+  [isEditing]="user !== null"
+  [isDirty]="isDirty"
+  [wide]="true"
+  [submitDisabled]="form.invalid"
+  (save)="onSave()"
+  (cancel)="onCancel()">
+  
+  <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="onSave()" novalidate class="modal-2col-layout">
 
       <!-- ══ Columna izquierda: datos ══ -->
@@ -34,27 +39,38 @@ import { DimensionWithRules } from '../../../services/sap.service';
 
         <div class="form-section-label">Datos del usuario</div>
 
-        <div class="form-field" *ngIf="!user">
-          <label>Usuario <span class="required">*</span><span class="label-muted"> (máx. 10)</span></label>
+        <!-- Usuario (solo creación) -->
+        <app-form-field 
+          *ngIf="!user"
+          label="Usuario"
+          [required]="true"
+          controlName="login"
+          hint="máx. 10">
           <input type="text" formControlName="login" placeholder="JPEREZ" maxlength="10" autocomplete="off" (input)="onLoginInput($event)" />
-          <span class="field-error" *ngIf="form.get('login')?.invalid && form.get('login')?.touched">
-            Obligatorio, máx. 10 caracteres
-          </span>
-        </div>
+        </app-form-field>
 
         <div class="form-field" *ngIf="user">
           <label>Usuario</label>
           <input type="text" [value]="user.U_Login" disabled />
         </div>
 
-        <div class="form-field" [class.field-changed]="fieldChanged('name')">
-          <label>Nombre y Apellido <span class="required">*</span></label>
+        <!-- Nombre y Apellido -->
+        <app-form-field 
+          label="Nombre y Apellido"
+          [required]="true"
+          controlName="name"
+          [showChanged]="!!user"
+          [initialValue]="initialValues?.name">
           <input type="text" formControlName="name" placeholder="Juan Pérez" autocomplete="off" />
-          <span class="field-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">Obligatorio</span>
-        </div>
+        </app-form-field>
 
-        <div class="form-field" [class.field-changed]="fieldChanged('supervisorName')">
-          <label>Aprobador <span class="label-muted">(U_NomSup — opcional)</span></label>
+        <!-- Aprobador -->
+        <app-form-field 
+          label="Aprobador"
+          controlName="supervisorName"
+          hint="El usuario seleccionado deberá aprobar las rendiciones de este usuario"
+          [showChanged]="!!user"
+          [initialValue]="initialValues?.supervisorName">
           <app-usuario-search
             [initialLogin]="form.get('supervisorName')?.value"
             [excludeLogin]="user?.U_Login ?? null"
@@ -62,12 +78,16 @@ import { DimensionWithRules } from '../../../services/sap.service';
             placeholderText="— Sin aprobador (nivel final) —"
             (usuarioChange)="onAprobadorSelected($event)">
           </app-usuario-search>
-          <span class="field-hint">El usuario seleccionado deberá aprobar las rendiciones de este usuario</span>
-        </div>
+        </app-form-field>
 
+        <!-- Tipo de Usuario y Fecha Expiración -->
         <div class="form-row">
-          <div class="form-field" [class.field-changed]="fieldChanged('superUser')">
-            <label>Tipo de Usuario <span class="required">*</span></label>
+          <app-form-field 
+            label="Tipo de Usuario"
+            [required]="true"
+            controlName="superUser"
+            [showChanged]="!!user"
+            [initialValue]="initialValues?.superUser">
             <app-select
               label="Tipo de Usuario"
               [required]="true"
@@ -76,25 +96,41 @@ import { DimensionWithRules } from '../../../services/sap.service';
               [value]="form.get('superUser')?.value"
               (valueChange)="form.get('superUser')?.setValue($event)">
             </app-select>
-          </div>
-          <div class="form-field" [class.field-changed]="fieldChanged('fechaExpiracion')">
-            <label>Fecha Expiración <span class="required">*</span></label>
+          </app-form-field>
+
+          <app-form-field 
+            label="Fecha Expiración"
+            [required]="true"
+            controlName="fechaExpiracion"
+            [showChanged]="!!user"
+            [initialValue]="initialValues?.fechaExpiracion">
             <input type="date" formControlName="fechaExpiracion" />
-          </div>
+          </app-form-field>
         </div>
 
-        <div class="form-field" *ngIf="!user">
-          <label>Contraseña <span class="required">*</span></label>
+        <!-- Contraseña -->
+        <app-form-field 
+          *ngIf="!user"
+          label="Contraseña"
+          [required]="true"
+          controlName="password"
+          errorMessage="Mínimo 6 caracteres">
           <input type="password" formControlName="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
-          <span class="field-error" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">Mínimo 6 caracteres</span>
-        </div>
-        <div class="form-field" *ngIf="user">
-          <label>Nueva contraseña <span class="label-muted">(vacío = no cambiar)</span></label>
+        </app-form-field>
+
+        <app-form-field 
+          *ngIf="user"
+          label="Nueva contraseña"
+          controlName="password"
+          hint="vacío = no cambiar"
+          [showChanged]="!!user && !!form.get('password')?.value"
+          [initialValue]="''">
           <input type="password" formControlName="password" placeholder="••••••••" autocomplete="new-password" />
-        </div>
+        </app-form-field>
 
         <div class="form-section-label">Normas de Reparto</div>
 
+        <!-- Fijar Norma Reparto (toggle manteniendo estructura HTML) -->
         <div class="toggle-field" [class.field-changed]="fieldChanged('fijarNr')">
           <div class="toggle-row">
             <div class="toggle-info">
@@ -115,24 +151,32 @@ import { DimensionWithRules } from '../../../services/sap.service';
           </div>
         </div>
 
+        <!-- Normas de reparto NR1-NR5 -->
         <div class="form-row">
           <ng-container *ngFor="let nr of [1,2,3,4,5]">
             <ng-container *ngIf="getDimension(nr) as dim; else nrText">
-              <div class="form-field" [class.field-changed]="fieldChanged('nr'+nr)">
-                <label>{{ dim.dimensionDescription || dim.dimensionName }}</label>
+              <app-form-field 
+                [label]="dim.dimensionDescription || dim.dimensionName"
+                [controlName]="'nr' + nr"
+                [showChanged]="!!user"
+                [initialValue]="initialValues?.['nr' + nr]">
                 <app-select
                   [label]="dim.dimensionDescription || dim.dimensionName"
                   [options]="dimOptionsMap[nr] ?? []"
                   [value]="form.get('nr'+nr)?.value"
                   (valueChange)="form.get('nr'+nr)?.setValue($event)">
                 </app-select>
-              </div>
+              </app-form-field>
             </ng-container>
             <ng-template #nrText>
-              <div class="form-field" [class.field-changed]="fieldChanged('nr'+nr)" *ngIf="!loadingDims">
-                <label>NR {{ nr }}</label>
+              <app-form-field 
+                *ngIf="!loadingDims"
+                [label]="'NR ' + nr"
+                [controlName]="'nr' + nr"
+                [showChanged]="!!user"
+                [initialValue]="initialValues?.['nr' + nr]">
                 <input type="text" [formControlName]="'nr'+nr" maxlength="50" />
-              </div>
+              </app-form-field>
             </ng-template>
           </ng-container>
 
@@ -149,6 +193,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
         <div class="form-section-label">Módulos y permisos</div>
 
         <div class="perms-card">
+          <!-- Permisos con estructura HTML especial (toggles) -->
           <div class="perm-row" [class.perm-row--changed]="fieldChanged('appRend')">
             <div class="perm-info">
               <span class="perm-name">Rendiciones</span>
@@ -214,6 +259,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
           </div>
         </div>
 
+        <!-- Estado (solo edición) -->
         <ng-container *ngIf="user">
           <div class="form-section-label">Estado de la cuenta</div>
           <div class="perms-card">
@@ -237,25 +283,27 @@ import { DimensionWithRules } from '../../../services/sap.service';
 
       </div><!-- /col derecha -->
 
-      <!-- Footer -->
-      <div class="modal-footer modal-2col-footer">
-        <ng-container *ngIf="isDirty; else noChanges">
-          <button type="button" class="btn btn-ghost" (click)="onCancel()">Cancelar</button>
-          <button type="submit"
-            [class]="user ? 'btn btn-save-changes' : 'btn btn-primary'"
-            [disabled]="form.invalid || isSaving">
-            <span *ngIf="isSaving">Guardando...</span>
-            <span *ngIf="!isSaving">{{ user ? '💾 Guardar cambios' : 'Crear Usuario' }}</span>
-          </button>
-        </ng-container>
-        <ng-template #noChanges>
-          <button type="button" class="btn btn-ghost" (click)="onCancel()">Cerrar</button>
-        </ng-template>
-      </div>
-
     </form>
-  </div>
-</div>
+  </ng-template>
+  
+  <ng-template #formFooter>
+    <div class="modal-2col-footer">
+      <ng-container *ngIf="isDirty; else noChanges">
+        <button type="button" class="btn btn-ghost" (click)="onCancel()">Cancelar</button>
+        <button type="button"
+          [class]="user ? 'btn btn-save-changes' : 'btn btn-primary'"
+          [disabled]="form.invalid || isSaving"
+          (click)="onSave()">
+          <span *ngIf="isSaving">Guardando...</span>
+          <span *ngIf="!isSaving">{{ user ? '💾 Guardar cambios' : 'Crear Usuario' }}</span>
+        </button>
+      </ng-container>
+      <ng-template #noChanges>
+        <button type="button" class="btn btn-ghost" (click)="onCancel()">Cerrar</button>
+      </ng-template>
+    </div>
+  </ng-template>
+</app-form-modal>
   `,
 })
 export class UserFormComponent implements OnChanges {
@@ -270,7 +318,7 @@ export class UserFormComponent implements OnChanges {
 
   form!: FormGroup;
   dimOptionsMap: Partial<Record<number, SelectOption[]>> = {};
-  private initialValues: any = null;
+  initialValues: any = null;
 
   readonly userTypeOptions: SelectOption[] = [
     { value: 0, label: 'Normal',        icon: '👤' },
@@ -283,7 +331,11 @@ export class UserFormComponent implements OnChanges {
     { value: '2', label: 'Bloqueado', icon: '🔒' },
   ];
 
-  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef) {
+  constructor(
+    private fb: FormBuilder,
+    private cdr: ChangeDetectorRef,
+    private dirtyService: FormDirtyService,
+  ) {
     this.buildForm();
   }
 
@@ -391,18 +443,15 @@ export class UserFormComponent implements OnChanges {
   }
 
   get isDirty(): boolean {
-    if (!this.user) return true;
-    if (!this.initialValues) return false;
-    const curr   = this.form.getRawValue();
-    const fields = ['name','supervisorName','superUser','appRend','appConf',
-                    'genDocPre','fijarNr','nr1','nr2',
-                    'nr3','nr4','nr5','fijarSaldo','estado','fechaExpiracion','password'];
-    return fields.some(f => curr[f] !== this.initialValues[f]);
+    return this.dirtyService.isDirty(this.form, this.initialValues, {
+      includeFields: ['name','supervisorName','superUser','appRend','appConf',
+                      'genDocPre','fijarNr','nr1','nr2',
+                      'nr3','nr4','nr5','fijarSaldo','estado','fechaExpiracion','password'],
+    });
   }
 
   fieldChanged(field: string): boolean {
-    if (!this.user || !this.initialValues) return false;
-    return this.form.get(field)?.value !== this.initialValues[field];
+    return this.dirtyService.fieldChanged(this.form.get(field), this.initialValues?.[field]);
   }
 
   onAprobadorSelected(u: UsuarioItem | null) {

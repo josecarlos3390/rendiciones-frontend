@@ -10,78 +10,76 @@
   (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
 </app-confirm-dialog>
 
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="offline-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>
-        {{ editingItem ? 'Editar — ' + editingItem.NR_FACTOR_CODE : 'Nueva Norma de Reparto' }}
-        <span class="dirty-badge" *ngIf="editingItem && isDirty">● cambios sin guardar</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
+<!-- Modal con FormModalComponent -->
+<app-form-modal
+  [title]="'Norma de Reparto'"
+  [subtitle]="editingItem ? editingItem.NR_FACTOR_CODE : null"
+  [isOpen]="showForm"
+  [loading]="isSaving"
+  [isEditing]="editingItem !== null"
+  [isDirty]="isDirty"
+  [submitDisabled]="form.invalid"
+  (save)="save()"
+  (cancel)="closeForm()">
+  
+  <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-      <div class="modal-body">
-        <div class="form-section-label">Datos de la norma</div>
+      <div class="form-section-label">Datos de la norma</div>
 
-        <div class="form-field">
-          <label>Código (Factor Code) <span class="required">*</span></label>
-          <input type="text" formControlName="NR_FACTOR_CODE" placeholder="CC-001" maxlength="50" autocomplete="off" />
-          <span class="field-error" *ngIf="form.get('NR_FACTOR_CODE')?.invalid && form.get('NR_FACTOR_CODE')?.touched">Obligatorio</span>
-        </div>
+      <app-form-field
+        label="Código (Factor Code)"
+        [required]="true"
+        controlName="NR_FACTOR_CODE">
+        <input type="text" formControlName="NR_FACTOR_CODE" placeholder="CC-001" maxlength="50" autocomplete="off" />
+      </app-form-field>
 
-        <div class="form-field">
-          <label>Descripción <span class="required">*</span></label>
-          <input type="text" formControlName="NR_DESCRIPCION" placeholder="Centro de Costo Principal" maxlength="250" autocomplete="off" />
-          <span class="field-error" *ngIf="form.get('NR_DESCRIPCION')?.invalid && form.get('NR_DESCRIPCION')?.touched">Obligatorio</span>
-        </div>
+      <app-form-field
+        label="Descripción"
+        [required]="true"
+        controlName="NR_DESCRIPCION">
+        <input type="text" formControlName="NR_DESCRIPCION" placeholder="Centro de Costo Principal" maxlength="250" autocomplete="off" />
+      </app-form-field>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label>Dimensión <span class="required">*</span></label>
-            <app-select label="Dimensión" [searchable]="false" [options]="dimOptions"
-              [value]="form.get('NR_DIMENSION')?.value"
-              (valueChange)="form.get('NR_DIMENSION')?.setValue($event)">
-            </app-select>
-            <span class="field-error" *ngIf="form.get('NR_DIMENSION')?.invalid && form.get('NR_DIMENSION')?.touched">Obligatorio</span>
+      <div class="form-row">
+        <app-form-field
+          label="Dimensión"
+          [required]="true"
+          controlName="NR_DIMENSION">
+          <app-select label="Dimensión" [searchable]="false" [options]="dimOptions"
+            [value]="form.get('NR_DIMENSION')?.value"
+            (valueChange)="form.get('NR_DIMENSION')?.setValue($event)">
+          </app-select>
+        </app-form-field>
+
+        <app-form-field
+          label="¿Activa?"
+          controlName="NR_ACTIVA"
+          hint="Indica si la norma está activa para su uso">
+          <div class="toggle-wrapper">
+            <label class="u-toggle">
+              <input type="checkbox" [checked]="form.get('NR_ACTIVA')?.value === 'Y'" (change)="form.get('NR_ACTIVA')?.setValue($event.target.checked ? 'Y' : 'N')" />
+              <span class="u-toggle-slider"></span>
+            </label>
+            <span class="toggle-status" [class.active]="form.get('NR_ACTIVA')?.value === 'Y'">
+              {{ form.get('NR_ACTIVA')?.value === 'Y' ? 'ACTIVA' : 'INACTIVA' }}
+            </span>
           </div>
-          <div class="form-field">
-            <label>¿Activa?</label>
-            <app-select label="Activa" [searchable]="false" [options]="activaOptions"
-              [value]="form.get('NR_ACTIVA')?.value"
-              (valueChange)="form.get('NR_ACTIVA')?.setValue($event)">
-            </app-select>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <ng-container *ngIf="isDirty; else noChanges">
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-          <button type="submit"
-            [class]="editingItem ? 'btn btn-save-changes' : 'btn btn-primary'"
-            [disabled]="form.invalid || isSaving">
-            <span *ngIf="isSaving">Guardando...</span>
-            <span *ngIf="!isSaving">{{ editingItem ? '💾 Guardar cambios' : 'Crear Norma' }}</span>
-          </button>
-        </ng-container>
-        <ng-template #noChanges>
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
-        </ng-template>
+        </app-form-field>
       </div>
     </form>
-  </div>
-</div>
+  </ng-template>
+  <!-- Footer por defecto -->
+</app-form-modal>
 
 <div class="filter-bar">
   <div class="filter-left">
     <div class="filter-field">
       <label>Buscar</label>
       <div class="filter-search">
-        <span class="search-icon">🔍</span>
+
         <input type="text" class="search-input" placeholder="Buscar norma..."
           [(ngModel)]="search" (input)="applyFilter()" />
-        <button class="search-clear" *ngIf="search" (click)="search=''; applyFilter()">✕</button>
+
       </div>
     </div>
     <div class="filter-field">
@@ -107,31 +105,53 @@
       <tr>
         <th>Código</th>
         <th>Descripción</th>
-        <th>Dimensión</th>
+        <th class="col-hide-tablet">Dimensión</th>
         <th class="text-center">Activa</th>
-        <th class="actions">Acciones</th>
+        <th class="col-acciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let n of paged">
-        <td><code class="code-cell">{{ n.NR_FACTOR_CODE }}</code></td>
-        <td class="col-nombre">{{ n.NR_DESCRIPCION }}</td>
-        <td><span class="carac-badge">{{ n.NR_DIMENSION }}</span> {{ n.DIM_NAME }}</td>
-        <td class="text-center">
-          <span class="bool-dot" [class.bool-dot--on]="n.NR_ACTIVA === 'Y'" [class.bool-dot--off]="n.NR_ACTIVA !== 'Y'"></span>
+        <!-- Código -->
+        <td data-label="Código"><code class="code-cell">{{ n.NR_FACTOR_CODE }}</code></td>
+        
+        <!-- Descripción: Título principal -->
+        <td class="col-nombre col-mobile-primary" data-label="Descripción">{{ n.NR_DESCRIPCION }}</td>
+        
+        <!-- Dimensión (oculto en móvil) -->
+        <td class="col-hide-tablet" data-label="Dimensión">
+          <span class="carac-badge">{{ n.NR_DIMENSION }}</span> {{ n.DIM_NAME }}
         </td>
-        <td class="actions">
-          <button class="btn btn-icon btn-sm btn-ghost" title="Editar" (click)="openEdit(n)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar" (click)="confirmDelete(n)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          </button>
+        
+        <!-- Activa -->
+        <td class="text-center col-mobile-badge" data-label="Activa">
+          <app-status-badge [type]="n.NR_ACTIVA === 'Y' ? 'success' : 'neutral'" [dot]="true">
+            {{ n.NR_ACTIVA === 'Y' ? 'Activa' : 'Inactiva' }}
+          </app-status-badge>
+        </td>
+        
+        <!-- Acciones -->
+        <td class="col-acciones" data-label="Acciones">
+          <app-action-menu 
+            [actions]="getActionMenuItems(n)" 
+            [itemLabel]="n.NR_DESCRIPCION" 
+            (actionClick)="onActionClick($event, n)">
+          </app-action-menu>
         </td>
       </tr>
     </tbody>
   </table>
-  <app-paginator [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
-    (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
+  <app-paginator 
+    [page]="page" 
+    [limit]="limit" 
+    [total]="filtered.length" 
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)" 
+    (limitChange)="onLimitChange($event)">
   </app-paginator>
 </div>

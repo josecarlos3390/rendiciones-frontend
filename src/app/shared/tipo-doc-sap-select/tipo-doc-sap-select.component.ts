@@ -1,7 +1,7 @@
 import {
   Component, Input, Output, EventEmitter,
   OnInit, OnDestroy, ChangeDetectionStrategy,
-  ChangeDetectorRef, ApplicationRef, inject,
+  ChangeDetectorRef, inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -30,7 +30,7 @@ export interface TipoDocSapItem {
   selector:        'app-tipo-doc-sap-select',
   standalone:      true,
   imports:         [CommonModule],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     /* ── Trigger ──────────────────────────────────────────── */
     .tds-trigger {
@@ -255,7 +255,6 @@ export class TipoDocSapSelectComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private http      = inject(HttpClient);
   private cdr       = inject(ChangeDetectorRef);
-  private appRef    = inject(ApplicationRef);
 
   private get api() { return `${environment.apiUrl}/tipo-doc-sap/activos`; }
 
@@ -307,11 +306,11 @@ export class TipoDocSapSelectComponent implements OnInit, OnDestroy {
           this.items   = data;
           this.loading = false;
           this._syncSelected();
-          this.appRef.tick();
+          this.cdr.markForCheck();
         },
         error: () => {
           this.loading = false;
-          this.appRef.tick();
+          this.cdr.markForCheck();
         },
       });
   }

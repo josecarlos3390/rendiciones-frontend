@@ -1,6 +1,7 @@
 import {
   Component,
   OnInit,
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -12,20 +13,22 @@ import {
   Validators,
 } from '@angular/forms';
 
-import { NormasService } from '../../services/normas.service';
-import { DimensionesService } from '../../services/dimensiones.service';
-import { ToastService } from '../../core/toast/toast.service';
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogConfig,
-} from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent } from '../../shared/paginator/paginator.component';
-import { SearchInputComponent } from '../../shared/debounce';
-import { NormaConDimension } from '../../models/norma.model';
-import { Dimension } from '../../models/dimension.model';
+import { NormasService } from '@services/normas.service';
+import { DimensionesService } from '@services/dimensiones.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { NormaConDimension } from '@models/norma.model';
+import { Dimension } from '@models/dimension.model';
 import { AuthService } from '../../auth/auth.service';
-import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
-import { LoadingStateComponent } from '../../shared/loading-state';
+import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
+import { LoadingStateComponent } from '@shared/loading-state';
+import { ActionMenuItem } from '@shared/action-menu';
+import { FormModalComponent } from '@shared/form-modal';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { FormFieldComponent } from '@shared/form-field';
+import { FormDirtyService } from '@shared/form-dirty';
+
+import { NormasFiltersComponent, NormasTableComponent } from './components';
 
 @Component({
   standalone: true,
@@ -35,14 +38,15 @@ import { LoadingStateComponent } from '../../shared/loading-state';
     FormsModule,
     ReactiveFormsModule,
     ConfirmDialogComponent,
-    PaginatorComponent,
-    SearchInputComponent,
-    AppSelectComponent,
     LoadingStateComponent,
+    FormModalComponent,
+    FormFieldComponent,
+    NormasFiltersComponent,
+    NormasTableComponent,
   ],
   templateUrl: './normas.component.html',
   styleUrls: ['./normas.component.scss'],
-
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NormasComponent implements OnInit {
   normas: NormaConDimension[] = [];
@@ -82,6 +86,7 @@ export class NormasComponent implements OnInit {
     private toast: ToastService,
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
+    private dirtyService: FormDirtyService,
   ) {}
 
   ngOnInit() {
@@ -96,10 +101,7 @@ export class NormasComponent implements OnInit {
   // ── Helpers ──────────────────────────────────────────────
 
   get isDirty(): boolean {
-    if (!this.editingNorma) return true;
-    if (!this.initialValues) return false;
-    const curr = this.form.getRawValue();
-    return JSON.stringify(curr) !== JSON.stringify(this.initialValues);
+    return this.dirtyService.isDirty(this.form, this.initialValues);
   }
 
   get isAdmin(): boolean {
@@ -205,8 +207,18 @@ export class NormasComponent implements OnInit {
     this.updatePaging();
   }
 
-  onFilterActivaChange(value: 'todas' | 'activas' | 'inactivas') {
-    this.filterActiva = value;
+  onFilterActivaChange(value: string) {
+    this.filterActiva = value as 'todas' | 'activas' | 'inactivas';
+    this.applyFilter();
+  }
+
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
     this.applyFilter();
   }
 
@@ -346,6 +358,45 @@ export class NormasComponent implements OnInit {
         });
       },
     );
+  }
+
+  // ── Action Menu ──────────────────────────────────────────
+
+  getActionMenuItems(n: NormaConDimension): ActionMenuItem[] {
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: 'toggle',
+        label: n.activa ? 'Desactivar' : 'Activar',
+        icon: n.activa
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.64 17.36a9 9 0 1 1 12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+        cssClass: 'text-danger',
+      },
+    ];
+  }
+
+  onActionClick(action: string, n: NormaConDimension): void {
+    switch (action) {
+      case 'edit':
+        this.openEdit(n);
+        break;
+      case 'toggle':
+        this.toggleActiva(n);
+        break;
+      case 'delete':
+        this.confirmDelete(n);
+        break;
+    }
   }
 
   // ── Dialog ───────────────────────────────────────────────

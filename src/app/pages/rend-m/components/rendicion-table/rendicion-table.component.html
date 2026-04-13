@@ -1,0 +1,69 @@
+<div class="table-wrapper" *ngIf="!loading && !loadError && rendiciones.length > 0">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="col-objetivo">Objetivo</th>
+        <th class="text-center col-id">N°</th>
+        <th class="col-cuenta">Cuenta</th>
+        <th class="col-empleado col-hide-mobile">Empleado</th>
+        <th class="text-center col-fecha col-hide-mobile">Fecha Ini</th>
+        <th class="text-center col-fecha col-hide-tablet">Fecha Fin</th>
+        <th class="text-right col-monto">Monto</th>
+        <th class="text-center col-estado">Estado</th>
+        <th class="col-acciones" title="Acciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of paged; trackBy: trackByRendicion">
+        <!-- 1. OBJETIVO: Título principal (full width) -->
+        <td class="col-objetivo col-mobile-primary" data-label="Objetivo">{{ r.U_Objetivo }}</td>
+        
+        <!-- 2. N° RENDICIÓN (columna 1) -->
+        <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
+        
+        <!-- 3. CUENTA (columna 2) -->
+        <td class="col-cuenta" data-label="Cuenta">
+          <div class="cuenta-info">
+            <span class="cuenta-code">{{ r.U_Cuenta }}</span>
+            <small class="cuenta-name">{{ r.U_NombreCuenta }}</small>
+          </div>
+        </td>
+        
+        <!-- 4. MONTO (columna 1 - destacado) -->
+        <td class="text-right col-monto col-mobile-money" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
+        
+        <!-- 5. ESTADO (columna 2 - badge) -->
+        <td class="text-center col-estado col-mobile-badge" data-label="Estado">
+          <span [class]="getEstadoClass(r.U_Estado)">
+            {{ getEstadoLabel(r.U_Estado) }}
+          </span>
+        </td>
+        
+        <!-- CAMPOS OCULTOS EN MÓVIL -->
+        <td class="col-empleado col-hide-mobile" data-label="Empleado">{{ r.U_NombreEmpleado || '-' }}</td>
+        <td class="text-center col-fecha col-hide-mobile" data-label="Fecha Ini">{{ r.U_FechaIni | ddmmyyyy }}</td>
+        <td class="text-center col-fecha col-hide-tablet" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
+        
+        <!-- 6. ACCIONES (full width al final) -->
+        <td class="col-acciones" data-label="Acciones">
+          <app-action-menu
+            [actions]="getActionMenuItems(r)"
+            (actionClick)="onAction($event, r)">
+          </app-action-menu>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-paginator
+    [page]="page"
+    [limit]="limit"
+    [total]="rendiciones.length"
+    (pageChange)="onPageChange($event)">
+  </app-paginator>
+</div>

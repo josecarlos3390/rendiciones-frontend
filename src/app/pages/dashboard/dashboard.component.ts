@@ -7,9 +7,9 @@ import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { AuthService } from '../../auth/auth.service';
-import { AprobacionesService } from '../../services/aprobaciones.service';
-import { environment } from '../../../environments/environment';
+import { AuthService } from '@auth/auth.service';
+import { AprobacionesService } from '@services/aprobaciones.service';
+import { environment } from '@env';
 
 interface RendStats {
   total:       number;
@@ -30,7 +30,7 @@ interface RendStats {
   imports:         [CommonModule, RouterModule],
   templateUrl:     './dashboard.component.html',
   styleUrls:       ['./dashboard.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent implements OnInit, OnDestroy {
 

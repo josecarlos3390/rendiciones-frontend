@@ -1,10 +1,7 @@
 import { RouterModule, Router } from '@angular/router';
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, inject, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormsModule, ReactiveFormsModule,
-  FormBuilder, FormGroup, Validators,
-} from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, Validators, FormBuilder, FormGroup } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
 import { AprobacionesService }    from '../../services/aprobaciones.service';
@@ -12,7 +9,6 @@ import { RendMService }           from './rend-m.service';
 import { RendDService }           from '../rend-d/rend-d.service';
 import { ToastService }           from '../../core/toast/toast.service';
 import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }     from '../../shared/paginator/paginator.component';
 import { AuthService }            from '../../auth/auth.service';
 import { PerfilesService }        from '../perfiles/perfiles.service';
 import { PermisosService }        from '../permisos/permisos.service';
@@ -20,36 +16,62 @@ import { CuentasCabeceraService } from '../cuentas-cabecera/cuentas-cabecera.ser
 import { CuentaCabecera }         from '../../models/cuenta-cabecera.model';
 import { Perfil }                 from '../../models/perfil.model';
 import { Permiso }                from '../../models/permiso.model';
-import { EmpleadoSearchComponent, Empleado } from '../../shared/empleado-search/empleado-search.component';
-import { CuentaCabeceraSelectComponent }     from '../../shared/cuenta-cabecera-select/cuenta-cabecera-select.component';
-import { DdmmyyyyPipe }           from '../../shared/ddmmyyyy.pipe';
+import { Empleado } from '../../shared/empleado-search/empleado-search.component';
 import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
 import { RendicionPdfPreviewComponent } from '../../shared/rendicion-pdf/rendicion-pdf-preview.component';
-import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
-import { LoadingButtonComponent } from '../../shared/loading-button/loading-button.component';
-import { SearchInputComponent } from '../../shared/debounce';
+import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu';
+import { PaginatorComponent } from '../../shared/paginator/paginator.component';
+import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
 
+
+import { FormDirtyService } from '../../shared/form-dirty';
+import { PickerModalComponent, PickerItem } from '../../shared/picker-modal/picker-modal.component';
+import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
+import { SyncModalComponent } from '../../shared/sync-modal';
 import { RendicionFilterService } from '../../services/rendicion-filter.service';
+import { IntegracionService, SyncResult } from '../../services/integracion.service';
 import {
   RendM, CreateRendMPayload,
   ESTADO_LABEL, ESTADO_CLASS,
 } from '../../models/rend-m.model';
 import { RendD } from '../../models/rend-d.model';
 
+// 🆕 Componentes dumb refactorizados
+import {
+  RendicionFormComponent,
+  RendicionFormData,
+  RendicionFiltersComponent,
+  RendicionTableComponent,
+  PerfilSelectorComponent,
+  VerFiltro,
+  EstadoFiltro,
+  RendicionAction,
+} from './components';
+
 @Component({
   standalone: true,
   selector: 'app-rend-m',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
-            ConfirmDialogComponent, PaginatorComponent, EmpleadoSearchComponent,
-            CuentaCabeceraSelectComponent, DdmmyyyyPipe, SkeletonLoaderComponent,
-            RendicionPdfPreviewComponent, EmptyStateComponent, LoadingButtonComponent, SearchInputComponent],
+  imports: [
+    CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
+    // Core/Shared
+    ConfirmDialogComponent, SkeletonLoaderComponent,
+    RendicionPdfPreviewComponent, EmptyStateComponent,
+    SyncModalComponent, PickerModalComponent,
+    PaginatorComponent, ActionMenuComponent, DdmmyyyyPipe,
+
+    // 🆕 Componentes dumb refactorizados
+    RendicionFormComponent,
+    RendicionFiltersComponent,
+    RendicionTableComponent,
+    PerfilSelectorComponent,
+  ],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RendMComponent implements OnInit {
 
-  @ViewChild(EmpleadoSearchComponent) empleadoSearch?: EmpleadoSearchComponent;
+  @ViewChild(SyncModalComponent) syncModal?: SyncModalComponent;
 
   rendiciones:  RendM[] = [];
   filtered:     RendM[] = [];
@@ -66,7 +88,7 @@ export class RendMComponent implements OnInit {
   editingRend:   RendM | null = null;
   isSaving       = false;
   form!:         FormGroup;
-  private initialValues: any = null;
+  initialValues: any = null;
 
   misPermisosPaso1:    Permiso[] = [];
   loadingPerfilesPaso1 = false;
@@ -74,11 +96,6 @@ export class RendMComponent implements OnInit {
   // ── Filtros unificados ───────────────────────────────────────
   verFiltro:    'propias' | 'subordinados' | 'todas' = 'propias';
   estadoFiltro: 'todas' | 'abiertas' | 'cerradas' | 'enviadas' | 'aprobadas' | 'sincronizadas' | 'error' = 'todas';
-
-  // ── Menú de acciones ─────────────────────────────────────────
-  menuOpen: number | null = null;
-  menuPosition = { top: 0, left: 0 };
-  private menuButtonRef: HTMLElement | null = null;
 
   // Datos combinados en la vista
   rendicionesSubordinados: RendM[] = [];
@@ -91,6 +108,15 @@ export class RendMComponent implements OnInit {
   misPermisos:       Permiso[] = [];
   loadingMisPerfiles = false;
   perfilPickerSelId: number | null = null;
+
+  /** Items para el PickerModalComponent */
+  get perfilPickerItems(): PickerItem[] {
+    return this.misPermisos.map(p => ({
+      id: p.U_IDPERFIL,
+      label: p.U_NOMBREPERFIL,
+      icon: '🏷️'
+    }));
+  }
 
   perfilActivo:  Perfil  | null = null;
   permisoActivo: Permiso | null = null;
@@ -121,13 +147,14 @@ export class RendMComponent implements OnInit {
   pdfReprintDocs:    RendD[] = [];
   loadingReprintDocs = false;
 
+  // ── Modal sincronización (usando componente compartido) ──────
+  syncRend: RendM | null = null;
+
   get isAdmin(): boolean    { return this.auth.isAdmin; }
   get fijarSaldo(): boolean { return this.auth.fijarSaldo; }
 
   get isDirty(): boolean {
-    if (!this.editingRend || !this.initialValues) return true;
-    const curr = this.form.getRawValue();
-    return JSON.stringify(curr) !== JSON.stringify(this.initialValues);
+    return this.dirtyService.isDirty(this.form, this.initialValues);
   }
 
   constructor(
@@ -142,7 +169,9 @@ export class RendMComponent implements OnInit {
     private permisosService:        PermisosService,
     private cuentasCabeceraService: CuentasCabeceraService,
     private aprobSvc:               AprobacionesService,
-    private filterService:         RendicionFilterService,
+    private filterService:          RendicionFilterService,
+    private integracionSvc:         IntegracionService,
+    private dirtyService:           FormDirtyService,
   ) {}
 
   ngOnInit() {
@@ -170,15 +199,13 @@ export class RendMComponent implements OnInit {
           const permiso = permisos.find(p => p.U_IDPERFIL === idPerfil);
           if (permiso) {
             this.misPermisos = permisos;
-            this.seleccionarPerfilDirecto(permiso);
-            this.load();
+            this.seleccionarPerfilDirecto(permiso);  // Ya llama a load() internamente
             this.cdr.markForCheck();
             return;
           }
         }
         if (permisos.length === 1) {
-          this.seleccionarPerfilDirecto(permisos[0]);
-          this.load();
+          this.seleccionarPerfilDirecto(permisos[0]);  // Ya llama a load() internamente
         }
         this.cdr.markForCheck();
       },
@@ -213,9 +240,32 @@ export class RendMComponent implements OnInit {
     return this.form.get(name)?.value !== this.initialValues[name];
   }
 
+  private isLoadingData = false;
+  private pendingLoadTimeout: any = null;
+
   load(onComplete?: () => void) {
+    // Cancelar cualquier load() pendiente programado
+    if (this.pendingLoadTimeout) {
+      clearTimeout(this.pendingLoadTimeout);
+      this.pendingLoadTimeout = null;
+    }
+    
+    // Evitar llamadas múltiples simultáneas
+    if (this.isLoadingData) {
+      console.log('[rend-m] load() ignorado - ya hay una petición en curso');
+      return;
+    }
+    
+    this.isLoadingData = true;
     this.loading   = true;
     this.loadError = false;
+    
+    console.log('[rend-m] load() ejecutando con:', {
+      idPerfil: this.perfilActivo?.U_CodPerfil,
+      page: this.page,
+      limit: this.limit,
+      timestamp: Date.now()
+    });
 
     this.rendMService.getAll({
       idPerfil: this.perfilActivo?.U_CodPerfil,
@@ -229,6 +279,7 @@ export class RendMComponent implements OnInit {
         this.paged       = result.data;
         this.totalPages  = result.totalPages;
         this.loading     = false;
+        this.isLoadingData = false;
         
         // Sincronizar con el servicio de filtros
         this.filterService.setRendiciones(result.data);
@@ -238,8 +289,9 @@ export class RendMComponent implements OnInit {
         onComplete?.();
       },
       error: () => {
-        this.loading   = false;
-        this.loadError = true;
+        this.loading     = false;
+        this.isLoadingData = false;
+        this.loadError   = true;
         this.cdr.markForCheck();
         onComplete?.();
       },
@@ -335,6 +387,16 @@ export class RendMComponent implements OnInit {
     this.paged = this.filtered;
   }
 
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
+    this.applyFilter();
+  }
+
   applyFilter() {
     this.page = 1;
     this.load();
@@ -352,59 +414,117 @@ export class RendMComponent implements OnInit {
   onPageChange(p: number)  { this.page = p; this.load(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.load(); }
 
-  // ── Menú de acciones ─────────────────────────────────────────
-  toggleMenu(id: number, event?: MouseEvent) {
-    if (this.menuOpen === id) {
-      this.closeMenu();
-      return;
+  // ── Menú de acciones (ActionMenuComponent) ──────────────────
+  getActionMenuItems(r: RendM): ActionMenuItem[] {
+    const items: ActionMenuItem[] = [];
+    
+    // Ver detalle - siempre visible
+    items.push({ id: 'view', label: 'Ver detalle', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' });
+    
+    // Imprimir
+    if (this.canReprint(r)) {
+      items.push({ id: 'print', label: 'Ver/Imprimir comprobante', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' });
     }
     
-    this.menuOpen = id;
+    // Editar
+    if (this.canEdit(r)) {
+      items.push({ id: 'edit', label: 'Editar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' });
+    }
     
-    // Calcular posición del dropdown (solo para desktop)
-    if (event && window.innerWidth > 640) {
-      const button = (event.currentTarget as HTMLElement) || (event.target as HTMLElement)?.closest('button');
-      if (button) {
-        this.menuButtonRef = button;
-        this.updateMenuPosition(button);
+    // Sincronizar / Enviar / Preliminar
+    if (r.U_Estado === 1 && this.canEdit(r)) {
+      if (this.canSyncDirecto(r)) {
+        items.push({ id: 'sync', label: 'Sincronizar', cssClass: 'text-success', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>' });
+      } else if (this.auth.sinAprobador && !this.auth.puedeGenerarPre) {
+        items.push({ id: 'preliminar', label: 'Generar Preliminar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' });
+      } else if (!this.auth.sinAprobador) {
+        items.push({ id: 'send', label: 'Enviar', cssClass: 'text-primary', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' });
       }
     }
     
-    this.cdr.markForCheck();
-  }
-
-  private updateMenuPosition(button: HTMLElement) {
-    const rect = button.getBoundingClientRect();
-    const menuWidth = 160;
-    const buttonCenter = rect.left + rect.width / 2;
-    
-    // Posicionar el menú centrado bajo el botón
-    let left = buttonCenter - menuWidth / 2;
-    let top = rect.bottom + window.scrollY + 4;
-    
-    // Ajustar si se sale por la izquierda
-    if (left < 10) {
-      left = 10;
-    }
-    // Ajustar si se sale por la derecha
-    if (left + menuWidth > window.innerWidth - 10) {
-      left = window.innerWidth - menuWidth - 10;
+    // Reintentar sincronización: estado ERROR_SYNC (6)
+    if (r.U_Estado === 6 && this.canSyncDirecto(r)) {
+      items.push({ id: 'retry-sync', label: 'Reintentar Sincronización', cssClass: 'text-warning', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>' });
     }
     
-    this.menuPosition = { top, left };
+    // Eliminar (con divider antes)
+    if (this.canDelete(r)) {
+      items.push({ id: 'delete', label: 'Eliminar', cssClass: 'text-danger', divider: true, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' });
+    }
+    
+    return items;
   }
 
-  closeMenu() {
-    this.menuOpen = null;
-    this.cdr.markForCheck();
+  onActionClick(actionId: string, r: RendM) {
+    switch (actionId) {
+      case 'view':
+        this.router.navigate(['/rend-m', r.U_IdRendicion, 'detalle']);
+        break;
+      case 'print':
+        this.reimprimir(r);
+        break;
+      case 'edit':
+        this.openEdit(r);
+        break;
+      case 'sync':
+      case 'retry-sync':
+        this.abrirModalSync(r);
+        break;
+      case 'preliminar':
+        this.generarPreliminar(r);
+        break;
+      case 'send':
+        this.enviarAprobacion(r);
+        break;
+      case 'delete':
+        this.confirmDelete(r);
+        break;
+    }
   }
 
-  // Cerrar menú al hacer clic fuera
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.dropdown')) {
-      this.closeMenu();
+  // ── Menú de acciones para subordinados ───────────────────────
+  getActionMenuItemsSubordinados(r: RendM): ActionMenuItem[] {
+    const items: ActionMenuItem[] = [];
+    
+    // Ver detalle - siempre visible
+    items.push({ id: 'view', label: 'Ver detalle', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' });
+    
+    // Imprimir
+    if (this.canReprint(r)) {
+      items.push({ id: 'print', label: 'Ver/Imprimir comprobante', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' });
+    }
+    
+    // Editar
+    if (this.canEdit(r)) {
+      items.push({ id: 'edit', label: 'Editar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' });
+    }
+    
+    // Aprobar/Rechazar (con divider antes)
+    if (this.canAprobar(r)) {
+      items.push({ id: 'aprobar', label: 'Aprobar', cssClass: 'text-success', divider: true, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' });
+      items.push({ id: 'rechazar', label: 'Rechazar', cssClass: 'text-danger', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' });
+    }
+    
+    return items;
+  }
+
+  onActionClickSubordinados(actionId: string, r: RendM) {
+    switch (actionId) {
+      case 'view':
+        this.router.navigate(['/rend-m', r.U_IdRendicion, 'detalle']);
+        break;
+      case 'print':
+        this.reimprimir(r);
+        break;
+      case 'edit':
+        this.router.navigate(['/rend-m', r.U_IdRendicion, 'detalle']);
+        break;
+      case 'aprobar':
+        this.aprobarDesdeSubordinados(r);
+        break;
+      case 'rechazar':
+        this.rechazarDesdeSubordinados(r);
+        break;
     }
   }
 
@@ -452,6 +572,11 @@ export class RendMComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  onPerfilConfirm(id: number | string): void {
+    this.perfilPickerSelId = id as number;
+    this.confirmarPerfilPicker();
+  }
+
   confirmarPerfilPicker() {
     if (!this.perfilPickerSelId) return;
     this.permisoActivo = this.misPermisos.find(p => p.U_IDPERFIL === this.perfilPickerSelId) ?? null;
@@ -481,7 +606,6 @@ export class RendMComponent implements OnInit {
   openNew() {
     this.editingRend   = null;
     this.initialValues = null;
-    this.empleadoSearch?.reset();
     this.form.get('idPerfil')?.disable();
 
     const hoy = new Date().toISOString().substring(0, 10);
@@ -551,7 +675,6 @@ export class RendMComponent implements OnInit {
       empleadoCtrl?.clearValidators();
       nombreEmpleadoCtrl?.clearValidators();
       this.form.patchValue({ empleado: '', nombreEmpleado: '' });
-      this.empleadoSearch?.reset();
     } else {
       empleadoCtrl?.enable();
       nombreEmpleadoCtrl?.enable();
@@ -570,7 +693,6 @@ export class RendMComponent implements OnInit {
     if (nuevoFiltro !== this.filtroEmpleado || nuevoCar !== this.filtroEmpleadoCar) {
       this.filtroEmpleado    = nuevoFiltro;
       this.filtroEmpleadoCar = nuevoCar;
-      this.empleadoSearch?.reset();
       this.form.patchValue({ empleado: '', nombreEmpleado: '' });
     }
   }
@@ -586,7 +708,6 @@ export class RendMComponent implements OnInit {
       empleado:       '',
       nombreEmpleado: '',
     });
-    this.empleadoSearch?.reset();
     this.aplicarBloqueoEmpleado();
     this.cdr.markForCheck();
   }
@@ -867,8 +988,24 @@ export class RendMComponent implements OnInit {
   }
 
   canSync(r: RendM): boolean {
-    // Solo usuarios con permiso sync, en estado APROBADO o ERROR SYNC
-    return this.auth.puedeSync && [3, 6].includes(r.U_Estado);
+    // Usuarios con puedeSync: estados APROBADO (7) o ERROR_SYNC (6)
+    if (this.auth.puedeSync && [7, 6].includes(r.U_Estado)) {
+      return true;
+    }
+    // Usuarios con genDocPre y sin aprobador: también pueden sincronizar desde ABIERTO (1)
+    if (this.auth.puedeGenerarPre && this.auth.sinAprobador && [1, 7, 6].includes(r.U_Estado)) {
+      return true;
+    }
+    return false;
+  }
+
+  /** 
+   * Verifica si puede sincronizar directamente (sin enviar a aprobación).
+   * Estado 1 (ABIERTO): sincronización inicial
+   * Estado 6 (ERROR_SYNC): reintentar sincronización después de error
+   */
+  canSyncDirecto(r: RendM): boolean {
+    return this.auth.puedeGenerarPre && this.auth.sinAprobador && [1, 6].includes(r.U_Estado);
   }
 
   /** Muestra el botón reimprimir para rendiciones ya enviadas/aprobadas/sync */
@@ -876,8 +1013,47 @@ export class RendMComponent implements OnInit {
     return [2, 3, 4, 5, 6].includes(r.U_Estado);
   }
 
+  // ── Modal sincronización (usando componente compartido) ───────────────
+  
+  abrirModalSync(rend: RendM) {
+    this.syncRend = rend;
+    this.syncModal?.open({
+      idRendicion: rend.U_IdRendicion,
+      objetivo: rend.U_Objetivo,
+      monto: rend.U_Monto,
+      estado: rend.U_Estado,
+    });
+  }
+
+  onSyncComplete(res: SyncResult) {
+    this.load();
+  }
+
   // ── Track by para virtual scroll ───────────────────────────────────────
   trackByRendicion(index: number, r: RendM): number {
     return r.U_IdRendicion;
+  }
+
+  // ── Handlers para componentes dumb ───────────────────────────────────────
+
+  onSaveRendicion(data: RendicionFormData): void {
+    this.form.patchValue({
+      idPerfil: data.idPerfil,
+      cuenta: data.cuenta,
+      nombreCuenta: data.nombreCuenta,
+      empleado: data.empleado,
+      nombreEmpleado: data.nombreEmpleado,
+      objetivo: data.objetivo,
+      fechaIni: data.fechaIni,
+      fechaFinal: data.fechaFinal,
+      monto: data.monto,
+      preliminar: data.preliminar,
+    });
+    this.save();
+  }
+
+  onTableAction(event: RendicionAction): void {
+    const { action, rendicion } = event;
+    this.onActionClick(action, rendicion);
   }
 }

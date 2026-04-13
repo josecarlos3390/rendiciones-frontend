@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 /**
@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-ai-disabled-notice',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ai-notice-container" *ngIf="visible">
       <div class="ai-notice-content">

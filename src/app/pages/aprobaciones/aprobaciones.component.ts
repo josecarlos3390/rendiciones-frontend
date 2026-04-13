@@ -1,22 +1,24 @@
-import {
+﻿import {
   Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { AprobacionesService, AprobacionPendiente } from '../../services/aprobaciones.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
-import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
-
+import { AprobacionesService, AprobacionPendiente } from '@services/aprobaciones.service';
+import { NotificacionesService } from '@services/notificaciones.service';
+import { ToastService } from '@core/toast/toast.service';
+import { AprobacionesListComponent, AprobacionModalComponent } from './components';
 
 @Component({
   selector:        'app-aprobaciones',
   standalone:      true,
-  changeDetection: ChangeDetectionStrategy.Default,
-  imports: [CommonModule, RouterModule, FormsModule, DdmmyyyyPipe, SkeletonLoaderComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    AprobacionesListComponent,
+    AprobacionModalComponent,
+  ],
   templateUrl: './aprobaciones.component.html',
   styleUrls:  ['./aprobaciones.component.scss'],
 })
@@ -38,8 +40,10 @@ export class AprobacionesComponent implements OnInit {
 
   constructor(
     private svc:  AprobacionesService,
+    private notifSvc: NotificacionesService,
     private toast: ToastService,
     private cdr:   ChangeDetectorRef,
+    private router: Router,
   ) {}
 
   ngOnInit() { this.load(); }
@@ -70,24 +74,9 @@ export class AprobacionesComponent implements OnInit {
     });
   }
 
-  cambiarNivelFiltro(nivel: number | 'todas') {
+  onNivelFiltroChange(nivel: number | 'todas') {
     this.nivelFiltro = nivel;
     this.cdr.markForCheck();
-  }
-
-  get nivelesDisponibles(): number[] {
-    const niveles = new Set<number>();
-    for (const p of this.pendientes) niveles.add(p.U_Nivel);
-    return Array.from(niveles).sort((a, b) => a - b);
-  }
-
-  get pendientesActivos(): AprobacionPendiente[] {
-    if (this.nivelFiltro === 'todas') return this.pendientes;
-    return this.pendientes.filter(p => p.U_Nivel === this.nivelFiltro);
-  }
-
-  get hayPendientes(): boolean {
-    return this.pendientes.length > 0;
   }
 
   openAprobar(rend: AprobacionPendiente) {
@@ -134,6 +123,13 @@ export class AprobacionesComponent implements OnInit {
         this.pendientes = this.pendientes.filter(p => p.U_IdRendicion !== idRend);
         this.cdr.markForCheck();
 
+        // Notificar inmediatamente al sidebar para actualizar contadores (sin esperar polling)
+        if (this.accionActual === 'aprobar') {
+          this.notifSvc.emitirAprobacionProcesada(idRend);
+        } else if (this.accionActual === 'rechazar') {
+          this.notifSvc.emitirRendicionRechazada(idRend);
+        }
+
         // Recargar en background para sincronizar con el servidor
         this.load();
       },
@@ -145,25 +141,7 @@ export class AprobacionesComponent implements OnInit {
     });
   }
 
-  estadoRendTexto(estado: number): string {
-    const map: Record<number, string> = {
-      1: 'ABIERTO', 2: 'CERRADO', 3: 'ELIMINADO', 4: 'ENVIADO', 7: 'APROBADO',
-    };
-    return map[estado] ?? `Estado ${estado}`;
-  }
-
-  estadoRendCss(estado: number): string {
-    const map: Record<number, string> = {
-      1: 'status-badge status-open',      // ABIERTO
-      2: 'status-badge status-closed',    // CERRADO
-      3: 'status-badge status-cancelled', // ELIMINADO
-      4: 'status-badge status-confirmed', // ENVIADO
-      7: 'status-badge status-closed',    // APROBADO
-    };
-    return map[estado] ?? 'status-badge';
-  }
-
-  trackByPendiente(index: number, p: AprobacionPendiente): number {
-    return p.U_IdRendicion;
+  onVerDetalle(rend: AprobacionPendiente) {
+    this.router.navigate(['/rend-m', rend.U_IdRendicion, 'detalle']);
   }
 }

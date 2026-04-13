@@ -26,7 +26,7 @@ import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicato
   ],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.sidebar-collapsed]': 'sidebarCollapsed'
   }
@@ -43,6 +43,12 @@ export class LayoutComponent implements OnInit {
 
   onSidebarToggle(collapsed: boolean) {
     this.sidebarCollapsed = collapsed;
+    // Aplicar clase al body para que la variable CSS --sidebar-width esté disponible globalmente
+    if (collapsed) {
+      document.body.classList.add('sidebar-collapsed');
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+    }
     this.cdr.markForCheck();
   }
 

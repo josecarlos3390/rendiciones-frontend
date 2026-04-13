@@ -15,42 +15,6 @@
   background-color: var(--bg-muted, #f8f9fa);
 }
 
-// Select de filtros - usa variables CSS del tema
-.filter-select {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background-color: var(--bg-surface);
-  font-size: var(--text-md);
-  color: var(--text-main);
-  cursor: pointer;
-  min-width: 120px;
-
-  &:focus {
-    outline: none;
-    border-color: var(--border-focus);
-    box-shadow: var(--shadow-focus);
-  }
-}
-
-// Responsive adjustments
-@media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-
-    .filter-left {
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .filter-field {
-      width: 100%;
-    }
-  }
-}
-
 // ── Corrección layout tarjeta móvil ──────────────────────────────
 @media (max-width: 640px) {
   .data-table td[data-label="Nombre"] {

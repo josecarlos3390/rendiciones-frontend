@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface ValidacionSiatResult {
@@ -36,6 +36,7 @@ export interface ValidacionSiatResult {
   selector: 'app-siat-validator',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="siat-validator" *ngIf="resultado">
       <!-- Header con estado -->

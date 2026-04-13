@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface AnalisisAprobacionResult {
@@ -34,6 +34,7 @@ export interface AnalisisAprobacionResult {
   selector: 'app-ai-approval-analysis',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ai-approval-card" *ngIf="analisis">
       <div class="ai-header" [class]="'nivel-' + analisis.nivel">

@@ -1,9 +1,9 @@
-// ═══════════════════════════════════════════════════════════════
+﻿// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // rend-m.component.scss
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── Modal formulario ─ usa .user-modal--wide para ancho personalizado ──────
-// Los estilos base (.user-modal) están en _modals.scss con responsive incluido
+// â”€â”€ Modal formulario â”€ usa .user-modal--wide para ancho personalizado â”€â”€â”€â”€â”€â”€
+// Los estilos base (.user-modal) estÃ¡n en _modals.scss con responsive incluido
 .rend-modal {
   // El formulario necesita flex para que el footer se mantenga abajo
   form {
@@ -14,10 +14,10 @@
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// BADGE DE PERFIL ACTIVO — aparece en el page-header cuando
-// hay un perfil seleccionado, antes del botón Nueva Rendición
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BADGE DE PERFIL ACTIVO â€” aparece en el page-header cuando
+// hay un perfil seleccionado, antes del botÃ³n Nueva RendiciÃ³n
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .page-header-actions {
   display:     flex;
@@ -76,9 +76,9 @@
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// PICKER DE PERFIL — items de selección dentro del modal-card
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PICKER DE PERFIL â€” items de selecciÃ³n dentro del modal-card
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .picker-list {
   display:        flex;
@@ -126,9 +126,9 @@
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// TABLA — columnas específicas de REND_M
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// TABLA â€” columnas especÃ­ficas de REND_M
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .field-hint {
   font-size: var(--text-sm);
@@ -137,19 +137,52 @@
   line-height: 1.4;
 }
 
-// ── Override tipográfico: iguala font-size al de la tabla de usuarios ──
+// â”€â”€ Override tipogrÃ¡fico: iguala font-size al de la tabla de usuarios â”€â”€
 .data-table td {
-  font-size: var(--text-sm);  // 12.5px — mismo que users y otras tablas de lista
+  font-size: var(--text-sm);  // 12.5px â€” mismo que users y otras tablas de lista
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ANCHOS DE COLUMNAS - Tabla normal (sin virtual scroll)
-// Las columnas se ajustan automáticamente al contenido
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// TABLE WRAPPER - Scroll horizontal cuando el sidebar estÃ¡ visible
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ─────────────────────────────────────────────────────────────
-// PASO 1 — Pantalla de selección de perfil
-// ─────────────────────────────────────────────────────────────
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  // Asegurar que la tabla no se desborde del contenedor
+  .data-table {
+    min-width: 100%;
+    width: max-content;
+    table-layout: auto;
+  }
+  
+  // Scrollbar styling
+  &::-webkit-scrollbar { 
+    height: 6px; 
+  }
+  &::-webkit-scrollbar-track { 
+    background: var(--bg-subtle); 
+    border-radius: 3px; 
+  }
+  &::-webkit-scrollbar-thumb { 
+    background: var(--border-color); 
+    border-radius: 3px; 
+    &:hover {
+      background: var(--text-muted);
+    }
+  }
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ANCHOS DE COLUMNAS - Tabla normal (sin virtual scroll)
+// Las columnas se ajustan automÃ¡ticamente al contenido
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PASO 1 â€” Pantalla de selecciÃ³n de perfil
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .perfil-step {
   display:        flex;
   flex-direction: column;
@@ -269,9 +302,9 @@
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Filtros — layout para múltiples campos
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Filtros â€” layout para mÃºltiples campos
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .filter-left {
   display: flex;
   align-items: flex-end;
@@ -286,14 +319,14 @@
   min-width: 0;
 }
 
-// Campo de búsqueda — ancho fijo para evitar que se comprima
+// Campo de bÃºsqueda â€” ancho fijo para evitar que se comprima
 .filter-field:has(app-search-input) {
   width: 280px;
   min-width: 280px;
   flex-shrink: 0;
 }
 
-// Responsive: en pantallas pequeñas, el buscador ocupa todo el ancho
+// Responsive: en pantallas pequeÃ±as, el buscador ocupa todo el ancho
 @media (max-width: 768px) {
   .filter-left {
     flex-direction: column;
@@ -307,9 +340,9 @@
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// CHIPS DE ESTADO — filtro Abiertas / Enviadas / Todas
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// CHIPS DE ESTADO â€” filtro Abiertas / Enviadas / Todas
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .estado-chips {
   display:    flex;
   align-items: center;
@@ -431,7 +464,7 @@
   color:       var(--text-heading);
 }
 
-// ── Columna de Acciones (copiada exacta de rend-d) ───────
+// â”€â”€ Columna de Acciones (copiada exacta de rend-d) â”€â”€â”€â”€â”€â”€â”€
 .data-table th.col-acciones,
 .data-table td.col-acciones {
   width: 90px;
@@ -446,7 +479,7 @@
   gap: 4px;
 }
 
-// Botones de acción - estilo igual a rend-d
+// Botones de acciÃ³n - estilo igual a rend-d
 .data-table td.col-acciones {
   .btn-icon {
     width: 36px;
@@ -478,13 +511,13 @@
   }
 }
 
-// Anchos mínimos para columnas principales
+// Anchos mÃ­nimos para columnas principales
 .data-table th,
 .data-table td {
   min-width: 90px;
 }
 
-// Columnas que necesitan más espacio
+// Columnas que necesitan mÃ¡s espacio
 .data-table th.col-objetivo,
 .data-table td.col-objetivo,
 .data-table th.col-empleado,
@@ -497,7 +530,7 @@
   min-width: 200px;
 }
 
-// ── Banner informativo de flujo ───────────────────────────────
+// â”€â”€ Banner informativo de flujo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .rend-m-info {
   margin-bottom: 12px;
 
@@ -510,7 +543,7 @@
   }
 }
 
-// ── Botón Enviar ──────────────────────────────────────────────
+// â”€â”€ BotÃ³n Enviar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .btn-send {
   background:   var(--status-sent-bg);
   color:        var(--status-sent-color);
@@ -523,7 +556,7 @@
     border-color: var(--status-pending-border);
   }
 }
-// ── Tabs propias / subordinados ─────────────────────────────────
+// â”€â”€ Tabs propias / subordinados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .view-tabs {
   display: flex;
   gap: 4px;
@@ -579,7 +612,7 @@
   &:hover { text-decoration: underline; }
 }
 
-// ── Separador entre secciones propias / subordinados ───────────────
+// â”€â”€ Separador entre secciones propias / subordinados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .section-divider {
   display: flex;
   align-items: center;
@@ -597,7 +630,7 @@
   }
 }
 
-// ── Pill de usuario en tabla subordinados ──────────────────────────
+// â”€â”€ Pill de usuario en tabla subordinados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .user-pill {
   display: inline-flex;
   align-items: center;
@@ -611,7 +644,7 @@
   white-space: nowrap;
 }
 
-// ── Chips de filtro "Ver" ──────────────────────────────────────────
+// â”€â”€ Chips de filtro "Ver" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .ver-chips {
   display: flex;
   flex-wrap: wrap;
@@ -646,7 +679,7 @@
     display: block;
   }
 
-  // Ajuste visual: pequeña flecha indicadora
+  // Ajuste visual: pequeÃ±a flecha indicadora
   &::before {
     content: '';
     position: absolute;
@@ -733,7 +766,7 @@
   }
 }
 
-// ── Responsive: Tabla como tarjetas en móvil ───────────────────────
+// â”€â”€ Responsive: Tabla como tarjetas en mÃ³vil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @media (max-width: 640px) {
   .table-wrapper {
     border: none;
@@ -791,7 +824,7 @@
         &::before { display: none; }
       }
       
-      // N°: arriba a la izquierda
+      // NÂ°: arriba a la izquierda
       &.col-id {
         grid-column: 1;
         grid-row: 1;
@@ -849,7 +882,7 @@
     }
   }
   
-  // Dropdown en móvil: posición absoluta junto al botón
+  // Dropdown en mÃ³vil: posiciÃ³n absoluta junto al botÃ³n
   .dropdown-menu {
     position: absolute !important;
     top: calc(100% + 6px) !important;
@@ -860,8 +893,9 @@
     margin-top: 0;
   }
   
-  // Ajustar paginador en móvil
+  // Ajustar paginador en mÃ³vil
   app-paginator {
     margin-top: 12px;
   }
 }
+

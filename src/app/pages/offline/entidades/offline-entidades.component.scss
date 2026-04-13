@@ -1,4 +1,5 @@
 // Clases globales: _modals.scss, _forms.scss, _buttons.scss, _tables.scss, _lists.scss
+@use '../../../../styles/tables' as tables;
 
 .offline-modal {
   width: min(520px, 96vw);
@@ -28,12 +29,43 @@
 
 .table-wrapper { -webkit-overflow-scrolling: touch; }
 
+// ═══════════════════════════════════════════════════════════════
+// RESPONSIVE MÓVIL — Usando mixin estandarizado
+// ═══════════════════════════════════════════════════════════════
 @media (max-width: 640px) {
-  .page-header { flex-direction: column; align-items: flex-start; gap: 10px;
-    .btn { width: 100%; justify-content: center; } }
+  :host ::ng-deep {
+    @include tables.table-mobile-grid;
+    
+    // Grid específico: Codigo + Nombre | NIT | Acciones
+    td[data-label="Código"] {
+      align-items: flex-start;
+    }
+    
+    td[data-label="Razón Social"] {
+      align-items: flex-end;
+      text-align: right;
+      font-weight: var(--weight-semibold);
+      
+      &::before { align-self: flex-end; }
+    }
+    
+    td[data-label="NIT"] {
+      grid-column: 1 / -1;
+      padding-top: var(--space-2);
+      border-top: 1px dashed var(--border-color-subtle);
+    }
+  }
+  
+  .page-header { 
+    flex-direction: column; 
+    align-items: flex-start; 
+    gap: 10px;
+    .btn { width: 100%; justify-content: center; } 
+  }
 }
 
 .col-nombre { font-weight: var(--weight-medium); max-width: 180px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .code-cell  { font-family: var(--font-mono, monospace); font-size: var(--text-sm);
   background: var(--bg-subtle); padding: 2px 6px; border-radius: var(--radius-sm); white-space: nowrap; }
+.text-center { text-align: center; }

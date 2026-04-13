@@ -1,0 +1,435 @@
+:host {
+  display: block;
+}
+
+.modal-body {
+  padding: 20px 0;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.col-span-2 { grid-column: span 2; }
+.col-span-4 { grid-column: span 4; }
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #374151);
+}
+
+.form-field input {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #111827);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-field input:focus {
+  outline: none;
+  border-color: var(--color-primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-field.field-disabled input {
+  background: var(--bg-secondary, #f3f4f6);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.required {
+  color: var(--color-danger, #ef4444);
+}
+
+.prov-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-nuevo-prov {
+  padding: 0 16px;
+  background: var(--color-primary, #6366f1);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-nuevo-prov:hover {
+  background: var(--color-primary-hover, #4f46e5);
+}
+
+/* Concepto con botón IA */
+.concepto-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.concepto-input-row input {
+  flex: 1;
+}
+
+.btn-ia-sugerencia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-ia-sugerencia:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-ia-sugerencia:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ia-sugerencia.loading {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+}
+
+.ia-icon {
+  font-size: 16px;
+}
+
+.ia-text {
+  font-weight: 600;
+}
+
+.ia-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ia-sugerencia-aplicada {
+  margin-top: 6px;
+}
+
+.ia-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+// Tarjeta de sugerencia IA pendiente
+.ia-sugerencia-card {
+  margin-top: 12px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid var(--color-primary-border, #d4dafe);
+  border-radius: var(--radius-lg, 10px);
+  padding: 16px;
+  animation: slide-in 0.3s ease;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ia-sugerencia-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft, #eceff8);
+}
+
+.ia-sugerencia-header .ia-icon {
+  font-size: 20px;
+}
+
+.ia-sugerencia-header .ia-titulo {
+  flex: 1;
+  font-weight: var(--weight-semibold, 600);
+  color: var(--text-heading, #0f1020);
+}
+
+.ia-sugerencia-header .ia-confianza {
+  font-size: 11px;
+  font-weight: var(--weight-medium, 500);
+  color: var(--color-primary, #4f6af5);
+  background: var(--color-primary-bg, #eef1fe);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 999px);
+}
+
+.ia-sugerencia-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ia-sugerencia-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ia-sugerencia-item .ia-label {
+  font-size: 12px;
+  color: var(--text-muted, #5f6488);
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.ia-sugerencia-item .ia-valor {
+  font-size: 13px;
+  font-weight: var(--weight-medium, 500);
+  color: var(--text-heading, #0f1020);
+}
+
+.ia-sugerencia-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft, #eceff8);
+}
+
+.toggle-field {
+  justify-content: flex-end;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.toggle-label-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #374151);
+}
+
+.u-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.u-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.u-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--border-color, #d1d5db);
+  border-radius: 24px;
+  transition: background 0.3s;
+}
+
+.u-toggle-slider:before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.u-toggle input:checked + .u-toggle-slider {
+  background: var(--color-primary, #6366f1);
+}
+
+.u-toggle input:checked + .u-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Cálculos */
+.calc-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.calc-section {
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.calc-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+}
+
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.calc-row:last-child {
+  border-bottom: none;
+}
+
+.calc-label {
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.calc-value {
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #111827);
+}
+
+.calc-divider {
+  height: 1px;
+  background: var(--border-color, #d1d5db);
+  margin: 12px 0;
+}
+
+.calc-row.total .calc-value {
+  font-weight: 600;
+  color: var(--color-primary, #6366f1);
+}
+
+.calc-row.grand-total .calc-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-success, #10b981);
+}
+
+@media (max-width: 640px) {
+  .doc-grid {
+    grid-template-columns: 1fr;
+  }
+  .col-span-2, .col-span-4 {
+    grid-column: span 1;
+  }
+}
+
+// Dark mode
+:host-context([data-theme="dark"]) {
+  .form-field input {
+    background: var(--bg-card-dark, #1f2937);
+    border-color: var(--border-color-dark, #4b5563);
+    color: var(--text-primary-dark, #f9fafb);
+  }
+
+  .form-field label {
+    color: var(--text-secondary-dark, #9ca3af);
+  }
+
+  .calc-section {
+    background: var(--bg-secondary-dark, #374151);
+    border: 1px solid var(--border-color-dark, #4b5563);
+  }
+
+  .calc-section h4 {
+    color: var(--text-primary-dark, #f9fafb);
+  }
+
+  .calc-row {
+    border-bottom-color: var(--border-color-dark, #4b5563);
+  }
+
+  .calc-label {
+    color: var(--text-secondary-dark, #9ca3af);
+  }
+
+  .calc-value {
+    color: var(--text-primary-dark, #f9fafb);
+  }
+
+  .calc-divider {
+    background: var(--border-color-dark, #4b5563);
+  }
+
+  .u-toggle-slider {
+    background: var(--border-color-dark, #4b5563);
+  }
+
+  .btn-ia-sugerencia {
+    background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%);
+  }
+
+  .btn-ia-sugerencia:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4338ca 0%, #5b21b6 100%);
+  }
+
+  .ia-badge {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+}

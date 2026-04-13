@@ -1,17 +1,22 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ApplicationRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RendCmpService, RendCmp } from '../../services/rend-cmp.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
-import { AuthService } from '../../auth/auth.service';
+import { RendCmpService, RendCmp } from '@services/rend-cmp.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { SkeletonLoaderComponent } from '@shared/skeleton-loader/skeleton-loader.component';
+import { FormModalComponent } from '@shared/form-modal/form-modal.component';
+
+import { FormFieldComponent } from '@shared/form-field/form-field.component';
+import { FormDirtyService } from '@shared/form-dirty';
+import { AuthService } from '@auth/auth.service';
+import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu';
 
 @Component({
   selector:        'app-rend-cmp',
   standalone:      true,
-  changeDetection: ChangeDetectionStrategy.Default,
-  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, SkeletonLoaderComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, SkeletonLoaderComponent, ActionMenuComponent, FormModalComponent, FormFieldComponent],
   templateUrl:     './rend-cmp.component.html',
   styleUrls:       ['./rend-cmp.component.scss'],
 })
@@ -39,6 +44,7 @@ export class RendCmpComponent implements OnInit {
     private toast:  ToastService,
     private cdr:    ChangeDetectorRef,
     private appRef: ApplicationRef,
+    private dirtyService: FormDirtyService,
   ) {}
 
   ngOnInit() {
@@ -52,17 +58,14 @@ export class RendCmpComponent implements OnInit {
       campo:       ['', [Validators.required, Validators.maxLength(100)]],
     });
     this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
+
   }
 
   get isDirty(): boolean {
     if (!this.editingItem) return true;
-    return JSON.stringify(this.form.getRawValue()) !== JSON.stringify(this.initialValues);
+    return this.dirtyService.isDirty(this.form, this.initialValues);
   }
 
-  fieldChanged(field: string): boolean {
-    if (!this.editingItem || !this.initialValues) return false;
-    return this.form.get(field)?.value !== this.initialValues[field];
-  }
 
   load() {
     this.loading   = true;
@@ -156,4 +159,34 @@ export class RendCmpComponent implements OnInit {
   }
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+
+  getActionMenuItems(item: RendCmp): ActionMenuItem[] {
+    if (!this.auth.puedeEditarConf) {
+      return [];
+    }
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        cssClass: 'danger',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, item: RendCmp): void {
+    switch (actionId) {
+      case 'edit':
+        this.openEdit(item);
+        break;
+      case 'delete':
+        this.remove(item);
+        break;
+    }
+  }
 }

@@ -6,9 +6,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { timer } from 'rxjs';
 
 import { UsersService } from '../users/users.service';
-import { AuthService } from '../../auth/auth.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { User } from '../../models/user.model';
+import { AuthService } from '@auth/auth.service';
+import { ToastService } from '@core/toast/toast.service';
+import { User } from '@models/user.model';
 
 function passwordMatchValidator(): ValidatorFn {
   return (form: AbstractControl) => {
@@ -24,7 +24,7 @@ function passwordMatchValidator(): ValidatorFn {
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileComponent implements OnInit {
 

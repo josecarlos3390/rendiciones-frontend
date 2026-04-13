@@ -3,16 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { CuentasListaService }   from './cuentas-lista.service';
-import { ToastService }          from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }    from '../../shared/paginator/paginator.component';
-import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
-import { CuentaSearchComponent } from '../../shared/cuenta-search/cuenta-search.component';
-import { SearchInputComponent } from '../../shared/debounce';
-import { CuentaLista }           from '../../models/cuenta-lista.model';
-import { Perfil }                from '../../models/perfil.model';
-import { ChartOfAccount }        from '../../services/sap.service';
-import { AuthService } from '../../auth/auth.service';
+import { ToastService }          from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { PaginatorComponent }    from '@shared/paginator/paginator.component';
+import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { PerfilSelectComponent } from '@shared/perfil-select/perfil-select.component';
+import { CuentaSearchComponent } from '@shared/cuenta-search/cuenta-search.component';
+import { SearchInputComponent } from '@shared/debounce';
+import { CuentaLista }           from '@models/cuenta-lista.model';
+import { Perfil }                from '@models/perfil.model';
+import { ChartOfAccount }        from '@services/sap.service';
+import { AuthService } from '@auth/auth.service';
+import { FormModalComponent } from '@shared/form-modal';
+import { FormFieldComponent } from '@shared/form-field/form-field.component';
 
 @Component({
   standalone: true,
@@ -25,10 +28,14 @@ import { AuthService } from '../../auth/auth.service';
     PerfilSelectComponent,
     CuentaSearchComponent,
     SearchInputComponent,
+    ActionMenuComponent,
+    FormModalComponent,
+
+    FormFieldComponent,
   ],
   templateUrl: './cuentas-lista.component.html',
   styleUrls: ['./cuentas-lista.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CuentasListaComponent implements OnInit {
 
@@ -55,6 +62,10 @@ export class CuentasListaComponent implements OnInit {
   isSaving      = false;
   selectedCuenta: ChartOfAccount | null = null;
   cuentaTouched = false;
+
+  get isFormValid(): boolean {
+    return !!this.selectedCuenta;
+  }
 
   // ── Confirm dialog ──────────────────────────────────────
   showDialog   = false;
@@ -120,6 +131,16 @@ export class CuentasListaComponent implements OnInit {
   onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
 
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
+    this.applyFilter();
+  }
+
   // ── Agregar cuenta ────────────────────────────────────────
 
   openForm() {
@@ -146,12 +167,19 @@ export class CuentasListaComponent implements OnInit {
     this.cuentaTouched = true;
     if (!this.selectedCuenta || this.isSaving || !this.selectedPerfilId) return;
 
+    // Validar que la cuenta no exceda 50 caracteres
+    const cuenta = (this.selectedCuenta.formatCode || this.selectedCuenta.code || '').substring(0, 50);
+    if (!cuenta) {
+      this.toast.error('La cuenta no es válida');
+      return;
+    }
+
     this.isSaving = true;
     this.cuentasService.create({
       idPerfil:     this.selectedPerfilId,
-      cuentaSys:    this.selectedCuenta.code,
-      cuenta:       this.selectedCuenta.formatCode,
-      nombreCuenta: this.selectedCuenta.name,
+      cuentaSys:    this.selectedCuenta.code?.substring(0, 50) || '',
+      cuenta:       cuenta,
+      nombreCuenta: (this.selectedCuenta.name || '').substring(0, 100),
       relevante:    'N',
     }).subscribe({
       next: () => {
@@ -195,4 +223,27 @@ export class CuentasListaComponent implements OnInit {
   }
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+
+  // ── Action Menu ────────────────────────────────────────────
+
+  getActionMenuItems(c: CuentaLista): ActionMenuItem[] {
+    const items: ActionMenuItem[] = [];
+
+    if (this.auth.puedeEditarConf) {
+      items.push({
+        id: 'delete',
+        label: 'Eliminar',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
+        cssClass: 'action-delete',
+      });
+    }
+
+    return items;
+  }
+
+  onActionClick(actionId: string, c: CuentaLista): void {
+    if (actionId === 'delete') {
+      this.confirmRemove(c);
+    }
+  }
 }

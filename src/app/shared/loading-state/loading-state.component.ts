@@ -3,6 +3,7 @@ import {
   Input,
   Output,
   EventEmitter,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -18,6 +19,7 @@ export type LoadingState = 'idle' | 'loading' | 'success' | 'empty' | 'error';
   selector: 'app-loading-state',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 
   styles: [`
     :host { display: block; }

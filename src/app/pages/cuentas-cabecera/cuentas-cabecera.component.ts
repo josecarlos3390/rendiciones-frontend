@@ -3,15 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { CuentasCabeceraService } from './cuentas-cabecera.service';
-import { ToastService }           from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }     from '../../shared/paginator/paginator.component';
-import { PerfilSelectComponent }  from '../../shared/perfil-select/perfil-select.component';
-import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search.component';
-import { CuentaCabecera }         from '../../models/cuenta-cabecera.model';
-import { Perfil }                 from '../../models/perfil.model';
-import { ChartOfAccount }         from '../../services/sap.service';
-import { AuthService } from '../../auth/auth.service';
+import { ToastService }           from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { PaginatorComponent }     from '@shared/paginator/paginator.component';
+import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { SearchInputComponent } from '@shared/debounce/search-input.component';
+import { PerfilSelectComponent }  from '@shared/perfil-select/perfil-select.component';
+import { CuentaSearchComponent }  from '@shared/cuenta-search/cuenta-search.component';
+import { FormModalComponent }     from '@shared/form-modal/form-modal.component';
+import { StatusBadgeComponent }   from '@shared/status-badge/status-badge.component';
+import { FormFieldComponent }     from '@shared/form-field/form-field.component';
+import { CuentaCabecera }         from '@models/cuenta-cabecera.model';
+import { Perfil }                 from '@models/perfil.model';
+import { ChartOfAccount }         from '@services/sap.service';
+import { AuthService } from '@auth/auth.service';
 
 @Component({
   standalone: true,
@@ -23,10 +28,15 @@ import { AuthService } from '../../auth/auth.service';
     PaginatorComponent,
     PerfilSelectComponent,
     CuentaSearchComponent,
+    ActionMenuComponent,
+    SearchInputComponent,
+    FormModalComponent,
+    StatusBadgeComponent,
+    FormFieldComponent,
   ],
   templateUrl: './cuentas-cabecera.component.html',
   styleUrls: ['./cuentas-cabecera.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CuentasCabeceraComponent implements OnInit {
 
@@ -106,6 +116,16 @@ export class CuentasCabeceraComponent implements OnInit {
 
   // ── Filtro tabla ─────────────────────────────────────────
 
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
+    this.applyFilter();
+  }
+
   applyFilter() {
     const q = this.search.toLowerCase();
     this.filtered = this.cuentas.filter(c =>
@@ -169,6 +189,25 @@ export class CuentasCabeceraComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  // ── Action Menu ───────────────────────────────────────────
+
+  getActionMenuItems(_c: CuentaCabecera): ActionMenuItem[] {
+    return [
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
+        cssClass: 'danger',
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, cuenta: CuentaCabecera): void {
+    if (actionId === 'delete') {
+      this.confirmRemove(cuenta);
+    }
   }
 
   // ── Eliminar ──────────────────────────────────────────────

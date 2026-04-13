@@ -3,66 +3,85 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { DocumentosService } from './documentos.service';
-import { ToastService }      from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent } from '../../shared/paginator/paginator.component';
-import { Documento, TIPO_CALC_OPTIONS, TIPO_DOC_SAP_OPTIONS } from '../../models/documento.model';
-import { TipoDocSapSelectComponent, TipoDocSapItem } from '../../shared/tipo-doc-sap-select/tipo-doc-sap-select.component';
-import { Perfil } from '../../models/perfil.model';
-import { AppSelectComponent } from '../../shared/app-select/app-select.component';
-import { PerfilSelectComponent } from '../../shared/perfil-select/perfil-select.component';
-import { CuentaSearchComponent }  from '../../shared/cuenta-search/cuenta-search.component';
-import { SearchInputComponent } from '../../shared/debounce';
-import { AuthService }            from '../../auth/auth.service';
-import { ChartOfAccount }         from '../../services/sap.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { Documento, TIPO_CALC_OPTIONS, TIPO_DOC_SAP_OPTIONS } from '@models/documento.model';
+import { TipoDocSapSelectComponent, TipoDocSapItem } from '@shared/tipo-doc-sap-select/tipo-doc-sap-select.component';
+import { Perfil } from '@models/perfil.model';
+import { AppSelectComponent } from '@shared/app-select/app-select.component';
+import { CuentaSearchComponent } from '@shared/cuenta-search/cuenta-search.component';
+import { AuthService } from '../../auth/auth.service';
+import { ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { FormModalComponent } from '@shared/form-modal/form-modal.component';
+import { FormFieldComponent } from '@shared/form-field/form-field.component';
+import { FormDirtyService } from '@shared/form-dirty';
+
+// Dumb Components
+import { DocumentosFiltersComponent, DocumentosTableComponent } from './components';
 
 @Component({
   standalone: true,
   selector: 'app-documentos',
-  imports: [CommonModule, TipoDocSapSelectComponent, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, PaginatorComponent, AppSelectComponent, PerfilSelectComponent, CuentaSearchComponent, SearchInputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    // Dumb Components
+    DocumentosFiltersComponent,
+    DocumentosTableComponent,
+    // Shared Components (para el formulario modal)
+    TipoDocSapSelectComponent,
+    ConfirmDialogComponent,
+    AppSelectComponent,
+    CuentaSearchComponent,
+    FormModalComponent,
+    FormFieldComponent,
+  ],
   templateUrl: './documentos.component.html',
   styleUrls: ['./documentos.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DocumentosComponent implements OnInit {
 
   // ── Datos ────────────────────────────────────────────────
-  documentos: Documento[]  = [];
-  filtered:   Documento[]  = [];
-  paged:      Documento[]  = [];
+  documentos: Documento[] = [];
+  filtered: Documento[] = [];
+  paged: Documento[] = [];
 
-  readonly tipoCalcOptions    = TIPO_CALC_OPTIONS;
-  readonly tipoDocSapOptions  = TIPO_DOC_SAP_OPTIONS;
+  readonly tipoCalcOptions = TIPO_CALC_OPTIONS;
+  readonly tipoDocSapOptions = TIPO_DOC_SAP_OPTIONS;
 
   // ── Filtros ──────────────────────────────────────────────
   selectedPerfilId: number | null = null;
-  selectedPerfil:   Perfil | null = null;
-  search  = '';
+  selectedPerfil: Perfil | null = null;
+  search = '';
   loading = false;
 
   // ── Paginación ───────────────────────────────────────────
-  page       = 1;
-  limit      = 5;
+  page = 1;
+  limit = 5;
   totalPages = 1;
 
   // ── Formulario ───────────────────────────────────────────
-  showForm   = false;
-  isSaving   = false;
+  showForm = false;
+  isSaving = false;
   editingId: number | null = null;
   form!: FormGroup;
+  initialValues: any = null;
 
   // ── Confirm dialog ────────────────────────────────────────
-  showDialog    = false;
+  showDialog = false;
   dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
   private _pendingAction: (() => void) | null = null;
 
   constructor(
-    public  auth:    AuthService,
+    public auth: AuthService,
     private service: DocumentosService,
-    private toast:   ToastService,
-    private fb:      FormBuilder,
-    private cdr:     ChangeDetectorRef,
-    private appRef:   ApplicationRef,
+    private toast: ToastService,
+    private fb: FormBuilder,
+    private cdr: ChangeDetectorRef,
+    private appRef: ApplicationRef,
+    private dirtyService: FormDirtyService,
   ) {}
 
   ngOnInit() {
@@ -71,25 +90,30 @@ export class DocumentosComponent implements OnInit {
   }
 
   get isEditing() { return this.editingId !== null; }
+
+  get isDirty(): boolean {
+    return this.dirtyService.isDirty(this.form, this.initialValues);
+  }
+
   // ── Form ─────────────────────────────────────────────────
 
   private buildForm() {
     this.form = this.fb.group({
-      tipDoc:        ['', [Validators.required, Validators.maxLength(25)]],
-      idTipoDoc:     [0,  Validators.required],
-      tipoCalc:      ['0', Validators.required],
-      ivaPercent:    [0],
-      ivaCuenta:     [''],
-      itPercent:     [0],
-      itCuenta:      [''],
-      iuePercent:    [0],
-      iueCuenta:     [''],
-      rcivaPercent:  [0],
-      rcivaCuenta:   [''],
+      tipDoc: ['', [Validators.required, Validators.maxLength(25)]],
+      idTipoDoc: [0, Validators.required],
+      tipoCalc: ['0', Validators.required],
+      ivaPercent: [0],
+      ivaCuenta: [''],
+      itPercent: [0],
+      itCuenta: [''],
+      iuePercent: [0],
+      iueCuenta: [''],
+      rcivaPercent: [0],
+      rcivaCuenta: [''],
       exentoPercent: [0],
-      ctaExento:     [''],
-      tasa:          [0],
-      ice:           [0],
+      ctaExento: [''],
+      tasa: [0],
+      ice: [0],
     });
   }
 
@@ -98,6 +122,10 @@ export class DocumentosComponent implements OnInit {
   onPerfilSelect(value: number | null) {
     this.selectedPerfilId = value;
     setTimeout(() => this.loadDocumentos(), 0);
+  }
+
+  onPerfilObjChange(perfil: Perfil | null) {
+    this.selectedPerfil = perfil;
   }
 
   loadDocumentos(onComplete?: () => void) {
@@ -115,12 +143,25 @@ export class DocumentosComponent implements OnInit {
         this.appRef.tick();
         onComplete?.();
       },
-      error: () => { this.loading = false; this.cdr.markForCheck();
-      onComplete?.(); },
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+        onComplete?.();
+      },
     });
   }
 
   // ── Filtro y paginación ───────────────────────────────────
+
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
+    this.applyFilter();
+  }
 
   applyFilter() {
     const q = this.search.toLowerCase();
@@ -131,13 +172,13 @@ export class DocumentosComponent implements OnInit {
     this.updatePaging();
   }
 
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
+  onPageChange(p: number) { this.page = p; this.updatePaging(); }
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
 
   updatePaging() {
     this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
     const start = (this.page - 1) * this.limit;
-    this.paged  = this.filtered.slice(start, start + this.limit);
+    this.paged = this.filtered.slice(start, start + this.limit);
   }
 
   // ── Crear / Editar ────────────────────────────────────────
@@ -145,10 +186,13 @@ export class DocumentosComponent implements OnInit {
   openCreate() {
     if (!this.selectedPerfilId) { this.toast.error('Seleccione un perfil primero'); return; }
     this.editingId = null;
-    this.form.reset({ tipDoc: '', idTipoDoc: 0, tipoCalc: '0',
+    this.form.reset({
+      tipDoc: '', idTipoDoc: 0, tipoCalc: '0',
       ivaPercent: 0, ivaCuenta: '', itPercent: 0, itCuenta: '',
       iuePercent: 0, iueCuenta: '', rcivaPercent: 0, rcivaCuenta: '',
-      exentoPercent: 0, ctaExento: '', tasa: 0, ice: 0 });
+      exentoPercent: 0, ctaExento: '', tasa: 0, ice: 0
+    });
+    this.initialValues = null;
     this.showForm = true;
     this.cdr.markForCheck();
   }
@@ -156,22 +200,23 @@ export class DocumentosComponent implements OnInit {
   openEdit(doc: Documento) {
     this.editingId = doc.U_IdDocumento;
     this.form.patchValue({
-      tipDoc:        doc.U_TipDoc,
-      idTipoDoc:     doc.U_IdTipoDoc,
-      tipoCalc:      (doc.U_TipoCalc == 1 || doc.U_TipoCalc === '1' || doc.U_TipoCalc === 'G') ? '1' : '0',
-      ivaPercent:    doc.U_IVApercent   ?? 0,
-      ivaCuenta:     doc.U_IVAcuenta    ?? '',
-      itPercent:     doc.U_ITpercent    ?? 0,
-      itCuenta:      doc.U_ITcuenta     ?? '',
-      iuePercent:    doc.U_IUEpercent   ?? 0,
-      iueCuenta:     doc.U_IUEcuenta    ?? '',
-      rcivaPercent:  doc.U_RCIVApercent ?? 0,
-      rcivaCuenta:   doc.U_RCIVAcuenta  ?? '',
+      tipDoc: doc.U_TipDoc,
+      idTipoDoc: doc.U_IdTipoDoc,
+      tipoCalc: (doc.U_TipoCalc == 1 || doc.U_TipoCalc === '1' || doc.U_TipoCalc === 'G') ? '1' : '0',
+      ivaPercent: doc.U_IVApercent ?? 0,
+      ivaCuenta: doc.U_IVAcuenta ?? '',
+      itPercent: doc.U_ITpercent ?? 0,
+      itCuenta: doc.U_ITcuenta ?? '',
+      iuePercent: doc.U_IUEpercent ?? 0,
+      iueCuenta: doc.U_IUEcuenta ?? '',
+      rcivaPercent: doc.U_RCIVApercent ?? 0,
+      rcivaCuenta: doc.U_RCIVAcuenta ?? '',
       exentoPercent: doc.U_EXENTOpercent ?? 0,
-      ctaExento:     doc.U_CTAEXENTO    ?? '',
-      tasa:          doc.U_TASA         ?? 0,
-      ice:           doc.U_ICE          ?? 0,
+      ctaExento: doc.U_CTAEXENTO ?? '',
+      tasa: doc.U_TASA ?? 0,
+      ice: doc.U_ICE ?? 0,
     });
+    this.initialValues = this.form.getRawValue();
     this.showForm = true;
     this.cdr.markForCheck();
   }
@@ -179,7 +224,12 @@ export class DocumentosComponent implements OnInit {
   @HostListener('document:keydown.escape')
   onEscape() { if (this.showForm) this.closeForm(); }
 
-  closeForm() { this.showForm = false; this.editingId = null; this.form.reset(); this.cdr.markForCheck(); }
+  closeForm() {
+    this.showForm = false;
+    this.editingId = null;
+    this.form.reset();
+    this.cdr.markForCheck();
+  }
 
   save() {
     if (this.form.invalid || this.isSaving || !this.selectedPerfilId) return;
@@ -187,22 +237,22 @@ export class DocumentosComponent implements OnInit {
     const raw = this.form.getRawValue();
 
     const payload = {
-      codPerfil:     this.selectedPerfilId,
-      tipDoc:        raw.tipDoc.trim(),
-      idTipoDoc:     Number(raw.idTipoDoc),
-      tipoCalc:      String(raw.tipoCalc === '1' || raw.tipoCalc === 1 ? '1' : '0'),
-      ivaPercent:    Number(raw.ivaPercent)   || 0,
-      ivaCuenta:     raw.ivaCuenta?.trim()    || '',
-      itPercent:     Number(raw.itPercent)    || 0,
-      itCuenta:      raw.itCuenta?.trim()     || '',
-      iuePercent:    Number(raw.iuePercent)   || 0,
-      iueCuenta:     raw.iueCuenta?.trim()    || '',
-      rcivaPercent:  Number(raw.rcivaPercent) || 0,
-      rcivaCuenta:   raw.rcivaCuenta?.trim()  || '',
-      exentoPercent: Number(raw.exentoPercent)|| 0,
-      ctaExento:     raw.ctaExento?.trim()    || '',
-      tasa:          Number(raw.tasa)         || 0,
-      ice:           Number(raw.ice)          || 0,
+      codPerfil: this.selectedPerfilId,
+      tipDoc: raw.tipDoc.trim(),
+      idTipoDoc: Number(raw.idTipoDoc),
+      tipoCalc: String(raw.tipoCalc === '1' || raw.tipoCalc === 1 ? '1' : '0'),
+      ivaPercent: Number(raw.ivaPercent) || 0,
+      ivaCuenta: raw.ivaCuenta?.trim() || '',
+      itPercent: Number(raw.itPercent) || 0,
+      itCuenta: raw.itCuenta?.trim() || '',
+      iuePercent: Number(raw.iuePercent) || 0,
+      iueCuenta: raw.iueCuenta?.trim() || '',
+      rcivaPercent: Number(raw.rcivaPercent) || 0,
+      rcivaCuenta: raw.rcivaCuenta?.trim() || '',
+      exentoPercent: Number(raw.exentoPercent) || 0,
+      ctaExento: raw.ctaExento?.trim() || '',
+      tasa: Number(raw.tasa) || 0,
+      ice: Number(raw.ice) || 0,
     };
 
     const req$ = this.isEditing
@@ -233,13 +283,13 @@ export class DocumentosComponent implements OnInit {
 
   confirmRemove(doc: Documento) {
     this.openDialog({
-      title:        '¿Eliminar documento?',
-      message:      `Se eliminará la configuración de "${doc.U_TipDoc}" del perfil.`,
+      title: '¿Eliminar documento?',
+      message: `Se eliminará la configuración de "${doc.U_TipDoc}" del perfil.`,
       confirmLabel: 'Sí, eliminar',
-      type:         'danger',
+      type: 'danger',
     }, () => {
       this.service.remove(doc.U_IdDocumento).subscribe({
-        next:  () => { this.toast.exito('Documento eliminado'); this.loadDocumentos(); this.cdr.markForCheck(); },
+        next: () => { this.toast.exito('Documento eliminado'); this.loadDocumentos(); this.cdr.markForCheck(); },
         error: (err: any) => {
           if (err?.status === 409 || err?.status === 422) {
             this.toast.error(err?.error?.message || 'Error al eliminar');
@@ -253,12 +303,13 @@ export class DocumentosComponent implements OnInit {
   // ── Dialog ────────────────────────────────────────────────
 
   openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
+    this.dialogConfig = config;
     this._pendingAction = onConfirm;
-    this.showDialog     = true;
+    this.showDialog = true;
   }
+
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+  onDialogCancel() { this.showDialog = false; this._pendingAction = null; }
 
   /**
    * Handler genérico para los selectores de cuenta.
@@ -284,8 +335,34 @@ export class DocumentosComponent implements OnInit {
     return (val == 1 || val === '1' || val === 'G') ? 'GD' : 'GU';
   }
 
-  isGrossingUp(val: string | number)   { return val == 1 || val === '1' || val === 'G'; }
+  isGrossingUp(val: string | number) { return val == 1 || val === '1' || val === 'G'; }
   isGrossingDown(val: string | number) { return val == 0 || val === '0' || val === 'N' || val === 'D'; }
+
+  // ── Action Menu ───────────────────────────────────────────
+
+  getActionMenuItems(d: Documento): ActionMenuItem[] {
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+        cssClass: 'danger',
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, d: Documento): void {
+    if (actionId === 'edit') {
+      this.openEdit(d);
+    } else if (actionId === 'delete') {
+      this.confirmRemove(d);
+    }
+  }
 
   /**
    * Formatea un porcentaje para la tabla:

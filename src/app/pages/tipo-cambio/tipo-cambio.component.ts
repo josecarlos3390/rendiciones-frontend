@@ -13,15 +13,18 @@ import {
   Validators,
 } from '@angular/forms';
 
-import { TipoCambioService, TipoCambio, CreateTipoCambioDto } from '../../services/tipo-cambio.service';
-import { ToastService } from '../../core/toast/toast.service';
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogConfig,
-} from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent } from '../../shared/paginator/paginator.component';
+import { TipoCambioService, TipoCambio, CreateTipoCambioDto } from '@services/tipo-cambio.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { FormModalComponent } from '@shared/form-modal';
+import { StatusBadgeComponent } from '@shared/status-badge';
 import { AuthService } from '../../auth/auth.service';
-import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
+import { ActionMenuItem } from '@shared/action-menu';
+import { FormFieldComponent } from '@shared/form-field';
+import { FormDirtyService } from '@shared/form-dirty';
+
+import { TipoCambioFiltersComponent, TipoCambioTableComponent } from './components';
 
 @Component({
   standalone: true,
@@ -31,8 +34,11 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
     FormsModule,
     ReactiveFormsModule,
     ConfirmDialogComponent,
-    PaginatorComponent,
     AppSelectComponent,
+    FormModalComponent,
+    FormFieldComponent,
+    TipoCambioFiltersComponent,
+    TipoCambioTableComponent,
   ],
   templateUrl: './tipo-cambio.component.html',
   styleUrls: ['./tipo-cambio.component.scss'],
@@ -55,6 +61,7 @@ export class TipoCambioComponent implements OnInit {
   editingId: number | null = null;
   form: FormGroup;
   saving = false;
+  isDirty = false;
 
   // Confirm dialog
   confirmVisible = false;
@@ -82,17 +89,25 @@ export class TipoCambioComponent implements OnInit {
   totalPages = 1;
   paged: TipoCambio[] = [];
 
+  initialValues: any = null;
+
   constructor(
     private fb: FormBuilder,
     private service: TipoCambioService,
     private toast: ToastService,
     private auth: AuthService,
     private cdr: ChangeDetectorRef,
+    private dirtyService: FormDirtyService,
   ) {
     this.form = this.fb.group({
       fecha: [null, [Validators.required]],
       moneda: ['USD', [Validators.required]],
       tasa: [null, [Validators.required, Validators.min(0.0001)]],
+    });
+    
+    // Rastrear cambios en el formulario
+    this.form.valueChanges.subscribe(() => {
+      this.isDirty = this.dirtyService.isDirty(this.form, this.initialValues);
     });
   }
 
@@ -141,6 +156,20 @@ export class TipoCambioComponent implements OnInit {
   onMonedaChange(value: string): void {
     this.filterMoneda = value;
     this.applyFilters();
+  }
+
+  onFechaDesdeChange(value: string): void {
+    this.filterFechaDesde = value;
+    this.applyFilters();
+  }
+
+  onFechaHastaChange(value: string): void {
+    this.filterFechaHasta = value;
+    this.applyFilters();
+  }
+
+  onResetFilters(): void {
+    this.resetFilters();
   }
 
   applyFilters(): void {
@@ -223,7 +252,11 @@ export class TipoCambioComponent implements OnInit {
       this.form.get('fecha')?.enable();
       this.form.get('moneda')?.enable();
       
-      this.cdr.detectChanges();
+      // Guardar valores iniciales para dirty check
+      this.initialValues = this.dirtyService.createSnapshot(this.form);
+      this.isDirty = false;
+      
+      this.cdr.markForCheck();
     }, 0);
   }
 
@@ -246,7 +279,11 @@ export class TipoCambioComponent implements OnInit {
       this.form.get('fecha')?.disable();
       this.form.get('moneda')?.disable();
       
-      this.cdr.detectChanges();
+      // Guardar valores iniciales para dirty check
+      this.initialValues = this.dirtyService.createSnapshot(this.form);
+      this.isDirty = false;
+      
+      this.cdr.markForCheck();
     }, 0);
   }
 
@@ -257,7 +294,7 @@ export class TipoCambioComponent implements OnInit {
     this.showModal = false;
     this.editingId = null;
     this.form.reset();
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   /**
@@ -371,5 +408,35 @@ export class TipoCambioComponent implements OnInit {
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
     });
+  }
+
+  /**
+   * Obtener items del menú de acciones para una tasa
+   */
+  getActionMenuItems(tasa: TipoCambio): ActionMenuItem[] {
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        cssClass: 'danger',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+      },
+    ];
+  }
+
+  /**
+   * Manejar click en acción del menú
+   */
+  onActionClick(action: string, tasa: TipoCambio): void {
+    if (action === 'edit') {
+      this.openEdit(tasa);
+    } else if (action === 'delete') {
+      this.confirmDelete(tasa);
+    }
   }
 }

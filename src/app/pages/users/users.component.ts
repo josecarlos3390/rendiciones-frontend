@@ -3,28 +3,28 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { UsersService } from './users.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { AuthService } from '../../auth/auth.service';
-import { PaginatorComponent } from '../../shared/paginator/paginator.component';
-import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
-import { SearchInputComponent } from '../../shared/debounce';
-import { User } from '../../models/user.model';
-import { SapService, DimensionWithRules } from '../../services/sap.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { AuthService } from '@auth/auth.service';
+import { SkeletonLoaderComponent } from '@shared/skeleton-loader/skeleton-loader.component';
+import { ActionMenuItem } from '@shared/action-menu';
+import { User } from '@models/user.model';
+import { SapService, DimensionWithRules } from '@services/sap.service';
 import { UserFormComponent } from './user-form/user-form.component';
+import { UsersFiltersComponent, UsersTableComponent } from './components';
 
 @Component({
   standalone: true,
   selector: 'app-users',
   imports: [
     CommonModule, FormsModule,
-    ConfirmDialogComponent, PaginatorComponent,
+    ConfirmDialogComponent,
     SkeletonLoaderComponent, UserFormComponent,
-    SearchInputComponent,
+    UsersFiltersComponent, UsersTableComponent,
   ],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsersComponent implements OnInit {
   users:    User[] = [];
@@ -38,7 +38,7 @@ export class UsersComponent implements OnInit {
   dimensions:  DimensionWithRules[] = [];
   loadingDims  = false;
 
-  // Paginación
+  // Paginacion
   page       = 1;
   limit      = 10;
   totalPages = 1;
@@ -124,6 +124,16 @@ export class UsersComponent implements OnInit {
     });
   }
 
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
+    this.applyFilter();
+  }
+
   applyFilter() {
     const q = this.search.toLowerCase();
     this.filtered = this.users.filter(u =>
@@ -141,8 +151,8 @@ export class UsersComponent implements OnInit {
     this.paged = this.filtered.slice(start, start + this.limit);
   }
 
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
+  onPageChange(p: number)  { this.page = p;  this.updatePaging(); this.cdr.markForCheck(); }
+  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); this.cdr.markForCheck(); }
 
   // ── Formulario ───────────────────────────────────────────
   openNew() {
@@ -230,13 +240,13 @@ export class UsersComponent implements OnInit {
 
   // ── Dialog ───────────────────────────────────────────────
   confirmToggleStatus(u: User) {
-    const isActive = this.isActive(u);
+    const isActive = u.U_Estado === '1';
     this.openDialog({
-      title:        isActive ? '¿Inactivar usuario?' : '¿Activar usuario?',
+      title:        isActive ? 'Inactivar usuario?' : 'Activar usuario?',
       message:      isActive
-        ? `"${u.U_NomUser}" no podrá iniciar sesión.`
-        : `"${u.U_NomUser}" podrá iniciar sesión nuevamente.`,
-      confirmLabel: isActive ? 'Sí, inactivar' : 'Sí, activar',
+        ? u.U_NomUser + ' no podra iniciar sesion.'
+        : u.U_NomUser + ' podra iniciar sesion nuevamente.',
+      confirmLabel: isActive ? 'Si, inactivar' : 'Si, activar',
       type:         isActive ? 'warning' : 'primary',
     }, () => {
       this.usersService.toggleStatus(u.U_IdU, isActive ? '0' : '1', u).subscribe({
@@ -262,4 +272,37 @@ export class UsersComponent implements OnInit {
   }
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+
+  // ── Action Menu ───────────────────────────────────────────
+  getActionMenuItems(u: User): ActionMenuItem[] {
+    const isActive = this.isActive(u);
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: isActive ? 'deactivate' : 'activate',
+        label: isActive ? 'Inactivar' : 'Activar',
+        icon: isActive
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.64 17.36a9 9 0 1 1 12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
+        cssClass: isActive ? 'text-danger' : 'text-success',
+      },
+
+    ];
+  }
+
+  onActionClick(action: string, u: User) {
+    switch (action) {
+      case 'edit':
+        this.openEdit(u);
+        break;
+      case 'activate':
+      case 'deactivate':
+        this.confirmToggleStatus(u);
+        break;
+    }
+  }
 }

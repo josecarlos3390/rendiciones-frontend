@@ -77,24 +77,79 @@
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TABLA — Ajustes específicos para columna de acciones
+// TABLA — Control de anchos para columnas de texto largo
 // ═══════════════════════════════════════════════════════════════
-.data-table td.actions {
-  display:     table-cell;
-  white-space: nowrap;
-  min-width:   160px;
+
+// Permitir que el texto largo se ajuste en múltiples líneas
+// pero limitar el ancho máximo para que la tabla sea legible
+.data-table {
+  table-layout: auto;
+  
+  th, td {
+    // Columnas con texto largo - permitir multilinea con ancho máximo
+    &:nth-child(3),  // Perfil
+    &:nth-child(4) { // Objetivo
+      max-width: 220px;
+      min-width: 120px;
+      white-space: normal;      // Permitir saltos de línea
+      word-wrap: break-word;    // Romper palabras largas
+      overflow-wrap: break-word;
+      line-height: 1.4;
+    }
+    
+    // Fechas - ancho fijo
+    &:nth-child(5),  // Fecha Inicio
+    &:nth-child(6) { // Fecha Final
+      min-width: 110px;
+      white-space: nowrap;
+    }
+    
+    // Monto - ancho fijo
+    &:nth-child(7) {
+      min-width: 100px;
+      white-space: nowrap;
+    }
+    
+    // Nivel y Estado - ancho fijo
+    &:nth-child(8),  // Nivel
+    &:nth-child(9) { // Estado
+      min-width: 90px;
+      white-space: nowrap;
+    }
+  }
 }
 
-// En móvil los botones de acción van en columna
-@media (max-width: 640px) {
-  .data-table td.actions {
-    display:        flex;
-    flex-direction: column;
-    gap:            6px;
-    white-space:    normal;
-    min-width:      unset;
+// Celda de acciones - ancho fijo para el menú
+.data-table td.col-acciones {
+  position:    relative;
+  white-space: nowrap;
+  width:       90px;
+  min-width:   90px;
+  max-width:   90px;
+  text-align:  center;
+}
 
-    .btn { width: 100%; justify-content: center; }
+// En móvil las columnas se expanden automáticamente
+@media (max-width: 640px) {
+  .data-table {
+    th, td {
+      &:nth-child(3),  // Perfil
+      &:nth-child(4) { // Objetivo
+        max-width: none;
+        min-width: auto;
+      }
+    }
+    
+    td.col-acciones {
+      display:        flex;
+      flex-direction: column;
+      gap:            6px;
+      white-space:    normal;
+      width:          auto;
+      min-width:      unset;
+
+      .btn { width: 100%; justify-content: center; }
+    }
   }
 }
 

@@ -29,88 +29,100 @@
         <th class="text-center" style="width:80px">Cód. SAP</th>
         <th>Nombre</th>
         <th class="text-center">Tipo</th>
-        <th class="text-center">Grossing Up</th>
-        <th class="text-center">Grossing Down</th>
-        <th class="text-center">Orden</th>
+        <th class="text-center col-hide-mobile">Grossing Up</th>
+        <th class="text-center col-hide-mobile">Grossing Down</th>
+        <th class="text-center col-hide-mobile col-hide-tablet">Orden</th>
         <th class="text-center">Estado</th>
-        <th class="actions">Acciones</th>
+        <th class="col-acciones">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let item of items" [class.row-inactive]="item.U_Activo === 'N'">
-        <td class="text-center mono-cell">{{ item.U_IdTipo }}</td>
-        <td>{{ item.U_Nombre }}</td>
-        <td class="text-center">
-          <span [class]="tipoCss(item)">{{ tipoLabel(item) }}</span>
+        <td class="text-center mono-cell" data-label="Cód. SAP">{{ item.U_IdTipo }}</td>
+        <td class="col-mobile-primary" data-label="Nombre">{{ item.U_Nombre }}</td>
+        <td class="text-center" data-label="Tipo">
+          <app-status-badge [type]="item.U_EsTipoF === 'F' ? 'success' : 'info'" [dot]="true">{{ tipoLabel(item) }}</app-status-badge>
         </td>
-        <td class="text-center">
-          <span [class]="boolCss(item.U_PermiteGU)">
-            {{ item.U_PermiteGU === 'Y' ? '✓ Sí' : '— No' }}
-          </span>
+        <td class="text-center col-hide-mobile" data-label="Grossing Up">
+          <app-status-badge [type]="item.U_PermiteGU === 'Y' ? 'success' : 'neutral'" [dot]="true">{{ item.U_PermiteGU === 'Y' ? 'Sí' : 'No' }}</app-status-badge>
         </td>
-        <td class="text-center">
-          <span [class]="boolCss(item.U_PermiteGD)">
-            {{ item.U_PermiteGD === 'Y' ? '✓ Sí' : '— No' }}
-          </span>
+        <td class="text-center col-hide-mobile" data-label="Grossing Down">
+          <app-status-badge [type]="item.U_PermiteGD === 'Y' ? 'success' : 'neutral'" [dot]="true">{{ item.U_PermiteGD === 'Y' ? 'Sí' : 'No' }}</app-status-badge>
         </td>
-        <td class="text-center mono-cell">{{ item.U_Orden }}</td>
-        <td class="text-center">
-          <span [class]="activoCss(item)">{{ item.U_Activo === 'Y' ? 'Activo' : 'Inactivo' }}</span>
+        <td class="text-center mono-cell col-hide-mobile col-hide-tablet" data-label="Orden">{{ item.U_Orden }}</td>
+        <td class="text-center" data-label="Estado">
+          <app-status-badge [type]="item.U_Activo === 'Y' ? 'success' : 'danger'" [dot]="true">{{ item.U_Activo === 'Y' ? 'Activo' : 'Inactivo' }}</app-status-badge>
         </td>
-        <td class="actions">
-          <button *ngIf="auth.puedeEditarConf" class="btn btn-sm btn-ghost" (click)="openEdit(item)" title="Editar">✎ Editar</button>
-          <button *ngIf="auth.puedeEditarConf" class="btn btn-sm btn-danger-soft" (click)="remove(item)" title="Eliminar">✕</button>
+        <td class="col-acciones" data-label="Acciones">
+          <app-action-menu
+            [actions]="getActionMenuItems(item)"
+            [itemLabel]="item.U_Nombre"
+            (actionClick)="onActionClick($event, item)">
+          </app-action-menu>
         </td>
       </tr>
     </tbody>
   </table>
 </div>
 
-<!-- Modal formulario -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="modal-card modal-card-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+<app-form-modal
+  [title]="'Tipo de Documento'"
+  [subtitle]="editingItem ? editingItem.U_IdTipo + ' - ' + editingItem.U_Nombre : null"
+  [isOpen]="showForm"
+  [loading]="isSaving"
+  [isEditing]="editingItem !== null"
+  [isDirty]="isDirty"
+  [submitDisabled]="form.invalid || !isDirty"
+  (save)="save()"
+  (cancel)="closeForm()">
 
-    <div class="modal-header">
-      <h3>{{ editingItem ? 'Editar Tipo de Documento' : 'Nuevo Tipo de Documento' }}</h3>
-      <span class="dirty-badge" *ngIf="isDirty && editingItem">● cambios sin guardar</span>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-body">
+  <ng-template #formContent>
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
 
       <!-- Código SAP -->
-      <div class="form-field" [class.field-changed]="fieldChanged('idTipo')">
-        <label>Código SAP <span class="required">*</span></label>
+      <app-form-field
+        label="Código SAP"
+        [required]="true"
+        controlName="idTipo"
+        hint="Código numérico del tipo de transacción en SAP"
+        errorMessage="Obligatorio — debe ser un número positivo">
         <input type="number" formControlName="idTipo" placeholder="Ej: 1, 4, 10..."
           min="0" [attr.readonly]="editingItem ? true : null" />
-        <span class="field-hint">Código numérico del tipo de transacción en SAP</span>
-        <span class="field-error" *ngIf="form.get('idTipo')?.invalid && form.get('idTipo')?.touched">
-          Obligatorio — debe ser un número positivo
-        </span>
-      </div>
+      </app-form-field>
 
       <!-- Nombre -->
-      <div class="form-field" [class.field-changed]="fieldChanged('nombre')">
-        <label>Nombre / Descripción <span class="required">*</span></label>
+      <app-form-field
+        label="Nombre / Descripción"
+        [required]="true"
+        controlName="nombre"
+        errorMessage="Obligatorio">
         <input type="text" formControlName="nombre" placeholder="Ej: Factura de Compra" maxlength="100" autocomplete="off" />
-        <span class="field-error" *ngIf="form.get('nombre')?.invalid && form.get('nombre')?.touched">Obligatorio</span>
-      </div>
+      </app-form-field>
 
       <!-- Tipo F/R -->
-      <div class="form-field" [class.field-changed]="fieldChanged('esTipoF')">
-        <label>Tipo de lógica de cálculo <span class="required">*</span></label>
+      <app-form-field
+        label="Tipo de lógica de cálculo"
+        [required]="true"
+        controlName="esTipoF">
         <app-select
           [options]="tipoOptions"
           [formValue]="form.get('esTipoF')?.value"
           placeholder="Seleccione tipo"
           (valueChange)="form.get('esTipoF')?.setValue($event)">
         </app-select>
-      </div>
+      </app-form-field>
 
       <!-- Grossing — solo visible si es Recibo -->
       <div class="form-row" *ngIf="form.get('esTipoF')?.value === 'R'">
-        <div class="form-field" [class.field-changed]="fieldChanged('permiteGU')">
-          <label>Grossing Up</label>
+        <app-form-field
+          label="Grossing Up"
+          controlName="permiteGU"
+          hint="La empresa asume el costo de las retenciones">
           <div class="toggle-wrapper">
             <label class="u-toggle">
               <input type="checkbox" formControlName="permiteGU" />
@@ -120,11 +132,12 @@
               {{ form.get('permiteGU')?.value ? 'Permitido — empresa asume retenciones' : 'No permitido' }}
             </span>
           </div>
-          <span class="field-hint">La empresa asume el costo de las retenciones</span>
-        </div>
+        </app-form-field>
 
-        <div class="form-field" [class.field-changed]="fieldChanged('permiteGD')">
-          <label>Grossing Down</label>
+        <app-form-field
+          label="Grossing Down"
+          controlName="permiteGD"
+          hint="El proveedor asume el costo de las retenciones">
           <div class="toggle-wrapper">
             <label class="u-toggle">
               <input type="checkbox" formControlName="permiteGD" />
@@ -134,20 +147,21 @@
               {{ form.get('permiteGD')?.value ? 'Permitido — proveedor asume retenciones' : 'No permitido' }}
             </span>
           </div>
-          <span class="field-hint">El proveedor asume el costo de las retenciones</span>
-        </div>
+        </app-form-field>
       </div>
 
       <!-- Orden -->
-      <div class="form-field" [class.field-changed]="fieldChanged('orden')">
-        <label>Orden de visualización</label>
+      <app-form-field
+        label="Orden de visualización"
+        controlName="orden"
+        hint="Menor número = aparece primero en el selector">
         <input type="number" formControlName="orden" min="0" placeholder="0" style="max-width:120px" />
-        <span class="field-hint">Menor número = aparece primero en el selector</span>
-      </div>
+      </app-form-field>
 
       <!-- Activo -->
-      <div class="form-field" [class.field-changed]="fieldChanged('activo')">
-        <label>Estado</label>
+      <app-form-field
+        label="Estado"
+        controlName="activo">
         <div class="toggle-wrapper">
           <label class="u-toggle">
             <input type="checkbox" formControlName="activo" />
@@ -157,18 +171,8 @@
             {{ form.get('activo')?.value ? 'Activo — visible en selectores' : 'Inactivo — oculto en selectores' }}
           </span>
         </div>
-      </div>
+      </app-form-field>
 
     </form>
-
-    <div class="modal-footer">
-      <button class="btn btn-ghost" type="button" (click)="closeForm()" [disabled]="isSaving">Cancelar</button>
-      <button *ngIf="auth.puedeEditarConf" class="btn btn-primary" type="button"
-        [disabled]="form.invalid || isSaving || (!!editingItem && !isDirty)"
-        (click)="save()">
-        {{ isSaving ? 'Guardando...' : (editingItem ? 'Guardar cambios' : '+ Crear Tipo') }}
-      </button>
-    </div>
-
-  </div>
-</div>
+  </ng-template>
+</app-form-modal>

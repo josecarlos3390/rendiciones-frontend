@@ -204,42 +204,6 @@ form {
   padding: 10px;
 }
 
-// ── Filtros ───────────────────────────────────────────────────
-.filter-bar {
-  display: flex; align-items: flex-end; gap: 16px;
-  flex-wrap: wrap; margin-bottom: 16px; justify-content: space-between;
-}
-.filter-left { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
-.filter-field {
-  display: flex; flex-direction: column; gap: 4px;
-  min-width: 240px;
-  label { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-
-  @media (max-width: 640px) {
-    min-width: 0;
-    width: 100%;
-
-    app-perfil-select,
-    app-select {
-      display: block;
-      width: 100%;
-    }
-  }
-}
-
-@media (max-width: 640px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-left {
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-  }
-}
-
 // ── Tabla ─────────────────────────────────────────────────────
 .table-scroll-outer {
   width: 100%;
@@ -486,24 +450,24 @@ form {
 }
 
 // Lo sobreescribimos para que funcione como celda de tabla
-.doc-table td.actions {
+.doc-table td.col-acciones {
   display: table-cell;
   white-space: nowrap;
-  text-align: right;
+  text-align: center;
   vertical-align: middle;
-  width: 64px;
+  width: 90px;
   padding: 4px 8px;
 }
 
 // El global _lists.scss pone display:flex en .actions
 // que colapsa los <td> de tabla. Forzamos con !important.
 .doc-table {
-  td.actions {
+  td.col-acciones {
     display: table-cell !important;
     white-space: nowrap;
-    text-align: right;
+    text-align: center;
     vertical-align: middle;
-    width: 70px;
+    width: 90px;
     padding: 4px 10px;
   }
 }
@@ -511,8 +475,8 @@ form {
 // ── Celda de acciones (tabla) — clase propia para evitar conflicto con global ──
 th.doc-actions,
 td.doc-actions {
-  width: 70px;
-  text-align: right;
+  width: 90px;
+  text-align: center;
   vertical-align: middle;
   white-space: nowrap;
   padding: 4px 10px;

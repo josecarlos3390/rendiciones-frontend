@@ -18,12 +18,30 @@ export class RendMService {
 
   /** Rendiciones propias del usuario logueado */
   getAll(options: { idPerfil?: number; estados?: number[]; page?: number; limit?: number; } = {}) {
-    let params = new HttpParams();
-    if (options.idPerfil !== undefined) params = params.set('idPerfil', options.idPerfil);
-    if (options.estados?.length)        params = params.set('estados',  options.estados.join(','));
-    if (options.page     !== undefined) params = params.set('page',     options.page);
-    if (options.limit    !== undefined) params = params.set('limit',    options.limit);
-    return this.http.get<PaginatedResult<RendM>>(this.api, { params });
+    // Construir URL manualmente para evitar problemas con HttpParams
+    const queryParts: string[] = [];
+    
+    if (options.idPerfil !== undefined) {
+      queryParts.push(`idPerfil=${encodeURIComponent(options.idPerfil)}`);
+    }
+    if (options.estados?.length) {
+      queryParts.push(`estados=${encodeURIComponent(options.estados.join(','))}`);
+    }
+    if (options.page !== undefined) {
+      queryParts.push(`page=${encodeURIComponent(options.page)}`);
+    }
+    if (options.limit !== undefined) {
+      queryParts.push(`limit=${encodeURIComponent(options.limit)}`);
+    }
+    
+    const url = queryParts.length > 0 
+      ? `${this.api}?${queryParts.join('&')}` 
+      : this.api;
+    
+    console.log('[RendMService] getAll URL:', url);
+    
+    // Usar url completa sin params para evitar duplicación
+    return this.http.get<PaginatedResult<RendM>>(url);
   }
 
   /**

@@ -7,7 +7,22 @@
     "rootDir": "./src",
     "types": [
       "node"
-    ]
+    ],
+    "paths": {
+      "@common": ["./src/app/common"],
+      "@common/*": ["./src/app/common/*"],
+      "@core": ["./src/app/core"],
+      "@core/*": ["./src/app/core/*"],
+      "@auth": ["./src/app/auth"],
+      "@auth/*": ["./src/app/auth/*"],
+      "@shared": ["./src/app/shared"],
+      "@shared/*": ["./src/app/shared/*"],
+      "@services": ["./src/app/services"],
+      "@services/*": ["./src/app/services/*"],
+      "@models": ["./src/app/models"],
+      "@models/*": ["./src/app/models/*"],
+      "@env": ["./src/environments/environment"]
+    }
   },
   "include": [
     "src/**/*.ts"

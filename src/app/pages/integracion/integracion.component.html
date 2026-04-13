@@ -1,336 +1,72 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Integración ERP</h2>
-    <p class="page-subtitle" *ngIf="isAdmin">Rendiciones aprobadas pendientes de sincronización con el sistema contable</p>
-    <p class="page-subtitle" *ngIf="!isAdmin">Mis rendiciones aprobadas y sincronizadas con el sistema contable</p>
-  </div>
-  <button class="btn btn-ghost btn-sm" (click)="load()">↺ Actualizar</button>
-</div>
+<!-- Header -->
+<app-integracion-header 
+  [isAdmin]="isAdmin" 
+  (refresh)="load()">
+</app-integracion-header>
 
 <!-- Estado carga -->
-<app-skeleton-loader *ngIf="loading" variant="table"
-  [rows]="4" [columns]="['10%','20%','20%','15%','10%','10%','15%']">
-</app-skeleton-loader>
+<app-integracion-loading *ngIf="loading"></app-integracion-loading>
 
-<div *ngIf="!loading && loadError" class="empty-state">
-  No se pudo cargar. <a (click)="load()">Reintentar</a>
-</div>
+<!-- Estado error -->
+<app-integracion-error 
+  *ngIf="!loading && loadError" 
+  (retry)="load()">
+</app-integracion-error>
 
 <ng-container *ngIf="!loading && !loadError">
 
-  <!-- Barra de búsqueda -->
-  <div class="filter-bar">
-    <app-search-input
-      placeholder="Buscar por N°, usuario, perfil u objetivo..."
-      [debounceTime]="300"
-      [(search)]="search"
-      (valueChange)="applyFilter()"
-      (cleared)="applyFilter()">
-    </app-search-input>
-    <span class="filter-count">
-      {{ filtered.length }} rendición{{ filtered.length !== 1 ? 'es' : '' }}
-    </span>
-  </div>
+  <!-- Barra de filtros -->
+  <app-integracion-filter-bar
+    [search]="search"
+    [count]="filtered.length"
+    (searchChange)="onSearchChange($event)"
+    (searchCleared)="onSearchCleared()">
+  </app-integracion-filter-bar>
 
-  <!-- Sin resultados -->
-  <div *ngIf="filtered.length === 0 && !search" class="empty-state">
-    <div class="empty-icon">{{ (isAdmin || puedeSync) ? '✅' : '📋' }}</div>
-    <p *ngIf="isAdmin || puedeSync">No hay rendiciones pendientes de sincronización</p>
-    <p *ngIf="!isAdmin && !puedeSync">No tenés rendiciones aprobadas o sincronizadas aún</p>
-    <span class="empty-hint" *ngIf="isAdmin || puedeSync">Las rendiciones aprobadas aparecerán aquí para ser enviadas al ERP</span>
-    <span class="empty-hint" *ngIf="!isAdmin && !puedeSync">Cuando tu rendición sea aprobada y sincronizada, aparecerá aquí con el número de documento SAP</span>
-  </div>
+  <!-- Estado vacio -->
+  <app-integracion-empty
+    *ngIf="filtered.length === 0"
+    [isAdmin]="isAdmin"
+    [puedeSync]="puedeSync"
+    [search]="search">
+  </app-integracion-empty>
 
-  <div *ngIf="filtered.length === 0 && search" class="empty-state">
-    Sin resultados para "{{ search }}"
-  </div>
+  <!-- Vista ADMIN/SYNC: tabla con acciones de sincronizacion -->
+  <app-integracion-pendientes-table
+    *ngIf="(isAdmin || puedeSync) && filtered.length > 0"
+    [items]="pendientesPaged"
+    [page]="page"
+    [limit]="limit"
+    [total]="filtered.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)"
+    (actionClick)="onPendientesAction($event)">
+  </app-integracion-pendientes-table>
 
-  <!-- ══ VISTA ADMIN/SYNC: tabla con acciones de sincronización ══ -->
-  <div class="table-wrapper" *ngIf="(isAdmin || puedeSync) && filtered.length > 0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th class="text-center">N°</th>
-          <th>Usuario</th>
-          <th>Perfil</th>
-          <th>Objetivo</th>
-          <th class="text-center">Fecha Inicio</th>
-          <th class="text-center">Fecha Final</th>
-          <th class="text-right">Monto</th>
-          <th class="text-center">Estado</th>
-          <th class="actions">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let r of paged" [class.row-error]="esError(r)">
-          <td class="text-center">
-            <a class="link-primary" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
-              {{ r.U_IdRendicion }}
-            </a>
-          </td>
-          <td>{{ r.U_NomUsuario }}</td>
-          <td>{{ r.U_NombrePerfil }}</td>
-          <td>{{ r.U_Objetivo }}</td>
-          <td class="text-center">{{ r.U_FechaIni | ddmmyyyy }}</td>
-          <td class="text-center">{{ r.U_FechaFinal | ddmmyyyy }}</td>
-          <td class="text-right mono-cell">{{ r.U_Monto | number:'1.2-2' }}</td>
-          <td class="text-center">
-            <span [class]="'status-badge ' + estadoCss(r.U_Estado)">
-              {{ estadoTexto(r.U_Estado) }}
-            </span>
-          </td>
-          <td class="actions">
-            <button class="btn btn-sm btn-ghost" (click)="openHistorial(r)" title="Ver historial">
-              Historial
-            </button>
-            <button
-              [class]="esError(r) ? 'btn btn-sm btn-warning-soft' : 'btn btn-sm btn-primary'"
-              (click)="openCredentials(r)"
-              title="Sincronizar con ERP">
-              {{ esError(r) ? '↺ Reintentar' : '⇅ Sincronizar' }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <app-paginator
-      [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
-      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
-    </app-paginator>
-  </div>
-
-  <!-- ══ VISTA USER: tabla de solo lectura con doc SAP ══ -->
-  <div class="table-wrapper" *ngIf="!isAdmin && !puedeSync && filtered.length > 0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th class="text-center">N°</th>
-          <th>Perfil</th>
-          <th>Objetivo</th>
-          <th class="text-center">Fecha Inicio</th>
-          <th class="text-center">Fecha Final</th>
-          <th class="text-right">Monto</th>
-          <th class="text-center">Estado</th>
-          <th class="text-center">Doc. SAP</th>
-          <th class="actions">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let r of paged" [class.row-error]="esError(r)">
-          <td class="text-center">
-            <a class="link-primary" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
-              {{ r.U_IdRendicion }}
-            </a>
-          </td>
-          <td>{{ r.U_NombrePerfil }}</td>
-          <td>{{ r.U_Objetivo }}</td>
-          <td class="text-center">{{ r.U_FechaIni | ddmmyyyy }}</td>
-          <td class="text-center">{{ r.U_FechaFinal | ddmmyyyy }}</td>
-          <td class="text-right mono-cell">{{ r.U_Monto | number:'1.2-2' }}</td>
-          <td class="text-center">
-            <span [class]="'status-badge ' + estadoCss(r.U_Estado)">
-              {{ estadoTexto(r.U_Estado) }}
-            </span>
-          </td>
-          <td class="text-center">
-            <code class="doc-erp-code" *ngIf="asRendicionSync(r).U_NroDocERP">
-              {{ asRendicionSync(r).U_NroDocERP }}
-            </code>
-            <span class="muted" *ngIf="!asRendicionSync(r).U_NroDocERP">—</span>
-          </td>
-          <td class="actions">
-            <a class="btn btn-sm btn-ghost"
-               [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']"
-               title="Ver detalle">
-              Ver detalle
-            </a>
-            <button class="btn btn-sm btn-ghost" (click)="openHistorial(r)" title="Ver historial sync">
-              Historial sync
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <app-paginator
-      [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
-      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
-    </app-paginator>
-  </div>
+  <!-- Vista USER: tabla de solo lectura con doc SAP -->
+  <app-integracion-user-table
+    *ngIf="!isAdmin && !puedeSync && filtered.length > 0"
+    [items]="userPaged"
+    [page]="page"
+    [limit]="limit"
+    [total]="filtered.length"
+    [totalPages]="totalPages"
+    (pageChange)="onPageChange($event)"
+    (limitChange)="onLimitChange($event)"
+    (actionClick)="onUserAction($event)">
+  </app-integracion-user-table>
 
 </ng-container>
 
-<!-- ── Modal credenciales SAP (paso 1) — solo ONLINE ── -->
-<div class="modal-backdrop" *ngIf="showCredentials && !appConfig.isOffline">
-  <div class="credentials-modal" role="dialog" aria-modal="true" aria-labelledby="cred-title" (click)="$event.stopPropagation()">
+<!-- Modal de sincronizacion -->
+<app-sync-modal #syncModal (syncComplete)="onSyncComplete($event)"></app-sync-modal>
 
-    <div class="modal-header">
-      <h3 id="cred-title">
-        <span class="sap-logo-icon">🔐</span>
-        Credenciales SAP Business One
-        <span class="rend-id-badge">N° {{ credRend?.U_IdRendicion }}</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeCredentials()">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <p class="cred-hint">
-        Ingresa tus credenciales de SAP para generar el asiento preliminar.
-        No serán almacenadas.
-      </p>
-
-      <div class="cred-form">
-        <div class="form-field">
-          <label class="form-label" for="sap-user">Usuario SAP</label>
-          <input
-            id="sap-user" type="text" class="form-control"
-            [class.is-invalid]="credError && !sapUser.trim()"
-            placeholder="Ej: manager"
-            [(ngModel)]="sapUser"
-            (keyup.enter)="confirmarCredentials()"
-            autocomplete="username" />
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="sap-password">Contraseña SAP</label>
-          <div class="input-group">
-            <input
-              id="sap-password" [type]="showSapPassword ? 'text' : 'password'"
-              class="form-control"
-              [class.is-invalid]="credError && !sapPassword.trim()"
-              placeholder="Contraseña"
-              [(ngModel)]="sapPassword"
-              (keyup.enter)="confirmarCredentials()"
-              autocomplete="current-password" />
-            <button type="button" class="input-addon btn-icon"
-              (click)="toggleSapPassword()"
-              [title]="showSapPassword ? 'Ocultar' : 'Mostrar'">
-              {{ showSapPassword ? '🙈' : '👁' }}
-            </button>
-          </div>
-        </div>
-
-        <div class="cred-error" *ngIf="credError">
-          <span>⚠ {{ credError }}</span>
-        </div>
-      </div>
-
-      <div class="info-banner info-neutral" style="margin-top: 14px">
-        <span>ℹ</span>
-        <span>Las credenciales se usan únicamente para esta operación y <strong>no se guardan</strong>.</span>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn btn-ghost" type="button" (click)="closeCredentials()">Cancelar</button>
-      <button class="btn btn-primary" type="button" (click)="confirmarCredentials()">Continuar →</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Modal confirmación sincronización (paso 2) — solo ADMIN ── -->
-<div class="modal-backdrop" *ngIf="showConfirmSync">
-  <div class="sync-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>
-        {{ esError(syncRend!) ? '↺ Reintentar Sincronización' : '⇅ Sincronizar con SAP' }}
-        <span class="rend-id-badge">N° {{ syncRend?.U_IdRendicion }}</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeConfirmSync()">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <div class="sync-info">
-        <div class="info-row"><span class="info-label">Usuario</span><span class="info-value">{{ syncRend?.U_NomUsuario }}</span></div>
-        <div class="info-row"><span class="info-label">Perfil</span><span class="info-value">{{ syncRend?.U_NombrePerfil }}</span></div>
-        <div class="info-row"><span class="info-label">Objetivo</span><span class="info-value">{{ syncRend?.U_Objetivo }}</span></div>
-        <div class="info-row"><span class="info-label">Monto</span><span class="info-value mono-cell">{{ syncRend?.U_Monto | number:'1.2-2' }} Bs</span></div>
-        <div class="info-row">
-          <span class="info-label">Usuario SAP</span>
-          <span class="info-value"><span class="sap-user-badge">🔑 {{ sapUser }}</span></span>
-        </div>
-      </div>
-
-      <div class="info-banner info-neutral" style="margin-top: 14px">
-        <span>ℹ</span>
-        <span *ngIf="!esError(syncRend!)">
-          Se generará un <strong>asiento preliminar</strong> en SAP Business One con el usuario
-          <strong>{{ sapUser }}</strong>.
-        </span>
-        <span *ngIf="esError(syncRend!)">
-          Se realizará un nuevo intento de sincronización con el usuario <strong>{{ sapUser }}</strong>.
-        </span>
-      </div>
-
-      <div class="sync-progress" *ngIf="isSyncing">
-        <div class="sync-spinner"></div>
-        <span>Conectando con SAP Service Layer...</span>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="back-btn" type="button" (click)="closeConfirmSync()" [disabled]="isSyncing">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Volver
-        </button>
-      <button
-        [class]="esError(syncRend!) ? 'btn btn-warning-soft' : 'btn btn-primary'"
-        type="button" [disabled]="isSyncing" (click)="confirmarSync()">
-        <span *ngIf="isSyncing">Sincronizando con SAP...</span>
-        <span *ngIf="!isSyncing">{{ esError(syncRend!) ? '↺ Reintentar' : '⇅ Confirmar Sincronización' }}</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Modal historial ── -->
-<div class="modal-backdrop" *ngIf="showHistorial">
-  <div class="historial-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>
-        Historial de Sincronización
-        <span class="rend-id-badge">N° {{ historialRend?.U_IdRendicion }}</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeHistorial()">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <div *ngIf="loadingHistorial">
-        <app-skeleton-loader variant="list" [rows]="3"></app-skeleton-loader>
-      </div>
-
-      <div *ngIf="!loadingHistorial && historialItems.length === 0" class="empty-state" style="padding: 24px 0">
-        Sin intentos de sincronización registrados
-      </div>
-
-      <div class="historial-list" *ngIf="!loadingHistorial && historialItems.length > 0">
-        <div class="historial-item" *ngFor="let h of historialItems">
-          <div class="historial-item-header">
-            <span [class]="'status-badge ' + syncEstadoCss(h.U_Estado)">
-              {{ h.U_Estado === 'OK' ? '✓ Éxito' : h.U_Estado === 'ERROR' ? '✗ Error' : h.U_Estado }}
-            </span>
-            <span class="historial-intento">Intento {{ h.U_Intento }}</span>
-            <span class="historial-fecha">{{ h.U_FechaSync | ddmmyyyy }}</span>
-            <span class="historial-admin muted">por {{ h.U_LoginAdmin ?? '—' }}</span>
-          </div>
-          <div class="historial-item-body" *ngIf="h.U_NroDocERP || h.U_Mensaje">
-            <div *ngIf="h.U_NroDocERP" class="historial-doc">
-              <span class="info-label">Doc. SAP</span>
-              <code class="historial-code">{{ h.U_NroDocERP }}</code>
-            </div>
-            <div *ngIf="h.U_Mensaje" class="historial-msg" [class.historial-msg-error]="h.U_Estado === 'ERROR'">
-              {{ h.U_Mensaje }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn btn-ghost" type="button" (click)="closeHistorial()">Cerrar</button>
-    </div>
-  </div>
-</div>
+<!-- Modal historial -->
+<app-integracion-historial-modal
+  [isOpen]="showHistorial"
+  [loading]="loadingHistorial"
+  [items]="historialItems"
+  [historialRend]="historialRend"
+  (close)="closeHistorial()">
+</app-integracion-historial-modal>

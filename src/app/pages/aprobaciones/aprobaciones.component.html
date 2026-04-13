@@ -1,4 +1,4 @@
-<div class="page-header">
+﻿<div class="page-header">
   <div class="page-title-group">
     <h2>Aprobaciones Pendientes</h2>
     <p class="page-subtitle">Rendiciones enviadas que requieren tu revisión y aprobación</p>
@@ -6,160 +6,30 @@
   <button class="btn btn-ghost btn-sm" (click)="load()">↺ Actualizar</button>
 </div>
 
-<!-- Filtros dinámicos por nivel -->
-<div class="filter-bar" *ngIf="nivelesDisponibles.length > 1">
-  <div class="filter-field">
-    <label>Nivel de aprobación</label>
-    <div class="tab-switcher">
-      <button type="button" class="tab-btn"
-        [class.active]="nivelFiltro === 'todas'"
-        (click)="cambiarNivelFiltro('todas')">
-        Todas
-        <span class="sub-count-badge" *ngIf="nivelFiltro === 'todas' && pendientes.length > 0">{{ pendientes.length }}</span>
-      </button>
-      <button type="button" class="tab-btn"
-        *ngFor="let n of nivelesDisponibles"
-        [class.active]="nivelFiltro === n"
-        (click)="cambiarNivelFiltro(n)">
-        Nivel {{ n }}
-        <span class="sub-count-badge" *ngIf="nivelFiltro === n && pendientesActivos.length > 0">{{ pendientesActivos.length }}</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Estado carga -->
-<app-skeleton-loader *ngIf="loading" variant="table"
-  [rows]="4" [columns]="['10%','18%','18%','14%','10%','10%','10%','10%']">
-</app-skeleton-loader>
+<!-- Estado de error -->
 <div *ngIf="!loading && loadError" class="empty-state">
   No se pudo cargar. <a (click)="load()">Reintentar</a>
 </div>
-<div *ngIf="!loading && !loadError && !hayPendientes" class="empty-state">
-  <div class="empty-icon">✅</div>
-  <p>No tenés rendiciones pendientes de aprobación</p>
-</div>
 
-<!-- Tabla de pendientes -->
-<div class="table-wrapper" *ngIf="!loading && !loadError && hayPendientes">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="text-center">N°</th>
-        <th>Usuario</th>
-        <th>Perfil</th>
-        <th>Objetivo</th>
-        <th>Fecha Inicio</th>
-        <th>Fecha Final</th>
-        <th class="text-right">Monto</th>
-        <th class="text-center">Nivel</th>
-        <th class="text-center">Estado</th>
-        <th class="actions">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let r of pendientesActivos; trackBy: trackByPendiente">
-        <td class="text-center">
-          <a class="link-primary" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
-            {{ r.U_IdRendicion }}
-          </a>
-        </td>
-        <td>{{ r.U_NomUsuario }}</td>
-        <td>{{ r.U_NombrePerfil }}</td>
-        <td>{{ r.U_Objetivo }}</td>
-        <td class="text-center">{{ r.U_FechaIni | ddmmyyyy }}</td>
-        <td class="text-center">{{ r.U_FechaFinal | ddmmyyyy }}</td>
-        <td class="text-right mono-cell">{{ r.U_Monto | number:'1.2-2' }}</td>
-        <td class="text-center">
-          <span class="badge badge-primary">Nivel {{ r.U_Nivel }}</span>
-        </td>
-        <td class="text-center">
-          <span [class]="estadoRendCss(r.U_Estado_Rend)">{{ estadoRendTexto(r.U_Estado_Rend) }}</span>
-        </td>
-        <td class="actions">
-          <a class="btn btn-sm btn-ghost" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']" title="Ver y editar detalle">
-            Ver detalle
-          </a>
-          <button class="btn btn-sm btn-primary" (click)="openAprobar(r)" title="Aprobar">
-            ✓ Aprobar
-          </button>
-          <button class="btn btn-sm btn-danger-soft" (click)="openRechazar(r)" title="Rechazar">
-            ✗ Rechazar
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+<!-- Lista de aprobaciones -->
+<app-aprobaciones-list
+  [items]="pendientes"
+  [loading]="loading"
+  [nivelFiltro]="nivelFiltro"
+  (nivelFiltroChange)="onNivelFiltroChange($event)"
+  (aprobar)="openAprobar($event)"
+  (rechazar)="openRechazar($event)"
+  (verDetalle)="onVerDetalle($event)">
+</app-aprobaciones-list>
 
 <!-- Modal de acción -->
-<div class="modal-backdrop" *ngIf="showAccionModal" (click)="closeModal()">
-  <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>
-        {{ accionActual === 'aprobar' ? '✓ Aprobar Rendición' : '✗ Rechazar Rendición' }}
-        <span class="code-tag">N° {{ rendSeleccionada?.U_IdRendicion }}</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-
-      <!-- Info rendición -->
-      <div class="info-rows">
-        <div class="info-row">
-          <span class="info-label">Usuario</span>
-          <span class="info-value">{{ rendSeleccionada?.U_NomUsuario }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Objetivo</span>
-          <span class="info-value">{{ rendSeleccionada?.U_Objetivo }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Monto</span>
-          <span class="info-value mono-cell">{{ rendSeleccionada?.U_Monto | number:'1.2-2' }} Bs</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Período</span>
-          <span class="info-value">
-            {{ rendSeleccionada?.U_FechaIni | ddmmyyyy }} → {{ rendSeleccionada?.U_FechaFinal | ddmmyyyy }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Alerta rechazo -->
-      <div class="info-banner info-warning" *ngIf="accionActual === 'rechazar'">
-        ⚠ Al rechazar, la rendición volverá a estado <strong>ABIERTO</strong> para que el usuario realice correcciones y la reenvíe.
-      </div>
-
-      <!-- Comentario -->
-      <div class="form-field">
-        <label>
-          Comentario
-          <span class="required" *ngIf="accionActual === 'rechazar'">*</span>
-          <span class="label-muted" *ngIf="accionActual === 'aprobar'">(opcional)</span>
-        </label>
-        <textarea
-          [(ngModel)]="comentario"
-          rows="3"
-          maxlength="500"
-          [placeholder]="accionActual === 'rechazar' ? 'Indicá el motivo del rechazo...' : 'Observaciones opcionales...'">
-        </textarea>
-        <span class="field-error" *ngIf="accionActual === 'rechazar' && !comentario.trim()">
-          El motivo de rechazo es obligatorio
-        </span>
-      </div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" type="button" (click)="closeModal()" [disabled]="isSaving">Cancelar</button>
-      <button
-        [class]="accionActual === 'aprobar' ? 'btn btn-primary' : 'btn btn-danger-soft'"
-        type="button"
-        [disabled]="isSaving || (accionActual === 'rechazar' && !comentario.trim())"
-        (click)="confirmarAccion()">
-        <span *ngIf="isSaving">Procesando...</span>
-        <span *ngIf="!isSaving">{{ accionActual === 'aprobar' ? '✓ Confirmar Aprobación' : '✗ Confirmar Rechazo' }}</span>
-      </button>
-    </div>
-  </div>
-</div>
+<app-aprobacion-modal
+  [isOpen]="showAccionModal"
+  [accion]="accionActual"
+  [comentario]="comentario"
+  [isSaving]="isSaving"
+  [rendicion]="rendSeleccionada"
+  (comentarioChange)="comentario = $event"
+  (confirmar)="confirmarAccion()"
+  (cancelar)="closeModal()">
+</app-aprobacion-modal>

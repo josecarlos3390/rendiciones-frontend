@@ -1,0 +1,150 @@
+// ── QR Scanner ──────────────────────────────────────────────
+.qr-scanner-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qr-video-wrapper {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 1 / 1;
+}
+
+.qr-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.qr-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.qr-frame {
+  position: relative;
+  width: 62%;
+  aspect-ratio: 1;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-color: var(--color-primary);
+    border-style: solid;
+  }
+
+  &::before {
+    top: 0;
+    left: 0;
+    border-width: 3px 0 0 3px;
+  }
+
+  &::after {
+    bottom: 0;
+    right: 0;
+    border-width: 0 3px 3px 0;
+  }
+}
+
+.qr-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+
+.qr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  min-height: 260px;
+}
+
+.qr-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: qr-spin 0.8s linear infinite;
+}
+
+@keyframes qr-spin {
+  to { transform: rotate(360deg); }
+}
+
+.qr-loading-text {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.qr-loading-sub {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.qr-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+
+  .qr-error-icon {
+    font-size: 2rem;
+  }
+
+  p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: 0;
+  }
+}
+
+.qr-initializing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  min-height: 260px;
+}
+
+// Video oculto pero presente en DOM (para inicializar el scanner)
+.qr-video--hidden {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.qr-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}

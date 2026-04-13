@@ -1,0 +1,150 @@
+<app-form-modal
+  [title]="'Rendición'"
+  [subtitle]="editingRend ? 'N° ' + editingRend.U_IdRendicion : null"
+  [isOpen]="isOpen"
+  [loading]="isSaving"
+  [isEditing]="editingRend !== null"
+  [isDirty]="isDirty"
+  [wide]="true"
+  [submitDisabled]="form.invalid"
+  (save)="onSave()"
+  (cancel)="onCancel()">
+  
+  <ng-template #formContent>
+    <form [formGroup]="form" (ngSubmit)="onSave()" novalidate class="modal-2col-layout" *ngIf="form">
+      <div class="modal-body modal-col">
+        <div class="form-section-label">Datos del empleado</div>
+
+        <!-- Aviso cuando la cuenta NO es asociada -->
+        <div class="info-banner info-neutral" *ngIf="cuentaEsAsociada === 'N'" style="margin-bottom: 4px;">
+          Esta cuenta no requiere empleado asociado.
+        </div>
+
+        <app-form-field
+          label="Código Empleado"
+          [required]="empleadoRequired"
+          controlName="empleado"
+          [showChanged]="!!editingRend"
+          [initialValue]="initialValues?.empleado"
+          [disabled]="cuentaEsAsociada === 'N'">
+          <app-empleado-search
+            *ngIf="cuentaEsAsociada !== 'N'"
+            [car]="filtroEmpleadoCar"
+            [filtro]="filtroEmpleado"
+            [initialCode]="form.get('empleado')?.value"
+            [initialName]="form.get('nombreEmpleado')?.value"
+            [invalid]="!!form.get('empleado')?.invalid && !!form.get('empleado')?.touched"
+            [placeholder_text]="filtroEmpleado ? '— Buscar y seleccionar empleado —' : 'Sin filtro de empleados configurado'"
+            (empleadoChange)="onEmpleadoSelected($event)">
+          </app-empleado-search>
+          <input *ngIf="cuentaEsAsociada === 'N'" type="text"
+            placeholder="No aplica para esta cuenta" disabled />
+        </app-form-field>
+
+        <app-form-field
+          label="Nombre Empleado"
+          controlName="nombreEmpleado"
+          [showChanged]="!!editingRend"
+          [initialValue]="initialValues?.nombreEmpleado"
+          [disabled]="cuentaEsAsociada === 'N'">
+          <input type="text" formControlName="nombreEmpleado" maxlength="250" readonly
+            [placeholder]="cuentaEsAsociada === 'N' ? 'No aplica para esta cuenta' : 'Se completa automáticamente al seleccionar'" />
+        </app-form-field>
+
+        <div class="form-section-label">Período</div>
+        <div class="form-row">
+          <app-form-field
+            label="Fecha Inicio"
+            [required]="true"
+            controlName="fechaIni"
+            [showChanged]="!!editingRend"
+            [initialValue]="initialValues?.fechaIni">
+            <input type="date" formControlName="fechaIni" />
+          </app-form-field>
+          <app-form-field
+            label="Fecha Final"
+            [required]="true"
+            controlName="fechaFinal"
+            [showChanged]="!!editingRend"
+            [initialValue]="initialValues?.fechaFinal">
+            <input type="date" formControlName="fechaFinal" />
+          </app-form-field>
+        </div>
+        <p class="field-hint">ℹ La fecha final se usará como fecha del documento preliminar al generar.</p>
+      </div>
+
+      <div class="modal-body modal-col">
+        <div class="form-section-label">Cuenta y Perfil</div>
+
+        <app-form-field
+          label="Perfil"
+          [disabled]="true">
+          <input type="text" [value]="permisoActivo?.U_NOMBREPERFIL ?? editingPerfilNombre" readonly />
+        </app-form-field>
+
+        <app-form-field
+          label="Código de Cuenta"
+          [required]="tieneMultiplesCuentas"
+          controlName="cuenta">
+          <!-- Selector modal cuando el perfil tiene más de una cuenta -->
+          <app-cuenta-cabecera-select
+            *ngIf="tieneMultiplesCuentas"
+            [cuentas]="cuentasCabecera"
+            [initialCode]="form.get('cuenta')?.value"
+            (cuentaChange)="onCuentaChange($event)">
+          </app-cuenta-cabecera-select>
+          <!-- Campo bloqueado cuando solo hay una cuenta -->
+          <input *ngIf="!tieneMultiplesCuentas"
+                 type="text" formControlName="cuenta" readonly placeholder="CA-11105003" />
+        </app-form-field>
+
+        <app-form-field
+          label="Nombre de Cuenta"
+          [disabled]="true">
+          <input type="text" formControlName="nombreCuenta" readonly placeholder="Fondos a Rendir Bs." />
+        </app-form-field>
+
+        <div class="form-section-label">Rendición</div>
+        <app-form-field
+          label="Objetivo / Descripción"
+          [required]="true"
+          controlName="objetivo"
+          hint="Describí brevemente el propósito o destino de la rendición."
+          [showChanged]="!!editingRend"
+          [initialValue]="initialValues?.objetivo">
+          <input type="text" formControlName="objetivo" placeholder="Viaje a Santa Cruz — marzo 2025" maxlength="250" autocomplete="off" />
+        </app-form-field>
+
+        <app-form-field
+          label="Monto Recepcionado"
+          [required]="fijarSaldo"
+          controlName="monto"
+          hint="Importe recibido a rendir. Si no aplica, dejá en 0."
+          [errorMessage]="fijarSaldo ? 'Obligatorio, debe ser mayor a 0' : 'Valor mínimo: 0'"
+          [showChanged]="!!editingRend"
+          [initialValue]="initialValues?.monto">
+          <input type="number" formControlName="monto" min="0" step="0.01" placeholder="0.00" />
+        </app-form-field>
+      </div>
+    </form>
+  </ng-template>
+  
+  <ng-template #formFooter>
+    <div class="modal-2col-footer">
+      <ng-container *ngIf="isDirty; else noChanges">
+        <button type="button" class="btn btn-ghost" (click)="onCancel()">Cancelar</button>
+        <app-loading-button
+          type="primary"
+          buttonType="button"
+          [loading]="isSaving"
+          [disabled]="form.invalid"
+          (clicked)="onSave()">
+          {{ editingRend ? '💾 Guardar cambios' : '➕ Crear Rendición' }}
+        </app-loading-button>
+      </ng-container>
+      <ng-template #noChanges>
+        <button type="button" class="btn btn-ghost" (click)="onCancel()">Cerrar</button>
+      </ng-template>
+    </div>
+  </ng-template>
+</app-form-modal>

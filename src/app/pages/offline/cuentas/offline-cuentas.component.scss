@@ -1,4 +1,5 @@
 // Clases globales: _modals.scss, _forms.scss, _buttons.scss, _tables.scss, _lists.scss
+@use '../../../../styles/tables' as tables;
 
 .offline-modal {
   width: min(640px, 96vw);
@@ -28,10 +29,48 @@
 
 .table-wrapper { -webkit-overflow-scrolling: touch; }
 
+// ═══════════════════════════════════════════════════════════════
+// RESPONSIVE MÓVIL — Usando mixin estandarizado
+// ═══════════════════════════════════════════════════════════════
 @media (max-width: 640px) {
+  :host ::ng-deep {
+    @include tables.table-mobile-grid;
+    
+    // Grid específico: Codigo + Nombre | Formato | Asociada + Activa | Acciones
+    td[data-label="Código"] {
+      align-items: flex-start;
+    }
+    
+    td[data-label="Nombre"] {
+      align-items: flex-end;
+      text-align: right;
+      font-weight: var(--weight-semibold);
+      
+      &::before { align-self: flex-end; }
+    }
+    
+    td[data-label="Formato"] {
+      grid-column: 1 / -1;
+      padding-top: var(--space-2);
+      border-top: 1px dashed var(--border-color-subtle);
+    }
+    
+    td[data-label="Asociada"],
+    td[data-label="Activa"] {
+      align-items: center;
+    }
+  }
+  
+  // Ocultar columnas en móvil
   .col-format, .col-asociada { display: none; }
-  .page-header { flex-direction: column; align-items: flex-start; gap: 10px;
-    .btn { width: 100%; justify-content: center; } }
+  
+  .page-header { 
+    flex-direction: column; 
+    align-items: flex-start; 
+    gap: 10px;
+    .btn { width: 100%; justify-content: center; } 
+  }
+  
   .filter-select { width: 100%; }
 }
 

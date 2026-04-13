@@ -1,0 +1,30 @@
+<div class="filters-container">
+  <!-- Selector de Perfil -->
+  <div class="filter-section filter-section--perfil">
+    <div class="filter-field perfil-selector-inline">
+      <label>Seleccione Perfil</label>
+      <app-perfil-select
+        placeholder="— Seleccione Perfil —"
+        (perfilChange)="onPerfilChange($event)"
+        (perfilObjChange)="onPerfilObjChange($event)">
+      </app-perfil-select>
+    </div>
+  </div>
+
+  <!-- Búsqueda -->
+  <div class="filter-section filter-section--search" *ngIf="showSearch">
+    <div class="filter-field">
+      <label>Buscar cuenta</label>
+      <app-search-input
+        placeholder="Buscar por código o nombre..."
+        [debounceTime]="300"
+        [search]="search"
+        (valueChange)="onSearchChange($event)"
+        (cleared)="onSearchCleared()">
+      </app-search-input>
+    </div>
+    <span class="filter-count" *ngIf="!loading">
+      {{ filteredCount }} cuenta{{ filteredCount !== 1 ? 's' : '' }}
+    </span>
+  </div>
+</div>

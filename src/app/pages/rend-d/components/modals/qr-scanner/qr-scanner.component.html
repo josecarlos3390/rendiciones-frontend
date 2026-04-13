@@ -1,0 +1,42 @@
+<app-form-modal
+  [title]="'Escáner QR'"
+  [isOpen]="isOpen"
+  [loading]="loading"
+  [isEditing]="true"
+  [submitDisabled]="true"
+  (cancel)="onCancel()">
+  
+  <ng-template #formContent>
+    <div class="qr-scanner-container">
+      <!-- Video para escanear (siempre en DOM cuando modal está abierto, visibilidad controlada por CSS) -->
+      <div class="qr-video-wrapper" [class.qr-video--hidden]="!cameraReady" *ngIf="isOpen && !displayError && !loading">
+        <video class="qr-video" autoplay playsinline muted></video>
+        <div class="qr-overlay" *ngIf="cameraReady">
+          <div class="qr-frame"></div>
+          <p class="qr-hint">Enmarcá el código QR dentro del recuadro</p>
+        </div>
+      </div>
+      
+      <!-- Loading (consultando SIAT) - oculta el video -->
+      <div class="qr-loading" *ngIf="loading">
+        <div class="qr-loading-spinner"></div>
+        <p class="qr-loading-text">Consultando SIAT...</p>
+        <p class="qr-loading-sub">Obteniendo datos de la factura</p>
+      </div>
+      
+      <!-- Error (de cámara o del padre) - oculta el video -->
+      <div class="qr-error" *ngIf="displayError">
+        <span class="qr-error-icon">⚠️</span>
+        <p>{{ displayError }}</p>
+        <div class="qr-error-actions">
+          <button type="button" class="btn btn-primary btn-sm" (click)="onRetry()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+  
+  <!-- Footer vacío para ocultar los botones por defecto -->
+  <ng-template #formFooter></ng-template>
+</app-form-modal>

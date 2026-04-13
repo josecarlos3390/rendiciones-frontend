@@ -21,286 +21,66 @@
 </app-confirm-dialog>
 
 <!-- ════ Modal: Selector de Perfil ════ -->
-<div class="modal-backdrop" *ngIf="showPerfilPicker" (click)="cancelPerfilPicker()">
-  <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>Seleccionar Perfil de Trabajo</h3>
-      <button class="modal-close" type="button" (click)="cancelPerfilPicker()">✕</button>
-    </div>
-    <div class="modal-body">
-      <app-skeleton-loader *ngIf="loadingMisPerfiles" variant="table" [rows]="5">
-      </app-skeleton-loader>
-      <app-empty-state
-        *ngIf="!loadingMisPerfiles && misPermisos.length === 0"
-        icon="users"
-        title="Sin perfiles asignados"
-        message="No tenés perfiles asignados. Contactá al administrador para que te asigne uno.">
-      </app-empty-state>
-      <ng-container *ngIf="!loadingMisPerfiles && misPermisos.length > 0">
-        <p style="margin: 0 0 12px; font-size: 0.875rem; color: var(--text-muted);">
-          Seleccioná el perfil para ver y crear rendiciones:
-        </p>
-        <div class="picker-list">
-          <button type="button" class="picker-item" *ngFor="let p of misPermisos"
-            [class.picker-item--active]="perfilPickerSelId === p.U_IDPERFIL"
-            (click)="perfilPickerSelId = p.U_IDPERFIL">
-            <span class="picker-item__icon">🏷️</span>
-            <span class="picker-item__label">{{ p.U_NOMBREPERFIL }}</span>
-            <span class="picker-item__check" *ngIf="perfilPickerSelId === p.U_IDPERFIL">✔</span>
-          </button>
-        </div>
-      </ng-container>
-    </div>
-    <div class="modal-footer" *ngIf="!loadingMisPerfiles && misPermisos.length > 0">
-      <button type="button" class="btn btn-ghost" (click)="cancelPerfilPicker()">Cancelar</button>
-      <button type="button" class="btn btn-primary" [disabled]="!perfilPickerSelId"
-        (click)="confirmarPerfilPicker()">Ver Rendiciones →</button>
-    </div>
-  </div>
-</div>
+<app-picker-modal
+  [title]="'Seleccionar Perfil de Trabajo'"
+  [isOpen]="showPerfilPicker"
+  [loading]="loadingMisPerfiles"
+  [items]="perfilPickerItems"
+  [selectedId]="perfilPickerSelId"
+  [hint]="'Seleccioná el perfil para ver y crear rendiciones:'"
+  [emptyIcon]="'👤'"
+  [emptyTitle]="'Sin perfiles asignados'"
+  [emptyMessage]="'No tenés perfiles asignados. Contactá al administrador para que te asigne uno.'"
+  (confirm)="onPerfilConfirm($event)"
+  (cancel)="cancelPerfilPicker()">
+</app-picker-modal>
 
 <!-- ════ Modal: Formulario nueva / editar rendición ════ -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="user-modal user-modal--wide rend-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>
-        {{ editingRend ? 'Editar Rendición N° ' + editingRend.U_IdRendicion : 'Nueva Rendición' }}
-        <span class="dirty-badge" *ngIf="editingRend && isDirty">● cambios sin guardar</span>
-      </h3>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-2col-layout">
-      <div class="modal-body modal-col">
-        <div class="form-section-label">Datos del empleado</div>
-
-        <!-- Aviso cuando la cuenta NO es asociada -->
-        <div class="info-banner info-neutral" *ngIf="cuentaEsAsociada === 'N'" style="margin-bottom: 4px;">
-          Esta cuenta no requiere empleado asociado.
-        </div>
-
-        <div class="form-field"
-          [class.field-changed]="fieldChanged('empleado')"
-          [class.field-locked]="cuentaEsAsociada === 'N'">
-          <label>Código Empleado
-            <span class="required" *ngIf="cuentaEsAsociada !== 'N'">*</span>
-          </label>
-          <app-empleado-search
-            *ngIf="cuentaEsAsociada !== 'N'"
-            [car]="filtroEmpleadoCar" [filtro]="filtroEmpleado"
-            [initialCode]="form.get('empleado')?.value"
-            [initialName]="form.get('nombreEmpleado')?.value"
-            [invalid]="!!form.get('empleado')?.invalid && !!form.get('empleado')?.touched"
-            [placeholder_text]="filtroEmpleado ? '— Buscar y seleccionar empleado —' : 'Sin filtro de empleados configurado'"
-            (empleadoChange)="onEmpleadoSelected($event)">
-          </app-empleado-search>
-          <input *ngIf="cuentaEsAsociada === 'N'" type="text"
-            placeholder="No aplica para esta cuenta" disabled />
-          <span class="field-error" *ngIf="form.get('empleado')?.invalid && form.get('empleado')?.touched">Obligatorio</span>
-        </div>
-
-        <div class="form-field"
-          [class.field-changed]="fieldChanged('nombreEmpleado')"
-          [class.field-locked]="cuentaEsAsociada === 'N'">
-          <label>Nombre Empleado</label>
-          <input type="text" formControlName="nombreEmpleado" maxlength="250" readonly
-            [placeholder]="cuentaEsAsociada === 'N' ? 'No aplica para esta cuenta' : 'Se completa automáticamente al seleccionar'" />
-        </div>
-
-        <div class="form-section-label">Período</div>
-        <div class="form-row">
-          <div class="form-field" [class.field-changed]="fieldChanged('fechaIni')">
-            <label>Fecha Inicio <span class="required">*</span></label>
-            <input type="date" formControlName="fechaIni" />
-            <span class="field-error" *ngIf="form.get('fechaIni')?.invalid && form.get('fechaIni')?.touched">Obligatoria</span>
-          </div>
-          <div class="form-field" [class.field-changed]="fieldChanged('fechaFinal')">
-            <label>Fecha Final <span class="required">*</span></label>
-            <input type="date" formControlName="fechaFinal" />
-            <span class="field-error" *ngIf="form.get('fechaFinal')?.invalid && form.get('fechaFinal')?.touched">Obligatoria</span>
-          </div>
-        </div>
-        <p class="field-hint">ℹ La fecha final se usará como fecha del documento preliminar al generar.</p>
-      </div>
-
-      <div class="modal-body modal-col">
-        <div class="form-section-label">Cuenta y Perfil</div>
-
-        <div class="form-field field-locked">
-          <label>Perfil</label>
-          <input type="text" [value]="permisoActivo?.U_NOMBREPERFIL ?? editingPerfilNombre" readonly />
-        </div>
-
-        <div class="form-field" [class.field-locked]="!tieneMultiplesCuentas">
-          <label>Código de Cuenta <span class="required" *ngIf="tieneMultiplesCuentas">*</span></label>
-
-          <!-- Selector modal cuando el perfil tiene más de una cuenta -->
-          <app-cuenta-cabecera-select
-            *ngIf="tieneMultiplesCuentas"
-            [cuentas]="cuentasCabeceraActivas"
-            [initialCode]="form.get('cuenta')?.value"
-            (cuentaChange)="onCuentaChange($event)">
-          </app-cuenta-cabecera-select>
-
-          <!-- Campo bloqueado cuando solo hay una cuenta -->
-          <input *ngIf="!tieneMultiplesCuentas"
-                 type="text" formControlName="cuenta" readonly placeholder="CA-11105003" />
-        </div>
-
-        <div class="form-field field-locked">
-          <label>Nombre de Cuenta</label>
-          <input type="text" formControlName="nombreCuenta" readonly placeholder="Fondos a Rendir Bs." />
-        </div>
-
-        <div class="form-section-label">Rendición</div>
-        <div class="form-field" [class.field-changed]="fieldChanged('objetivo')">
-          <label>Objetivo / Descripción <span class="required">*</span></label>
-          <input type="text" formControlName="objetivo" placeholder="Viaje a Santa Cruz — marzo 2025" maxlength="250" autocomplete="off" />
-          <span class="field-hint">Describí brevemente el propósito o destino de la rendición.</span>
-          <span class="field-error" *ngIf="form.get('objetivo')?.invalid && form.get('objetivo')?.touched">Obligatorio</span>
-        </div>
-        <div class="form-row">
-          <div class="form-field" [class.field-changed]="fieldChanged('monto')">
-            <label>Monto Recepcionado <span class="required" *ngIf="fijarSaldo">*</span></label>
-            <input type="number" formControlName="monto" min="0" step="0.01" placeholder="0.00" />
-            <span class="field-hint">Importe recibido a rendir. Si no aplica, dejá en 0.</span>
-            <span class="field-error" *ngIf="form.get('monto')?.invalid && form.get('monto')?.touched">
-              {{ fijarSaldo ? 'Obligatorio, debe ser mayor a 0' : 'Valor mínimo: 0' }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer modal-2col-footer">
-        <ng-container *ngIf="isDirty; else noChanges">
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-          <app-loading-button
-            type="primary"
-            buttonType="submit"
-            [loading]="isSaving"
-            [disabled]="form.invalid">
-            {{ editingRend ? '💾 Guardar cambios' : '➕ Crear Rendición' }}
-          </app-loading-button>
-        </ng-container>
-        <ng-template #noChanges>
-          <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
-        </ng-template>
-      </div>
-    </form>
-  </div>
-</div>
+<app-rendicion-form
+  [isOpen]="showForm"
+  [isSaving]="isSaving"
+  [editingRend]="editingRend"
+  [permisoActivo]="permisoActivo"
+  [cuentasCabecera]="cuentasCabeceraActivas"
+  [fijarSaldo]="fijarSaldo"
+  [cuentaEsAsociada]="cuentaEsAsociada"
+  [filtroEmpleadoCar]="filtroEmpleadoCar"
+  [filtroEmpleado]="filtroEmpleado"
+  [editingPerfilNombre]="editingPerfilNombre"
+  (save)="onSaveRendicion($event)"
+  (cancel)="closeForm()"
+  (empleadoChange)="onEmpleadoSelected($event)"
+  (cuentaChange)="onCuentaChange($event)">
+</app-rendicion-form>
 
 <!-- ════ PASO 1: Sin perfil — pantalla de selección ════ -->
-<div class="perfil-step" *ngIf="!perfilActivo">
-  <div class="perfil-step__icon">🏷️</div>
-  <h3 class="perfil-step__title">Seleccioná un perfil para comenzar</h3>
-  <p class="perfil-step__desc">Tus rendiciones están organizadas por perfil. Elegí con cuál querés trabajar hoy.</p>
-  <div class="perfil-step__loading" *ngIf="loadingPerfilesPaso1">
-    <span>⏳ Cargando perfiles...</span>
-  </div>
-  <div class="perfil-step__empty" *ngIf="!loadingPerfilesPaso1 && misPermisosPaso1.length === 0">
-    🔒 No tenés perfiles asignados. Contactá al administrador.
-  </div>
-  <div class="perfil-step__grid" *ngIf="!loadingPerfilesPaso1 && misPermisosPaso1.length > 0">
-    <button class="perfil-card" type="button" *ngFor="let p of misPermisosPaso1"
-      (click)="seleccionarPerfilDirecto(p)">
-      <span class="perfil-card__initial">{{ p.U_NOMBREPERFIL.charAt(0) }}</span>
-      <span class="perfil-card__nombre">{{ p.U_NOMBREPERFIL }}</span>
-      <span class="perfil-card__arrow">→</span>
-    </button>
-  </div>
-</div>
+<app-perfil-selector
+  *ngIf="!perfilActivo"
+  [loading]="loadingPerfilesPaso1"
+  [permisos]="misPermisosPaso1"
+  (select)="seleccionarPerfilDirecto($event)">
+</app-perfil-selector>
 
 <!-- ════ PASO 2: Perfil seleccionado — filtros + tabla ════ -->
 <ng-container *ngIf="perfilActivo">
 
   <!-- ── Barra de filtros unificada ─────────────────────────────────── -->
-  <div class="filter-bar">
-    <div class="filter-left">
-
-      <!-- Selector VER: solo visible para aprobadores / nivel sync / admin -->
-      <div class="filter-field" *ngIf="auth.esAprobador || auth.sinAprobador || auth.isAdmin">
-        <label>Ver</label>
-        <div class="ver-chips">
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="verFiltro === 'propias'"
-            (click)="onVerFiltroChange('propias')">
-            Mis rendiciones
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="verFiltro === 'subordinados'"
-            (click)="onVerFiltroChange('subordinados')">
-            Subordinados
-            <span class="sub-count-badge" *ngIf="verFiltro === 'subordinados' && totalSubordinados > 0">{{ totalSubordinados }}</span>
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="verFiltro === 'todas'"
-            (click)="onVerFiltroChange('todas')">
-            Todas
-            <span class="sub-count-badge" *ngIf="verFiltro === 'todas' && totalSubordinados > 0">+{{ totalSubordinados }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Selector ESTADO -->
-      <div class="filter-field">
-        <label>Estado</label>
-        <div class="estado-chips">
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'todas'"
-            (click)="onEstadoFiltroChange('todas')">
-            Todos
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'abiertas'"
-            (click)="onEstadoFiltroChange('abiertas')">
-            <span class="chip-dot chip-dot--open"></span> Pendientes
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'cerradas'"
-            (click)="onEstadoFiltroChange('cerradas')">
-            <span class="chip-dot chip-dot--sent"></span> Cerradas
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'enviadas'"
-            (click)="onEstadoFiltroChange('enviadas')">
-            <span class="chip-dot chip-dot--sent"></span> Enviadas
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'aprobadas'"
-            (click)="onEstadoFiltroChange('aprobadas')">
-            <span class="chip-dot chip-dot--approved"></span> Aprobadas
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'sincronizadas'"
-            (click)="onEstadoFiltroChange('sincronizadas')">
-            <span class="chip-dot chip-dot--sync"></span> Sincronizadas
-          </button>
-          <button type="button" class="estado-chip"
-            [class.estado-chip--active]="estadoFiltro === 'error'"
-            (click)="onEstadoFiltroChange('error')">
-            <span class="chip-dot chip-dot--error"></span> Error
-          </button>
-        </div>
-      </div>
-
-      <!-- Búsqueda -->
-      <div class="filter-field">
-        <label>Buscar</label>
-        <app-search-input
-          placeholder="Objetivo, empleado, cuenta..."
-          [debounceTime]="300"
-          [(search)]="search"
-          (valueChange)="applyFilter()"
-          (cleared)="applyFilter()">
-        </app-search-input>
-      </div>
-
-    </div>
-    <span class="filter-count" *ngIf="!loading && !loadingSubordinados">
-      <ng-container *ngIf="verFiltro === 'propias'">{{ filtered.length }} rendición{{ filtered.length !== 1 ? 'es' : '' }}</ng-container>
-      <ng-container *ngIf="verFiltro === 'subordinados'">{{ totalSubordinados }} rendición{{ totalSubordinados !== 1 ? 'es' : '' }}</ng-container>
-      <ng-container *ngIf="verFiltro === 'todas'">{{ filtered.length + totalSubordinados }} rendición{{ (filtered.length + totalSubordinados) !== 1 ? 'es' : '' }}</ng-container>
-    </span>
-  </div>
+  <app-rendicion-filters
+    [verFiltro]="verFiltro"
+    [estadoFiltro]="estadoFiltro"
+    [search]="search"
+    [totalPropias]="filtered.length"
+    [totalSubordinados]="totalSubordinados"
+    [loading]="loading"
+    [loadingSubordinados]="loadingSubordinados"
+    [esAprobador]="auth.esAprobador"
+    [sinAprobador]="auth.sinAprobador"
+    [isAdmin]="auth.isAdmin"
+    (verFiltroChange)="onVerFiltroChange($event)"
+    (estadoFiltroChange)="onEstadoFiltroChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (searchCleared)="onSearchCleared()">
+  </app-rendicion-filters>
 
   <!-- Estado de carga -->
   <app-skeleton-loader *ngIf="loading" variant="table" [rows]="5"></app-skeleton-loader>
@@ -373,104 +153,19 @@
   </app-empty-state>
 
   <!-- ── Tabla principal (propias / todas) ─────────────────────────── -->
-  <ng-container *ngIf="verFiltro !== 'subordinados' && !loading && !loadError && filtered.length > 0">
-
-    <div class="table-wrapper" *ngIf="!loading && !loadError && filtered.length > 0">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th class="text-center">N°</th>
-            <th>Objetivo</th>
-            <th>Cuenta</th>
-            <th>Empleado</th>
-            <th class="text-center">Fecha Ini</th>
-            <th class="text-center">Fecha Fin</th>
-            <th class="text-right">Monto</th>
-            <th class="text-center">Estado</th>
-            <th class="col-acciones">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of paged; trackBy: trackByRendicion">
-            <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
-            <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
-            <td class="col-cuenta" data-label="Cuenta">
-              <div class="cuenta-inner">
-                <span class="code-tag">{{ r.U_Cuenta }}</span>
-                <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
-              </div>
-            </td>
-            <td class="col-empleado" data-label="Empleado">{{ r.U_NombreEmpleado }}</td>
-            <td class="text-center" data-label="Fecha Ini">{{ r.U_FechaIni | ddmmyyyy }}</td>
-            <td class="text-center" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
-            <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
-            <td class="text-center" data-label="Estado">
-              <span [class]="estadoCss(r.U_Estado)">{{ estadoTexto(r.U_Estado) }}</span>
-            </td>
-            <td class="col-acciones" data-label="Acciones">
-              <div class="acciones-wrap">
-                <!-- Ver detalle - siempre visible -->
-                <a class="btn btn-icon btn-sm btn-ghost-primary" title="Ver detalle"
-                  [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                </a>
-
-                <!-- Imprimir - visible si aplica -->
-                <button *ngIf="canReprint(r)"
-                  class="btn btn-icon btn-sm btn-ghost" title="Ver/Imprimir comprobante"
-                  (click)="reimprimir(r)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                </button>
-
-                <!-- Menú de acciones -->
-                <div class="dropdown" *ngIf="canEdit(r) || canDelete(r) || (r.U_Estado === 1 && canEdit(r))">
-                  <button class="btn btn-icon btn-sm btn-ghost" title="Más acciones"
-                    (click)="$event.stopPropagation(); toggleMenu(r.U_IdRendicion, $event)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                  </button>
-                  <div class="dropdown-menu" 
-                       [class.show]="menuOpen === r.U_IdRendicion"
-                       [style.top.px]="menuPosition.top"
-                       [style.left.px]="menuPosition.left">
-                    <!-- Editar -->
-                    <button *ngIf="canEdit(r)" class="dropdown-item" (click)="openEdit(r); closeMenu()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      Editar
-                    </button>
-
-                    <!-- Enviar / Preliminar -->
-                    <ng-container *ngIf="r.U_Estado === 1 && canEdit(r)">
-                      <button *ngIf="auth.sinAprobador && auth.puedeGenerarPre"
-                        class="dropdown-item" (click)="generarPreliminar(r); closeMenu()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        Generar Preliminar
-                      </button>
-                      <button *ngIf="!auth.sinAprobador"
-                        class="dropdown-item text-primary" (click)="enviarAprobacion(r); closeMenu()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        Enviar
-                      </button>
-                    </ng-container>
-
-                    <div class="dropdown-divider" *ngIf="canDelete(r)"></div>
-
-                    <!-- Eliminar -->
-                    <button *ngIf="canDelete(r)" class="dropdown-item text-danger" (click)="confirmDelete(r); closeMenu()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <app-paginator [page]="page" [limit]="limit" [total]="filtered.length" [totalPages]="totalPages"
-        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)">
-      </app-paginator>
-    </div>
-  </ng-container>
+  <app-rendicion-table
+    *ngIf="verFiltro !== 'subordinados' && !loading && !loadError && filtered.length > 0"
+    [rendiciones]="filtered"
+    [paged]="paged"
+    [page]="page"
+    [limit]="limit"
+    [totalPages]="totalPages"
+    [estadoFiltro]="estadoFiltro"
+    [isAdmin]="isAdmin"
+    [esAprobador]="auth.esAprobador"
+    (action)="onTableAction($event)"
+    (pageChange)="onPageChange($event)">
+  </app-rendicion-table>
 
   <!-- ── Tabla subordinados (subordinados / todas) ───────────────────── -->
   <ng-container *ngIf="verFiltro !== 'propias' && (auth.esAprobador || auth.sinAprobador || auth.isAdmin)">
@@ -490,6 +185,7 @@
       [compact]="true">
     </app-empty-state>
 
+    <!-- Tabla de subordinados (mantener código original por ahora) -->
     <div class="table-wrapper" *ngIf="!loadingSubordinados && rendicionesSubordinados.length > 0">
       <table class="data-table">
         <thead>
@@ -501,7 +197,12 @@
             <th class="text-center">Fecha Fin</th>
             <th class="text-right">Monto</th>
             <th class="text-center">Estado</th>
-            <th class="col-acciones">Acciones</th>
+            <th class="col-acciones" title="Acciones">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -524,48 +225,11 @@
             </td>
             <td class="col-acciones" data-label="Acciones">
               <div class="acciones-wrap">
-                <!-- Ver detalle - siempre visible -->
-                <a class="btn btn-icon btn-sm btn-ghost-primary" title="Ver detalle"
-                  [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                </a>
-
-                <!-- Imprimir - visible si aplica -->
-                <button *ngIf="canReprint(r)"
-                  class="btn btn-icon btn-sm btn-ghost" title="Ver/Imprimir comprobante"
-                  (click)="reimprimir(r)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 6,2 18,2 18,9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                </button>
-
-                <!-- Menú de acciones -->
-                <div class="dropdown" *ngIf="canEdit(r) || canAprobar(r)">
-                  <button class="btn btn-icon btn-sm btn-ghost" title="Más acciones"
-                    (click)="$event.stopPropagation(); toggleMenu(r.U_IdRendicion, $event)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                  </button>
-                  <div class="dropdown-menu" 
-                       [class.show]="menuOpen === r.U_IdRendicion"
-                       [style.top.px]="menuPosition.top"
-                       [style.left.px]="menuPosition.left">
-                    <!-- Editar -->
-                    <button *ngIf="canEdit(r)" class="dropdown-item" [routerLink]="['/rend-m', r.U_IdRendicion, 'detalle']" (click)="closeMenu()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      Editar
-                    </button>
-
-                    <!-- Aprobar -->
-                    <button *ngIf="canAprobar(r)" class="dropdown-item text-primary" (click)="aprobarDesdeSubordinados(r); closeMenu()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      Aprobar
-                    </button>
-
-                    <!-- Rechazar -->
-                    <button *ngIf="canAprobar(r)" class="dropdown-item text-danger" (click)="rechazarDesdeSubordinados(r); closeMenu()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      Rechazar
-                    </button>
-                  </div>
-                </div>
+                <app-action-menu
+                  [actions]="getActionMenuItemsSubordinados(r)"
+                  [itemLabel]="'Rendición N° ' + r.U_IdRendicion"
+                  (actionClick)="onActionClickSubordinados($event, r)">
+                </app-action-menu>
               </div>
             </td>
           </tr>
@@ -591,3 +255,9 @@
   mode="reprint"
   (cancel)="onPdfReprintClose()">
 </app-rendicion-pdf-preview>
+
+<!-- ── Modal Sincronización (Componente Compartido) ── -->
+<app-sync-modal 
+  #syncModal
+  (syncComplete)="onSyncComplete($event)">
+</app-sync-modal>

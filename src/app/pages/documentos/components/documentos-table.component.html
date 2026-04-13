@@ -1,0 +1,105 @@
+<div class="table-wrapper">
+  <div class="table-scroll-wrap">
+    <table class="data-table doc-table">
+      <thead>
+        <tr>
+          <th class="col-tipo">Tipo Documento</th>
+          <th class="text-center col-codigo">Cod.</th>
+          <th class="col-sap col-hide-tablet">SAP</th>
+          <th class="col-calculo col-hide-mobile">Calculo</th>
+          <th class="tax-cell col-hide-mobile">IVA</th>
+          <th class="tax-cell col-hide-tablet">IT</th>
+          <th class="tax-cell col-hide-tablet">IUE</th>
+          <th class="tax-cell col-hide-tablet">RC-IVA</th>
+          <th class="tax-cell col-hide-mobile">Exento</th>
+          <th class="tax-cell col-hide-mobile">Tasa/ICE</th>
+          <th class="col-acciones">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33 1.82V9a1.65 1.65 0 0 0-1.51 1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let d of items">
+          <!-- 1. TIPO DOC: Título principal -->
+          <td class="col-tipo col-mobile-primary" data-label="Tipo Doc.">
+            <strong>{{ d.U_TipDoc }}</strong>
+          </td>
+          
+          <!-- 2. CÓDIGO -->
+          <td class="text-center col-codigo" data-label="Cod">{{ d.U_CodPerfil }}</td>
+          
+          <!-- SAP (oculto móvil) -->
+          <td class="col-sap col-hide-mobile" data-label="SAP">
+            <span class="sap-label">{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</span>
+          </td>
+          
+          <!-- Calculo (oculto móvil) -->
+          <td class="col-calculo col-hide-mobile" data-label="Calculo">
+            <app-status-badge [type]="isGrossingUp(d.U_TipoCalc) ? 'success' : 'neutral'" [dot]="true">
+              {{ tipoCalcLabel(d.U_TipoCalc) }}
+            </app-status-badge>
+          </td>
+          
+          <!-- IVA: Principal impuesto visible en móvil -->
+          <td class="tax-cell col-hide-mobile" data-label="IVA">
+            <span class="tax-pct">{{ fmtPct(d.U_IVApercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_IVApercent !== 0 && d.U_IVAcuenta">{{ d.U_IVAcuenta }}</span>
+          </td>
+          
+          <!-- Otros impuestos (ocultos en móvil) -->
+          <td class="tax-cell col-hide-tablet" data-label="IT">
+            <span class="tax-pct">{{ fmtPct(d.U_ITpercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_ITpercent !== 0 && d.U_ITcuenta">{{ d.U_ITcuenta }}</span>
+          </td>
+          
+          <td class="tax-cell col-hide-tablet" data-label="IUE">
+            <span class="tax-pct">{{ fmtPct(d.U_IUEpercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_IUEpercent !== 0 && d.U_IUEcuenta">{{ d.U_IUEcuenta }}</span>
+          </td>
+          
+          <td class="tax-cell col-hide-tablet" data-label="RC-IVA">
+            <span class="tax-pct">{{ fmtPct(d.U_RCIVApercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_RCIVApercent !== 0 && d.U_RCIVAcuenta">{{ d.U_RCIVAcuenta }}</span>
+          </td>
+          
+          <td class="tax-cell col-hide-mobile" data-label="Exento">
+            <span class="tax-pct">{{ fmtPct(d.U_EXENTOpercent) }}</span>
+            <span class="tax-cta" *ngIf="d.U_EXENTOpercent !== 0 && d.U_CTAEXENTO">{{ d.U_CTAEXENTO }}</span>
+          </td>
+          
+          <td class="tax-cell tax-cell-dual col-hide-mobile" data-label="Tasa/ICE">
+            <span class="tax-dual-row">
+              <span class="tax-dual-label">Tasa</span>
+              <span class="tax-pct">{{ fmtPct(d.U_TASA) }}</span>
+            </span>
+            <span class="tax-dual-row">
+              <span class="tax-dual-label">ICE</span>
+              <span class="tax-pct">{{ fmtPct(d.U_ICE) }}</span>
+            </span>
+          </td>
+          
+          <!-- ACCIONES: Siempre al final -->
+          <td class="col-acciones" data-label="Acciones">
+            <app-action-menu
+              [actions]="getActionMenuItems(d)"
+              [itemLabel]="d.U_TipDoc"
+              (actionClick)="onActionClick($event, d)">
+            </app-action-menu>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <app-paginator
+    [page]="page"
+    [limit]="limit"
+    [total]="total"
+    [totalPages]="totalPages"
+    (pageChange)="pageChange.emit($event)"
+    (limitChange)="limitChange.emit($event)">
+  </app-paginator>
+</div>

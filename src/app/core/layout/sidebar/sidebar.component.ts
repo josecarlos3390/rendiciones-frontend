@@ -5,6 +5,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../auth/auth.service';
 import { AprobacionesService } from '../../../services/aprobaciones.service';
 import { IntegracionService } from '../../../services/integracion.service';
+import { NotificacionesService } from '../../../services/notificaciones.service';
 import { AppModeService } from '../../../services/app-mode.service';
 import { interval, Subscription } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
@@ -32,11 +33,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private pollingSubscription?: Subscription;
   private integracionSub?: Subscription;
   private modeSub?: Subscription;
+  private notifSub?: Subscription;
 
   constructor(
     public  auth:             AuthService,
     private aprobacionesSvc:  AprobacionesService,
     private integracionSvc:   IntegracionService,
+    private notificacionesSvc: NotificacionesService,
     private appModeSvc:       AppModeService,
     private router:           Router,
     private themeService:     ThemeService,
@@ -194,6 +197,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.pollingSubscription?.unsubscribe();
     this.integracionSub?.unsubscribe();
     this.modeSub?.unsubscribe();
+    this.notifSub?.unsubscribe();
     this.setBodyScroll(true);
   }
 
@@ -221,6 +225,40 @@ export class SidebarComponent implements OnInit, OnDestroy {
       },
       error: () => {},
     });
+
+    // Escuchar notificaciones en tiempo real (inmediatas, no polling)
+    this.notifSub = this.notificacionesSvc.notificaciones$.subscribe({
+      next: (event) => {
+        this._handleNotificacion(event);
+      },
+      error: () => {},
+    });
+  }
+
+  /**
+   * Maneja notificaciones en tiempo real para actualizar contadores inmediatamente.
+   */
+  private _handleNotificacion(event: { tipo: string; idRendicion: number; timestamp: number }): void {
+    switch (event.tipo) {
+      case 'APROBACION_PROCESADA':
+        // Se aprobó una rendición: reducir contador de aprobaciones, aumentar integración
+        this.pendientesCount = Math.max(0, this.pendientesCount - 1);
+        this.integracionCount += 1;
+        this.cdr.markForCheck();
+        break;
+
+      case 'RENDICION_RECHAZADA':
+        // Se rechazó una rendición: solo reducir contador de aprobaciones
+        this.pendientesCount = Math.max(0, this.pendientesCount - 1);
+        this.cdr.markForCheck();
+        break;
+
+      case 'RENDICION_SINCRONIZADA':
+        // Se sincronizó una rendición: reducir contador de integración
+        this.integracionCount = Math.max(0, this.integracionCount - 1);
+        this.cdr.markForCheck();
+        break;
+    }
   }
 
   toggleMobile() {

@@ -1,0 +1,22 @@
+<div class="perfil-step">
+  <div class="perfil-step__icon">🏷️</div>
+  <h3 class="perfil-step__title">Seleccioná un perfil para comenzar</h3>
+  <p class="perfil-step__desc">Tus rendiciones están organizadas por perfil. Elegí con cuál querés trabajar hoy.</p>
+  
+  <div class="perfil-step__loading" *ngIf="loading">
+    <span>⏳ Cargando perfiles...</span>
+  </div>
+  
+  <div class="perfil-step__empty" *ngIf="!loading && !hasPerfiles">
+    🔒 No tenés perfiles asignados. Contactá al administrador.
+  </div>
+  
+  <div class="perfil-step__grid" *ngIf="!loading && hasPerfiles">
+    <button class="perfil-card" type="button" *ngFor="let p of permisos"
+      (click)="onSelect(p)">
+      <span class="perfil-card__initial">{{ getInitial(p.U_NOMBREPERFIL) }}</span>
+      <span class="perfil-card__nombre">{{ p.U_NOMBREPERFIL }}</span>
+      <span class="perfil-card__arrow">→</span>
+    </button>
+  </div>
+</div>

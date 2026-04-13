@@ -27,66 +27,56 @@
 </app-confirm-dialog>
 
 <!-- ── Modal agregar cuenta ──────────────────────────────────── -->
-<div class="modal-backdrop" *ngIf="showForm">
-  <div class="modal-card cuenta-lista-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+<app-form-modal
+  [title]="'Cuenta'"
+  [subtitle]="selectedPerfil?.U_NombrePerfil ?? null"
+  [isOpen]="showForm"
+  [loading]="isSaving"
+  [isEditing]="false"
+  [isDirty]="selectedCuenta !== null"
+  [submitDisabled]="!isFormValid || isSaving"
+  (save)="save()"
+  (cancel)="closeForm()">
+  
+  <ng-template #formContent>
+    <app-form-field
+      label="Seleccionar Cuenta SAP"
+      [required]="true"
+      [errorMessage]="!selectedCuenta && cuentaTouched ? 'Debe seleccionar una cuenta' : ''">
+      <app-cuenta-search
+        placeholder="— Buscar y seleccionar cuenta —"
+        (accountChange)="onCuentaSelected($event)">
+      </app-cuenta-search>
+    </app-form-field>
 
-    <div class="modal-header">
-      <h3>Agregar Cuenta — {{ selectedPerfil?.U_NombrePerfil }}</h3>
-      <button class="modal-close" type="button" (click)="closeForm()">✕</button>
-    </div>
-
-    <div class="modal-body">
-
-      <div class="form-field">
-        <label>Seleccionar Cuenta SAP <span class="required">*</span></label>
-        <app-cuenta-search
-          placeholder="— Buscar y seleccionar cuenta —"
-          (accountChange)="onCuentaSelected($event)">
-        </app-cuenta-search>
-        <span class="field-error" *ngIf="!selectedCuenta && cuentaTouched">
-          Debe seleccionar una cuenta
-        </span>
+    <div class="cuenta-preview" *ngIf="selectedCuenta">
+      <div class="preview-row">
+        <span class="preview-label">Código SYS</span>
+        <span class="preview-value mono">{{ selectedCuenta.code }}</span>
       </div>
-
-      <div class="cuenta-preview" *ngIf="selectedCuenta">
-        <div class="preview-row">
-          <span class="preview-label">Código SYS</span>
-          <span class="preview-value mono">{{ selectedCuenta.code }}</span>
-        </div>
-        <div class="preview-row">
-          <span class="preview-label">Código Cuenta</span>
-          <span class="preview-value mono">{{ selectedCuenta.formatCode }}</span>
-        </div>
-        <div class="preview-row">
-          <span class="preview-label">Nombre</span>
-          <span class="preview-value">{{ selectedCuenta.name }}</span>
-        </div>
+      <div class="preview-row">
+        <span class="preview-label">Código Cuenta</span>
+        <span class="preview-value mono">{{ selectedCuenta.formatCode }}</span>
       </div>
-
+      <div class="preview-row">
+        <span class="preview-label">Nombre</span>
+        <span class="preview-value">{{ selectedCuenta.name }}</span>
+      </div>
     </div>
-
-    <div class="modal-footer">
-      <button type="button" class="btn btn-ghost" (click)="closeForm()">Cancelar</button>
-      <button *ngIf="auth.puedeEditarConf" type="button" class="btn btn-primary" [disabled]="!selectedCuenta || isSaving" (click)="save()">
-        <span *ngIf="isSaving">Guardando...</span>
-        <span *ngIf="!isSaving">Agregar Cuenta</span>
-      </button>
-    </div>
-
-  </div>
-</div>
+  </ng-template>
+</app-form-modal>
 
 <!-- ── Barra de búsqueda ───────────────────────────────────── -->
 <div class="filter-bar" *ngIf="selectedPerfilId">
   <div class="filter-left">
-    <div class="filter-field filter-field--grow">
+    <div class="filter-field">
       <label>Buscar cuenta</label>
       <app-search-input
         placeholder="Buscar por código o nombre..."
         [debounceTime]="300"
-        [(search)]="search"
-        (valueChange)="applyFilter()"
-        (cleared)="applyFilter()">
+        [search]="search"
+        (valueChange)="onSearchChange($event)"
+        (cleared)="onSearchCleared()">
       </app-search-input>
     </div>
   </div>
@@ -115,23 +105,39 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th>Cod. Perfil</th>
-        <th>Código SYS</th>
+        <th class="text-center col-codigo">Cod. Perfil</th>
+        <th class="col-sap col-hide-tablet">Código SYS</th>
         <th>Código Cuenta</th>
         <th>Nombre Cuenta</th>
-        <th class="actions"></th>
+        <th class="col-acciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let c of paged">
-        <td class="text-center" data-label="Cod. Perfil">{{ c.U_IdPerfil }}</td>
-        <td class="col-mono" data-label="Código SYS">{{ c.U_CuentaSys }}</td>
+        <!-- Cod. Perfil -->
+        <td class="text-center col-codigo" data-label="Cod. Perfil">{{ c.U_IdPerfil }}</td>
+        
+        <!-- Código SYS (oculto en móvil) -->
+        <td class="col-mono col-hide-tablet" data-label="Código SYS">{{ c.U_CuentaSys }}</td>
+        
+        <!-- Código Cuenta -->
         <td class="col-mono" data-label="Código Cuenta">{{ c.U_Cuenta }}</td>
-        <td data-label="Nombre Cuenta">{{ c.U_NombreCuenta }}</td>
-        <td class="actions">
-          <button *ngIf="auth.puedeEditarConf" class="btn btn-icon btn-sm btn-danger-soft" title="Eliminar cuenta" (click)="confirmRemove(c)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          </button>
+        
+        <!-- Nombre: Título principal -->
+        <td class="col-mobile-primary" data-label="Nombre Cuenta">{{ c.U_NombreCuenta }}</td>
+        
+        <!-- Acciones -->
+        <td class="col-acciones" data-label="Acciones">
+          <app-action-menu
+            [actions]="getActionMenuItems(c)"
+            [itemLabel]="c.U_NombreCuenta"
+            (actionClick)="onActionClick($event, c)">
+          </app-action-menu>
         </td>
       </tr>
     </tbody>

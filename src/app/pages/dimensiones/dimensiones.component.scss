@@ -58,24 +58,6 @@ textarea {
   }
 }
 
-// Responsive adjustments
-@media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-
-    .filter-left {
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .filter-field {
-      width: 100%;
-    }
-  }
-}
-
 // ── Corrección layout tarjeta móvil ──────────────────────────────
 // El global _lists.scss hace que td[data-label="Nombre"] ocupe fila completa,
 // pero en Dimensiones Código y Nombre deben ir lado a lado.

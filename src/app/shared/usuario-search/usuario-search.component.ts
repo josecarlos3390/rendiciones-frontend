@@ -1,7 +1,7 @@
 import {
   Component, Input, Output, EventEmitter,
   OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener,
-  ChangeDetectionStrategy, ChangeDetectorRef, ApplicationRef, inject,
+  ChangeDetectionStrategy, ChangeDetectorRef, inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,7 +30,7 @@ export interface UsuarioItem {
   selector:        'app-usuario-search',
   standalone:      true,
   imports:         [CommonModule, FormsModule],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     /* ── Trigger ─────────────────────────────────────────── */
     .us-trigger {
@@ -302,7 +302,6 @@ export class UsuarioSearchComponent implements OnInit, OnDestroy, OnChanges {
   private destroy$ = new Subject<void>();
   private http     = inject(HttpClient);
   private cdr      = inject(ChangeDetectorRef);
-  private appRef   = inject(ApplicationRef);
 
   private get api() { return `${environment.apiUrl}/users`; }
 
@@ -398,8 +397,6 @@ export class UsuarioSearchComponent implements OnInit, OnDestroy, OnChanges {
           this.loading  = false;
           this._restoreInitial();
           this.cdr.markForCheck();
-          // Forzar detección global para que padres con OnPush se actualicen
-          this.appRef.tick();
         },
         error: () => {
           this.loading = false;

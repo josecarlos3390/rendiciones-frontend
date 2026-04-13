@@ -1,9 +1,47 @@
 // ── Tabla ─────────────────────────────────────────────────────
+@use '../../../styles/tables' as tables;
+
 .row-inactive td { opacity: 0.5; }
 
 .mono-cell { font-family: var(--font-mono); font-weight: 600; }
 
-// ── Responsive ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// RESPONSIVE MÓVIL — Usando mixin estandarizado
+// ═══════════════════════════════════════════════════════════════
+@media (max-width: 640px) {
+  :host ::ng-deep {
+    @include tables.table-mobile-grid;
+    
+    // Grid específico: Nombre (full) | Cod + Tipo | GU + GD | Orden + Estado | Acciones
+    td[data-label="Nombre"] {
+      grid-column: 1 / -1;
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: var(--space-1);
+      font-weight: var(--weight-semibold);
+      font-size: 15px;
+      
+      &::before { display: none; }
+    }
+    
+    // Centrar badges
+    td[data-label="Tipo"],
+    td[data-label="Grossing Up"],
+    td[data-label="Grossing Down"],
+    td[data-label="Estado"] {
+      align-items: center;
+      text-align: center;
+      
+      &::before { align-self: center; }
+    }
+    
+    td[data-label="Orden"] {
+      align-items: flex-start;
+    }
+  }
+}
+
+// ── Modal Responsive ──────────────────────────────────────────
 @media (max-width: 700px) {
   .modal-card-sm {
     max-height: 92vh;

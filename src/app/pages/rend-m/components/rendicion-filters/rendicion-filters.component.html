@@ -1,0 +1,86 @@
+<div class="filter-bar">
+  <div class="filter-left">
+
+    <!-- Selector VER: solo visible para aprobadores / nivel sync / admin -->
+    <div class="filter-field" *ngIf="showVerFiltro">
+      <label>Ver</label>
+      <div class="ver-chips">
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="verFiltro === 'propias'"
+          (click)="onVerFiltroChange('propias')">
+          Mis rendiciones
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="verFiltro === 'subordinados'"
+          (click)="onVerFiltroChange('subordinados')">
+          Subordinados
+          <span class="sub-count-badge" *ngIf="verFiltro === 'subordinados' && totalSubordinados > 0">{{ totalSubordinados }}</span>
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="verFiltro === 'todas'"
+          (click)="onVerFiltroChange('todas')">
+          Todas
+          <span class="sub-count-badge" *ngIf="verFiltro === 'todas' && totalSubordinados > 0">+{{ totalSubordinados }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Selector ESTADO -->
+    <div class="filter-field">
+      <label>Estado</label>
+      <div class="estado-chips">
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'todas'"
+          (click)="onEstadoFiltroChange('todas')">
+          Todos
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'abiertas'"
+          (click)="onEstadoFiltroChange('abiertas')">
+          <span class="chip-dot chip-dot--open"></span> Pendientes
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'cerradas'"
+          (click)="onEstadoFiltroChange('cerradas')">
+          <span class="chip-dot chip-dot--sent"></span> Cerradas
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'enviadas'"
+          (click)="onEstadoFiltroChange('enviadas')">
+          <span class="chip-dot chip-dot--sent"></span> Enviadas
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'aprobadas'"
+          (click)="onEstadoFiltroChange('aprobadas')">
+          <span class="chip-dot chip-dot--approved"></span> Aprobadas
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'sincronizadas'"
+          (click)="onEstadoFiltroChange('sincronizadas')">
+          <span class="chip-dot chip-dot--sync"></span> Sincronizadas
+        </button>
+        <button type="button" class="estado-chip"
+          [class.estado-chip--active]="estadoFiltro === 'error'"
+          (click)="onEstadoFiltroChange('error')">
+          <span class="chip-dot chip-dot--error"></span> Error
+        </button>
+      </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="filter-field">
+      <label>Buscar</label>
+      <app-search-input
+        placeholder="Objetivo, empleado, cuenta..."
+        [debounceTime]="300"
+        [search]="search"
+        (valueChange)="onSearchChange($event)"
+        (cleared)="onSearchCleared()">
+      </app-search-input>
+    </div>
+
+  </div>
+  <span class="filter-count" *ngIf="!loading && !loadingSubordinados">
+    {{ countLabel }}
+  </span>
+</div>

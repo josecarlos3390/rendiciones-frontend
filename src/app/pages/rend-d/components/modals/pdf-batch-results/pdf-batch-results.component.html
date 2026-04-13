@@ -1,0 +1,166 @@
+<app-form-modal
+  [title]="'Procesar PDFs - Resultados'"
+  [isOpen]="isOpen"
+  [isEditing]="true"
+  [submitDisabled]="isProcessing || stats.completed === 0"
+  (save)="onConfirm()"
+  (cancel)="onCancel()">
+  
+  <ng-template #formContent>
+    <div class="pdf-batch-container">
+      <!-- Header con estadísticas -->
+      <div class="batch-header-stats" *ngIf="stats">
+        <div class="batch-stat-card total">
+          <div class="stat-icon">📁</div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.total }}</span>
+            <span class="stat-label">Total</span>
+          </div>
+        </div>
+        <div class="batch-stat-card success">
+          <div class="stat-icon">✓</div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.completed }}</span>
+            <span class="stat-label">Completados</span>
+          </div>
+        </div>
+        <div class="batch-stat-card error" *ngIf="stats.errors > 0">
+          <div class="stat-icon">✗</div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.errors }}</span>
+            <span class="stat-label">Errores</span>
+          </div>
+        </div>
+        <div class="batch-stat-card processing" *ngIf="stats.processing > 0">
+          <div class="stat-icon spinning">⟳</div>
+          <div class="stat-info">
+            <span class="stat-value">{{ stats.processing }}</span>
+            <span class="stat-label">Procesando</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de cards de facturas -->
+      <div class="batch-cards-grid">
+        <div class="factura-card" *ngFor="let item of results; let i = index" 
+             [class.status-completed]="item.status === 'completed'"
+             [class.status-error]="item.status === 'error'"
+             [class.status-processing]="item.status === 'processing'">
+          
+          <!-- Card Header -->
+          <div class="factura-card-header">
+            <div class="file-info">
+              <span class="file-icon">📄</span>
+              <div class="file-details">
+                <span class="file-name" [title]="item.file.name">{{ item.file.name }}</span>
+                <span class="file-size">{{ (item.file.size / 1024).toFixed(1) }} KB</span>
+              </div>
+            </div>
+            <div class="status-indicator" [class]="item.status">
+              <span class="status-dot"></span>
+              <span class="status-text">{{ item.status === 'completed' ? 'Listo' : item.status === 'error' ? 'Error' : 'Procesando...' }}</span>
+            </div>
+          </div>
+
+          <!-- Barra de progreso (solo en procesamiento) -->
+          <div class="progress-container" *ngIf="item.status === 'processing'">
+            <div class="progress-track">
+              <div class="progress-fill-animated" [style.width.%]="item.progress"></div>
+            </div>
+            <span class="progress-percent">{{ item.progress }}%</span>
+          </div>
+
+          <!-- Contenido de datos extraídos -->
+          <div class="factura-data-content" *ngIf="item.status === 'completed' && item.result">
+            <!-- Badge de fuente -->
+            <div class="source-header" *ngIf="item.result.source">
+              <span class="source-pill" [class]="item.result.source">
+                <span class="pill-icon">{{ item.result.source === 'siat' ? '🌐' : item.result.source === 'ai_claude' ? '🤖' : '📝' }}</span>
+                <span class="pill-text">{{ item.result.source === 'siat' ? 'SIAT' : item.result.source === 'ai_claude' ? 'IA' : 'Manual' }}</span>
+              </span>
+              <span class="confidence-badge" *ngIf="item.result.confidence" [style.--confidence]="item.result.confidence">
+                {{ (item.result.confidence * 100) | number:'1.0-0' }}% confianza
+              </span>
+            </div>
+
+            <!-- Grid de datos -->
+            <div class="data-grid">
+              <div class="data-item">
+                <span class="item-label">NIT Emisor</span>
+                <span class="item-value">{{ getItemNit(item) || '—' }}</span>
+              </div>
+              <div class="data-item">
+                <span class="item-label">N° Factura</span>
+                <span class="item-value">{{ getItemNumeroFactura(item) || '—' }}</span>
+              </div>
+              <div class="data-item wide">
+                <span class="item-label">Razón Social</span>
+                <span class="item-value" [title]="getItemRazonSocial(item)">{{ getItemRazonSocial(item) || '—' }}</span>
+              </div>
+              <div class="data-item">
+                <span class="item-label">Fecha</span>
+                <span class="item-value">{{ getItemFecha(item) | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="data-item highlight">
+                <span class="item-label">Monto Total</span>
+                <span class="item-value amount">{{ getItemMonto(item) | number:'1.2-2' }} Bs</span>
+              </div>
+              <div class="data-item wide" *ngIf="getItemCuf(item)">
+                <span class="item-label">CUF</span>
+                <span class="item-value cuf">{{ getItemCuf(item) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Estado de error con detalle y fallback info -->
+          <div class="factura-error-content" *ngIf="item.status === 'error'">
+            <div class="error-icon">⚠️</div>
+            <div class="error-details">
+              <p class="error-title">No se pudo procesar</p>
+              <p class="error-message">{{ item.error || 'Error al procesar el archivo' }}</p>
+              <p class="error-hint" *ngIf="item.qrUrl && !item.result">
+                <span class="hint-icon">💡</span>
+                Se detectó QR pero el SIAT no respondió. Intentá reprocesar con IA.
+              </p>
+            </div>
+          </div>
+
+          <!-- Acciones del card -->
+          <div class="factura-card-actions">
+            <button type="button" class="action-btn primary" (click)="onReview(item, i)" *ngIf="item.status === 'completed'">
+              <span class="btn-icon">✏️</span>
+              <span class="btn-text">Editar</span>
+            </button>
+            <button type="button" class="action-btn warning" (click)="onRetry(i)" *ngIf="item.status === 'error'">
+              <span class="btn-icon">🔄</span>
+              <span class="btn-text">Reintentar con IA</span>
+            </button>
+            <button type="button" class="action-btn danger" (click)="onDelete(i)">
+              <span class="btn-icon">🗑️</span>
+              <span class="btn-text">Eliminar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+  
+  <!-- Footer personalizado -->
+  <ng-template #formFooter>
+    <div class="modal-footer-actions pdf-batch-footer">
+      <button type="button" class="btn btn-ghost" (click)="onCancel()">
+        Cancelar
+      </button>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        (click)="onConfirm()"
+        [disabled]="isProcessing || stats.completed === 0">
+        <span *ngIf="isProcessing">Procesando...</span>
+        <span *ngIf="!isProcessing">
+          Agregar {{ stats.completed }} documento(s)
+        </span>
+      </button>
+    </div>
+  </ng-template>
+</app-form-modal>

@@ -1,0 +1,124 @@
+// ── Page Header ─────────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+
+  &:hover {
+    background: var(--bg-subtle);
+    border-color: var(--text-muted);
+  }
+}
+
+.title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-heading);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.page-subtitle {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.rend-id-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-sm);
+}
+
+// ── Header Actions ──────────────────────────────────────────
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// Fila superior: Importar + Exportar en desktop (inline), en móvil lado a lado
+.action-row-top {
+  display: flex;
+  gap: 6px;
+}
+
+// Label como botón para el input file
+label.btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  input[type="file"] {
+    display: none;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .header-actions {
+    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  // Botones directos a ancho completo
+  .header-actions > .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  // Fila Importar + Exportar: lado a lado, reparten el ancho
+  .action-row-top {
+    width: 100%;
+
+    .btn,
+    label.btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}

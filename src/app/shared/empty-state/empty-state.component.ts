@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LoadingButtonComponent } from '../loading-button/loading-button.component';
 
@@ -20,6 +20,7 @@ import { LoadingButtonComponent } from '../loading-button/loading-button.compone
   selector: 'app-empty-state',
   standalone: true,
   imports: [CommonModule, LoadingButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="empty-state" [class.compact]="compact">
       <!-- Icono -->

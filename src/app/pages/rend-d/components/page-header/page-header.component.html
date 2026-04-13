@@ -1,0 +1,75 @@
+<!-- ── Cabecera ── -->
+<div class="page-header">
+  <div class="page-title-group">
+    <button class="back-btn" (click)="back.emit()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Volver
+    </button>
+    <div class="title-block">
+      <h2>
+        Detalle de Rendición
+        <span class="rend-id-badge" *ngIf="cabecera">N° {{ cabecera.U_IdRendicion }}</span>
+      </h2>
+      <p class="page-subtitle" *ngIf="cabecera">
+        {{ cabecera.U_NombrePerfil }} · {{ cabecera.U_Objetivo }}
+        <span *ngIf="cabecera.U_NombreEmpleado"> · {{ cabecera.U_NombreEmpleado }}</span>
+      </p>
+    </div>
+  </div>
+  <div class="header-actions">
+
+    <!-- Fila 1 móvil: Importar + Exportar lado a lado -->
+    <div class="action-row-top">
+      <!-- Importar (solo si no es readonly) -->
+      <label class="btn btn-ghost btn-sm" *ngIf="!isReadonly" title="Importar desde Excel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17,8 12,3 7,8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span *ngIf="!importando">Importar</span>
+        <span *ngIf="importando">Importando...</span>
+        <input type="file" accept=".xlsx,.xls" style="display:none"
+          (change)="onImportarFile($event)" [disabled]="importando" />
+      </label>
+
+      <!-- Exportar (siempre visible si hay documentos) -->
+      <button class="btn btn-ghost btn-sm" *ngIf="documentosCount > 0"
+        (click)="exportar.emit()" title="Exportar tabla a Excel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7,10 12,15 17,10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Exportar
+      </button>
+    </div>
+
+    <!-- Fila 2 móvil: Formato (solo si no es readonly) -->
+    <button class="btn btn-ghost btn-sm" *ngIf="!isReadonly"
+      (click)="formato.emit()" title="Descargar formato Excel">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14,2 14,8 20,8"/>
+      </svg>
+      Formato
+    </button>
+
+    <!-- Fila 3 móvil: Imprimir -->
+    <button class="btn btn-ghost btn-sm" *ngIf="documentosCount > 0"
+      (click)="imprimir.emit()" title="Imprimir PDF de la rendición">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6,9 6,2 18,2 18,9"/>
+        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+        <rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      Imprimir
+    </button>
+
+    <button class="btn btn-primary btn-sm" *ngIf="!isReadonly" (click)="adicionar.emit()">
+      + Adicionar Documento
+    </button>
+  </div>
+</div>

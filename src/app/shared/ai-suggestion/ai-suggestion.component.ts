@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ClasificacionSugeridaResponse } from '../../services/ai.service';
 
@@ -10,6 +10,7 @@ import { ClasificacionSugeridaResponse } from '../../services/ai.service';
   selector: 'app-ai-suggestion',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ai-suggestion-container" *ngIf="visible">
       <!-- Estado: IA Analizando -->

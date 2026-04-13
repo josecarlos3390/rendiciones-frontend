@@ -13,17 +13,16 @@ import {
   Validators,
 } from '@angular/forms';
 
-import { CoaService } from '../../services/coa.service';
-import { ToastService } from '../../core/toast/toast.service';
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogConfig,
-} from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent } from '../../shared/paginator/paginator.component';
-import { SearchInputComponent } from '../../shared/debounce';
-import { CuentaCOA } from '../../models/coa.model';
-import { AuthService } from '../../auth/auth.service';
-import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-select.component';
+import { CoaService } from '@services/coa.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { CuentaCOA } from '@models/coa.model';
+import { AuthService } from '@auth/auth.service';
+import { SelectOption } from '@shared/app-select/app-select.component';
+import { FormModalComponent } from '@shared/form-modal/form-modal.component';
+import { FormFieldComponent } from '@shared/form-field';
+
+import { CoaFiltersComponent, CoaTableComponent } from './components';
 
 @Component({
   standalone: true,
@@ -33,9 +32,11 @@ import { AppSelectComponent, SelectOption } from '../../shared/app-select/app-se
     FormsModule,
     ReactiveFormsModule,
     ConfirmDialogComponent,
-    PaginatorComponent,
-    SearchInputComponent,
-    AppSelectComponent,
+
+    FormModalComponent,
+    FormFieldComponent,
+    CoaFiltersComponent,
+    CoaTableComponent,
   ],
   templateUrl: './coa.component.html',
   styleUrls: ['./coa.component.scss'],
@@ -177,8 +178,18 @@ export class CoaComponent implements OnInit {
     this.updatePaging();
   }
 
-  onFilterActivaChange(value: 'todas' | 'activas' | 'inactivas') {
-    this.filterActiva = value;
+  onFilterActivaChange(value: string) {
+    this.filterActiva = value as 'todas' | 'activas' | 'inactivas';
+    this.applyFilter();
+  }
+
+  onSearchChange(value: string) {
+    this.search = value;
+    this.applyFilter();
+  }
+
+  onSearchCleared() {
+    this.search = '';
     this.applyFilter();
   }
 
@@ -276,6 +287,38 @@ export class CoaComponent implements OnInit {
             this.cdr.markForCheck();
           },
         });
+    }
+  }
+
+  // ── Action Menu ──────────────────────────────────────────
+
+  getActionMenuItems(c: CuentaCOA): any[] {
+    const editIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    const trashIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: editIcon,
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        icon: trashIcon,
+        cssClass: 'action-danger',
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, c: CuentaCOA): void {
+    switch (actionId) {
+      case 'edit':
+        this.openEdit(c);
+        break;
+      case 'delete':
+        this.confirmDelete(c);
+        break;
     }
   }
 

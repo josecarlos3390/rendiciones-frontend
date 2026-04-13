@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SourceBadgeComponent } from '../source-badge/source-badge.component';
@@ -8,6 +8,7 @@ import { FacturaResult } from '../../services/factura.service';
   selector: 'app-ai-factura-preview',
   standalone: true,
   imports: [CommonModule, FormsModule, SourceBadgeComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="preview-overlay" (click)="onOverlayClick($event)">
       <div class="preview-modal">
@@ -148,7 +149,7 @@ import { FacturaResult } from '../../services/factura.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 1200;  // Mayor que .modal-backdrop (1100) para aparecer encima
       padding: 20px;
       animation: fade-in 0.2s ease;
     }

@@ -1,30 +1,24 @@
 // ═══════════════════════════════════════════════════════════════
-// MODALS — backdrop, card, header, tabla interior
-// ═══════════════════════════════════════════════════════════════
-//
-// JERARQUÍA DE Z-INDEX:
-//   100   → Botón flotante AI (siempre visible pero debajo de modales)
-//   1000  → Layout/Sidebar
-//   1100  → Modales (.modal-backdrop)
-//   9999  → Dropdowns/Selectores (encima de modales cuando están abiertos)
-//   10000 → Toast/Loading/Confirm Dialog (siempre encima de todo)
+// MODALS — Sistema Premium
 // ═══════════════════════════════════════════════════════════════
 
+/* ── Backdrop ── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--bg-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;  // Por encima del layout (1000) pero debajo de dropdowns/toasts
-  padding: 24px;
-  animation: modal-fade-in 0.15s ease;
+  z-index: var(--z-modal);
+  padding: var(--space-6);
+  animation: modal-fade-in 0.2s ease;
+  backdrop-filter: blur(4px);
 
-  // En móvil: padding reducido para aprovechar el espacio de pantalla
-  @media (max-width: 480px) {
-    padding: 12px;
-    align-items: flex-end; // El modal sube desde abajo como sheet
+  // En móvil: padding reducido para aprovechar el espacio
+  @media (max-width: 640px) {
+    padding: 0;
+    align-items: flex-end;
   }
 }
 
@@ -33,104 +27,176 @@
   to   { opacity: 1; }
 }
 
+/* ── Card del modal ── */
 .modal-card {
   background: var(--bg-surface);
   border-radius: var(--radius-2xl);
-  border: 1.5px solid var(--border-color);
+  border: 1px solid var(--border-color);
   box-shadow: var(--shadow-modal);
   width: 100%;
-  max-width: 540px;
-  max-height: 80vh;
+  max-width: 520px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modal-slide-in 0.2s cubic-bezier(0.34, 1.36, 0.64, 1);
+  animation: modal-slide-in 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
 
   // En móvil: ancho completo, bordes solo arriba (estilo sheet)
-  @media (max-width: 480px) {
+  @media (max-width: 640px) {
     max-width: 100%;
     max-height: 92vh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     border-bottom: none;
-    animation: modal-slide-up 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+    animation: modal-slide-up 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+}
+
+.modal-card-lg { max-width: 680px; }
+.modal-card-xl { max-width: 900px; }
+.modal-card-sm { max-width: 400px; }
+
+@keyframes modal-slide-in {
+  from { 
+    opacity: 0; 
+    transform: translateY(-8px) scale(0.98); 
+  }
+  to   { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
   }
 }
 
 @keyframes modal-slide-up {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(30px); 
+  }
+  to   { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
-.modal-card-lg { max-width: 700px; }
-.modal-card-sm { max-width: 400px; }
-
-@keyframes modal-slide-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
+/* ── Header ── */
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  gap: var(--space-4);
 
   h3 {
     font-size: var(--text-xl);
     font-weight: var(--weight-bold);
     color: var(--text-heading);
     margin: 0;
+    line-height: 1.3;
+  }
+
+  @media (max-width: 640px) {
+    padding: var(--space-4) var(--space-5);
+
+    h3 {
+      font-size: var(--text-lg);
+    }
   }
 }
 
 .modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   background: none;
   border: none;
   font-size: var(--text-xl);
   color: var(--text-faint);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  padding: 0;
+  border-radius: var(--radius-md);
   line-height: 1;
   font-family: inherit;
-  transition: background var(--transition), color var(--transition);
+  transition: all var(--transition);
+  flex-shrink: 0;
 
-  &:hover { background: var(--bg-subtle); color: var(--text-muted); }
+  &:hover { 
+    background: var(--bg-subtle); 
+    color: var(--text-muted); 
+  }
+
   &:focus { outline: none; }
-  &:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+  &:focus-visible { 
+    outline: none; 
+    box-shadow: var(--shadow-focus); 
+  }
+
+  @media (max-width: 640px) {
+    width: 36px;
+    height: 36px;
+  }
 }
 
+/* ── Body ── */
 .modal-body {
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 24px;
+  padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 14px;       // espaciado uniforme entre todos los form-field directos
+  gap: var(--space-4);
 
-  @media (max-width: 480px) { padding: 16px; gap: 12px; }
-  @media (max-width: 360px) { padding: 12px 10px; gap: 10px; }
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: var(--radius-pill);
+  }
+
+  @media (max-width: 640px) { 
+    padding: var(--space-4) var(--space-5); 
+    gap: var(--space-4);
+  }
+
+  @media (max-width: 360px) { 
+    padding: var(--space-4); 
+  }
 }
-.modal-body-scroll { overflow-y: auto; }
 
+.modal-body-scroll { 
+  overflow-y: auto; 
+}
+
+/* ── Footer ── */
 .modal-footer {
-  padding: 16px 24px;
+  padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--border-color);
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
   justify-content: flex-end;
   flex-shrink: 0;
+  background: var(--bg-faint);
 
-  @media (max-width: 480px) {
-    flex-direction: column-reverse;  // Acción primaria queda arriba visualmente
-    padding: 12px 16px;
-    gap: 8px;
+  @media (max-width: 640px) {
+    flex-direction: column-reverse;
+    padding: var(--space-4) var(--space-5);
+    gap: var(--space-3);
 
     .btn,
-    button { width: 100%; justify-content: center; }
+    button { 
+      width: 100%; 
+      justify-content: center; 
+    }
   }
 }
 
@@ -140,19 +206,19 @@
   border-collapse: collapse;
 
   th {
-    padding: 10px 20px;
+    padding: var(--space-3) var(--space-5);
     background: var(--bg-faint);
     font-size: var(--text-xs);
     font-weight: var(--weight-semibold);
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     border-bottom: 1px solid var(--border-color);
     text-align: left;
   }
 
   td {
-    padding: 14px 20px;
+    padding: var(--space-4) var(--space-5);
     font-size: var(--text-base);
     border-bottom: 1px solid var(--border-soft);
     color: var(--text-body);
@@ -160,7 +226,10 @@
   }
 
   tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: var(--bg-faint); }
+
+  tbody tr:hover td { 
+    background: var(--bg-faint); 
+  }
 }
 
 .cell-code {
@@ -170,22 +239,117 @@
   color: var(--color-primary-text);
 }
 
-.text-right { text-align: right; }
+/* ── Form Modal (específico) ── */
+.form-modal-card {
+  @extend .modal-card;
 
-// ═══════════════════════════════════════════════════════════════
-// MAT-DIALOG — override del overlay de Angular Material
-// para que respete el design system (dark/light, radius, shadow)
-// ═══════════════════════════════════════════════════════════════
+  &--wide {
+    max-width: 720px;
+  }
+}
 
-// Backdrop oscuro consistente con .modal-backdrop
+.form-modal-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+
+  .form-modal-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .form-modal-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+  }
+}
+
+.dirty-indicator {
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+}
+
+.form-modal-body {
+  @extend .modal-body;
+}
+
+.form-modal-footer {
+  @extend .modal-footer;
+}
+
+/* ── Tabs en modal ── */
+.modal-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-faint);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0 var(--space-4);
+  }
+}
+
+.modal-tab {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    color: var(--text-body);
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  &.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background: transparent;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 640px) {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+  }
+}
+
+/* ── Footer con navegación de tabs ── */
+.footer-tab-nav {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.footer-spacer {
+  flex: 1;
+}
+
+/* ── MAT-DIALOG overrides ── */
 .cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
-  background: rgba(0, 0, 0, 0.45);
-}
-[data-theme="dark"] .cdk-overlay-backdrop.cdk-overlay-dark-backdrop {
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--bg-scrim);
+  backdrop-filter: blur(4px);
 }
 
-// Panel del diálogo: eliminamos los estilos Material y aplicamos los nuestros
 .app-dialog-panel {
   .mat-mdc-dialog-container {
     padding: 0 !important;
@@ -195,7 +359,6 @@
     box-shadow: var(--shadow-modal) !important;
     overflow: hidden;
 
-    // Eliminar el surface de Material que sobreescribe el fondo
     .mdc-dialog__surface {
       background: transparent !important;
       box-shadow: none !important;
@@ -204,13 +367,10 @@
   }
 }
 
-// En móvil: el diálogo sube desde abajo como sheet
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .cdk-overlay-pane {
-    // Forzar al ancho completo de pantalla en móvil
     max-width: 100vw !important;
     width: 100vw !important;
-    // Posicionar en la parte inferior
     margin-bottom: 0 !important;
   }
 
@@ -224,65 +384,120 @@
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// USER-MODAL — modal ancho estándar para formularios de negocio
-// Complementa .modal-2col-layout de _forms.scss
-// Usado en: users, rend-m, rend-d y futuros módulos
-// ═══════════════════════════════════════════════════════════════
+/* ── User Modal ── */
 .user-modal {
-  background:     var(--bg-surface);
-  border:         1px solid var(--border-color);
-  border-radius:  var(--radius-lg);
-  box-shadow:     var(--shadow-modal);
-  display:        flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  display: flex;
   flex-direction: column;
-  overflow:       hidden;
-  max-height:     90vh;
-  width:          min(900px, 96vw);  // cada componente puede sobreescribir el width
-  animation:      user-modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+  overflow: hidden;
+  max-height: 90vh;
+  width: min(900px, 96vw);
+  animation: user-modal-in 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
 
-  // ── Responsive móvil ──
   @media (max-width: 640px) {
-    width:         100%;
-    max-height:    92vh;
+    width: 100%;
+    max-height: 92vh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    margin:        0;
-    animation:     user-modal-slide-up 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+    margin: 0;
+    animation: user-modal-slide-up 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
   }
 }
 
 @keyframes user-modal-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  from { 
+    opacity: 0; 
+    transform: translateY(-8px) scale(0.98); 
+  }
+  to   { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
 }
 
 @keyframes user-modal-slide-up {
-  from { opacity: 0; transform: translateY(40px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(30px); 
+  }
+  to   { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
-// Variante ancha para formularios complejos (ej: rend-m, permisos)
 .user-modal--wide {
   width: min(1000px, 96vw);
 }
 
-// Variante compacta para formularios simples (ej: picker de perfil)
 .user-modal--compact {
   width: min(480px, 96vw);
   max-height: 70vh;
 }
 
-// Badge de cambios sin guardar — aparece en el h3 del modal-header
+/* ── Dirty badge ── */
 .dirty-badge {
-  font-size:     0.72rem;
-  font-weight:   600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   color: var(--color-warning);
-  opacity:       0.85;
-  margin-left:   8px;
-  animation:     dirty-pulse 2s ease-in-out infinite;
+  opacity: 0.85;
+  margin-left: var(--space-2);
+  animation: dirty-pulse 2s ease-in-out infinite;
 }
 
 @keyframes dirty-pulse {
   0%, 100% { opacity: 0.85; }
-  50%       { opacity: 0.4;  }
+  50%      { opacity: 0.4; }
+}
+
+/* ── Modal de confirmación ── */
+.confirm-modal {
+  text-align: center;
+  padding: var(--space-2);
+
+  .confirm-icon {
+    font-size: 56px;
+    margin-bottom: var(--space-4);
+  }
+
+  .confirm-title {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-heading);
+    margin-bottom: var(--space-3);
+  }
+
+  .confirm-message {
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-6);
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: center;
+
+    @media (max-width: 640px) {
+      flex-direction: column-reverse;
+
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}
+
+/* ── Dark mode específico ── */
+[data-theme="dark"] {
+  .modal-tab:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .confirm-modal .confirm-icon {
+    opacity: 0.9;
+  }
 }

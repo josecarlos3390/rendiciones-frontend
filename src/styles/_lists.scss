@@ -1,141 +1,266 @@
-// ═══════════════════════════════════════════════════════════════
-// LISTS — páginas de listado con tabla, filtros y paginación
-//
-// Patrón estándar para TODOS los módulos del ERP.
-// Usar estas clases garantiza consistencia visual al agregar
-// nuevos módulos (Inventario, Contabilidad, RRHH, etc.)
-//
-// Estructura HTML esperada:
-//
-//   <div class="page-header">
-//     <h2>Título del módulo</h2>
-//     <button / a class="btn btn-primary">+ Nuevo</button>
-//   </div>
-//
-//   <div class="filter-bar">
-//     <div class="filter-search">
-//       <span class="search-icon">🔍</span>
-//       <input class="search-input" ... />
-//       <button class="search-clear" *ngIf="search">✕</button>
-//     </div>
-//     <select class="filter-select" ...>...</select>         <!-- opcional -->
-//     <button class="btn-clear-filters" ...>× Limpiar</button> <!-- opcional -->
-//     <span class="filter-count">N resultados</span>         <!-- opcional -->
-//   </div>
-//
-//   <div class="empty-state">Cargando... / Sin resultados</div>  <!-- cuando aplique -->
-//
-//   <div class="table-wrapper">
-//     <table class="data-table">...</table>
-//     <app-paginator ...></app-paginator>                     <!-- si hay paginación -->
-//   </div>
-//
-//   <!-- Modal inline (para crear/editar sin salir de la página) -->
-//   <div class="modal-backdrop" *ngIf="showForm" (click)="closeForm()">
-//     <div class="modal-card" (click)="$event.stopPropagation()">
-//       <div class="modal-header">...</div>
-//       <form class="modal-body">...</form>
-//       <div class="modal-footer">...</div>
-//     </div>
-//   </div>
-//
-// ═══════════════════════════════════════════════════════════════
+/* ==========================================================================
+   LISTADOS Y TABLAS - PATRONES DE DISEÑO ESTANDARIZADOS
+   ==========================================================================
+   
+   Patrón base: Rend-M (Cabeceras de Rendición)
+   
+   Estructura HTML estándar:
+   -------------------------
+   <div class="table-wrapper">
+     <table class="data-table">
+       <thead>
+         <tr>
+           <th class="text-center">N°</th>
+           <th>Nombre</th>
+           <th class="col-acciones">
+             <svg>...</svg> <!-- Icono de engranaje -->
+           </th>
+         </tr>
+       </thead>
+       <tbody>
+         <tr *ngFor="let item of items">
+           <td class="text-center" data-label="N°">{{ item.id }}</td>
+           <td data-label="Nombre">{{ item.nombre }}</td>
+           <td class="col-acciones" data-label="Acciones">
+             <app-action-menu ...></app-action-menu>
+           </td>
+         </tr>
+       </tbody>
+     </table>
+   </div>
+   <app-paginator ...></app-paginator>
+   ========================================================================== */
 
-/* ── Cabecera de página ── */
+/* ── TABLE WRAPPER - Contenedor con scroll horizontal ── */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+
+  .data-table {
+    min-width: 100%;
+    width: max-content;
+    table-layout: auto;
+    border: none; // El borde está en el wrapper
+    border-radius: 0;
+  }
+}
+
+/* ── TABLA DE DATOS ESTÁNDAR ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+
+  /* Encabezados */
+  thead {
+    background: var(--bg-subtle);
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: var(--weight-semibold);
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border-color);
+
+      /* Icono de acciones (engranaje) */
+      &.col-acciones {
+        width: 90px;
+        min-width: 90px;
+        max-width: 90px;
+        text-align: center;
+        vertical-align: middle;
+
+        svg {
+          display: block;
+          margin: 0 auto;
+          color: var(--text-muted);
+        }
+      }
+    }
+  }
+
+  /* Celdas */
+  td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-body);
+    vertical-align: middle;
+
+    /* Columna de acciones */
+    &.col-acciones,
+    &.actions {
+      width: 90px;
+      min-width: 90px;
+      max-width: 90px;
+      text-align: center;
+      white-space: nowrap;
+    }
+  }
+
+  /* Filas */
+  tbody tr {
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: var(--bg-faint);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+/* ── Clases de utilidad para tablas ── */
+.text-center { text-align: center !important; }
+.text-right { text-align: right !important; }
+.text-left { text-align: left !important; }
+
+/* ── Columnas específicas (ejemplos) ── */
+.col-id {
+  width: 60px;
+  min-width: 60px;
+}
+
+.col-monto {
+  min-width: 120px;
+}
+
+/* ── TABLE RESPONSIVE (Mobile < 640px) ──
+   Transforma la tabla en cards verticales usando data-label */
+@media (max-width: 640px) {
+  .table-wrapper {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+
+    .data-table {
+      display: block;
+      width: 100%;
+      min-width: auto;
+
+      thead {
+        display: none; // Ocultar encabezados en móvil
+      }
+
+      tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        tr {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 8px 12px;
+          padding: 16px;
+          background: var(--bg-surface);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+
+          &:hover {
+            background: var(--bg-surface);
+          }
+        }
+
+        td {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 0;
+          border: none;
+
+          /* Mostrar label antes del valor */
+          &::before {
+            content: attr(data-label);
+            font-size: 10px;
+            font-weight: var(--weight-semibold);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+
+          /* Columna de acciones en la esquina superior derecha */
+          &.col-acciones,
+          &.actions {
+            grid-column: 2;
+            grid-row: 1;
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: flex-start;
+            width: auto;
+            min-width: auto;
+
+            &::before {
+              display: none;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   HEADER DE PÁGINA
+   ========================================================================== */
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
-  gap: 12px;
-  flex-wrap: wrap;
-
-  h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-heading);
-    margin: 0;
-  }
-
-  /* En móvil: apilar verticalmente para mejor aprovechamiento del espacio */
-  @media (max-width: 640px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-}
-
-/* Contenedor para acciones en el page-header (botones, badges, etc.)
-   Usado para agrupar elementos de acción y mantenerlos juntos en desktop,
-   y controlar su posición en móvil.
-   
-   Patrón recomendado:
-     <div class="page-header">
-       <div class="page-title-group">...</div>
-       <div class="page-header-actions">
-         <button>+ Acción</button>
-       </div>
-     </div>
-*/
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 16px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 
   @media (max-width: 640px) {
-    /* En móvil: apilar verticalmente y ocupar todo el ancho */
     flex-direction: column;
     align-items: stretch;
-    width: 100%;
     gap: 12px;
-    
-    /* Cualquier selector/form-field hijo ocupa todo el ancho */
-    .filter-field {
-      width: 100%;
-      min-width: 0;
-    }
-    
-    /* El botón ocupa todo el ancho */
-    .btn {
-      width: 100%;
-      justify-content: center;
-    }
   }
 }
 
-/* Agrupador título + subtítulo dentro de page-header
-   Usado cuando el módulo necesita una descripción breve bajo el título.
-   Patrón:
-     <div class="page-header">
-       <div class="page-title-group">
-         <h2>Título</h2>
-         <p class="page-subtitle">Descripción breve...</p>
-       </div>
-       <button ...>+ Acción</button>
-     </div>
-*/
 .page-title-group {
-  display:        flex;
+  display: flex;
   flex-direction: column;
-  gap:            3px;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 
-  h2 { margin: 0; }
-
-  .page-subtitle {
-    font-size:   0.82rem;
-    color:       var(--text-muted);
-    margin:      0;
-    line-height: 1.4;
+  h1, h2 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-heading);
+    line-height: var(--leading-tight);
   }
 }
 
-/* ── Barra de filtros estándar ──
-   Usada en: sales-quotations, purchase-quotations, sales-orders, etc.
-   TODOS los módulos nuevos deben usar este patrón (no .search-bar simple). ── */
+.page-subtitle {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  line-height: var(--leading-normal);
+  max-width: 600px;
+}
+
+/* ==========================================================================
+   BARRA DE FILTROS
+   ========================================================================== */
 .filter-bar {
   display: flex;
-  align-items: flex-end;  // align-items: center → flex-end so labels align with inputs
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
@@ -148,7 +273,6 @@
   }
 }
 
-/* Contenedor de filtros a la izquierda — agrupa campos horizontalmente */
 .filter-left {
   display: flex;
   align-items: flex-end;
@@ -163,74 +287,15 @@
   }
 }
 
-.filter-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 200px;
-  max-width: 360px;
-
-  @media (max-width: 640px) {
-    max-width: none;
-    width: 100%;
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 10px;
-    font-size: 13px;
-    pointer-events: none;
-    color: var(--text-faint);
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 8px 32px 8px 30px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    color: var(--text-heading);
-    background: var(--bg-surface);
-    font-family: inherit;
-    transition: border-color var(--transition), box-shadow var(--transition);
-
-    &:focus         { outline: none; }
-    &:focus-visible {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    &::placeholder { color: var(--text-faint); }
-  }
-
-  .search-clear {
-    position: absolute;
-    right: 8px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-faint);
-    font-size: 12px;
-    padding: 2px 4px;
-    border-radius: var(--radius-sm);
-    font-family: inherit;
-    transition: color var(--transition);
-
-    &:hover { color: var(--text-muted); }
-  }
-}
-
-/* Campo con label dentro del filter-bar (ej: selectores de perfil/usuario) */
+/* Campo con label */
 .filter-field {
-  display:        flex;
+  display: flex;
   flex-direction: column;
-  gap:            6px;
-  min-width:      220px;
+  gap: 6px;
+  min-width: 220px;
 
   label {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--weight-medium);
     color: var(--text-label);
     line-height: var(--leading-tight);
@@ -240,96 +305,34 @@
     min-width: 0;
     width: 100%;
   }
-
-  /* Variante para usar con app-select — ancho fijo consistente */
-  &--select {
-    min-width: 220px;
-    width: 220px;
-
-    @media (max-width: 640px) {
-      width: 100%;
-    }
-  }
 }
 
-.filter-label {
-  font-size:      var(--text-sm);
-  font-weight:    var(--weight-semibold);
-  color:          var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height:    var(--leading-tight);
-}
+/* Variante select - ancho fijo */
+.filter-field--select {
+  min-width: 180px;
+  width: 180px;
 
-/* Botón de acción dentro del filter-bar (ej: limpiar filtros) */
-.filter-bar > .btn,
-.filter-bar > button {
   @media (max-width: 640px) {
     width: 100%;
-    justify-content: center;
   }
 }
 
-/* Barra de búsqueda simple (legacy — preferir .filter-bar + .filter-search) */
-.search-bar {
-  margin-bottom: 16px;
-
-  .search-input {
-    width: 100%;
-    max-width: 360px;
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    color: var(--text-heading);
-    background: var(--bg-surface);
-    font-family: inherit;
-    transition: border-color var(--transition);
-
-    &:focus         { outline: none; }
-    &:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
-    &::placeholder  { color: var(--text-faint); }
-  }
-}
-
-.filter-select {
-  padding: 8px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--text-heading);
-  background: var(--bg-surface);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color var(--transition);
-
-  &:focus         { outline: none; }
-  &:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
-}
-
-.btn-clear-filters {
-  padding: 7px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: color var(--transition), border-color var(--transition);
-
-  &:hover { color: var(--color-danger); border-color: var(--color-danger-border); }
-}
-
+/* Contador de resultados */
 .filter-count {
-  font-size: 12px;
-  color: var(--text-faint);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   white-space: nowrap;
   margin-left: auto;
+
+  @media (max-width: 640px) {
+    margin-left: 0;
+    text-align: right;
+  }
 }
 
-/* ── Estado vacío ── */
+/* ==========================================================================
+   ESTADOS VACÍOS
+   ========================================================================== */
 .empty-state {
   text-align: center;
   padding: 48px 24px;
@@ -345,269 +348,28 @@
   }
 }
 
-/* ── Tabla de datos estándar ── */
-.table-wrapper {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  overflow-x: auto;  // Permitir scroll horizontal en tablas anchas
-  -webkit-overflow-scrolling: touch;
-  max-width: 100%;   // Asegurar que no exceda el contenedor padre
+/* ==========================================================================
+   UTILIDADES
+   ========================================================================== */
+.bool-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+
+  &--on { background: var(--color-success); }
+  &--off { background: var(--text-faint); }
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;  // Las columnas se ajustan al contenido
-
-  th {
-    padding: 10px 16px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--bg-faint);
-    border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
-  }
-
-  td {
-    padding: 13px 16px;
-    border-bottom: 1px solid var(--border-soft);
-    font-size: var(--text-sm);
-    color: var(--text-body);
-    vertical-align: middle;
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td      { background: var(--bg-faint); }
-
-  .text-right  { text-align: right; }
-  .text-center { text-align: center; }
+.carac-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-faint);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
-
-/* ── Celda de código / ID ── */
-.cell-code {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary-text);
-}
-
-/* ── Texto secundario en celda ── */
-.muted { color: var(--text-muted); }
-
-/* ── Sub-texto debajo del nombre (ej. descripción de artículo) ── */
-.item-desc {
-  display: block;
-  font-size: 12px;
-  color: var(--text-faint);
-  margin-top: 2px;
-}
-
-/* ── Celda de acciones ── */
-.actions {
-  white-space: nowrap;
-  text-align: right;
-  
-  // Aplicar flex solo cuando NO sea celda de tabla
-  // (en celdas de tabla, display: flex colapsa el ancho)
-  &:not(td):not(th) {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    justify-content: flex-end;
-  }
-}
-
-// En celdas de tabla, los botones deben estar en línea con espacio entre ellos
-td.actions,
-th.actions {
-  > * {
-    display: inline-flex;
-    vertical-align: middle;
-    margin-left: 6px;
-    
-    &:first-child {
-      margin-left: 0;
-    }
-  }
-}
-
-/* ── Celda de usuario con avatar ── */
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--color-primary), #6366f1);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* ── Responsive: tabla como tarjetas en móvil ── */
-@media (max-width: 640px) {
-  .data-table {
-    display: block;
-
-    thead { display: none; }
-
-    tbody {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-
-    tr {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px 12px;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border-color);
-
-      &:last-child { border-bottom: none; }
-    }
-
-    td {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      padding: 0;
-      border-bottom: none;
-      font-size: 13px;
-
-      &::before {
-        content: attr(data-label);
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-faint);
-      }
-    }
-
-    td[data-label="Nombre"],
-    td[data-label="Articulo"] { grid-column: 1 / -1; }
-
-    .actions {
-      grid-column: 1 / -1;
-      flex-direction: row;
-      justify-content: flex-end;
-      padding-top: 4px;
-      &::before { display: none; }
-    }
-  }
-}
-/* ────────────────────────────────────────────────────────────
-   Menú ··· por fila (columna Acciones en listas de documentos)
-   ────────────────────────────────────────────────────────── */
-.row-menu-wrap {
-  position: relative;
-  display: inline-flex;
-
-  // btn-more compacto para filas
-  .btn-more {
-    padding: 4px 10px;
-    font-size: 15px;
-    letter-spacing: 1.5px;
-    line-height: 1;
-    height: 30px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-family: inherit;
-    transition: background var(--transition), border-color var(--transition), color var(--transition);
-
-    &:hover { background: var(--bg-subtle); border-color: var(--text-faint); color: var(--text-heading); }
-    &:focus { outline: none; }
-    &:focus-visible { box-shadow: var(--focus-ring); }
-  }
-
-  &.open .btn-more {
-    background: var(--bg-subtle);
-    border-color: var(--text-faint);
-    color: var(--text-heading);
-  }
-}
-
-.row-dropdown {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-modal);
-  min-width: 200px;
-  z-index: 200;
-  overflow: hidden;
-  animation: dropdown-in 0.13s ease;
-
-  [data-theme="dark"] & {
-    border-color: #3d5068;
-    background: #1e293b;
-  }
-}
-
-.row-menu-wrap.open .row-dropdown { display: block; }
-
-// drop-up fallback para cuando la directiva no está disponible
-.row-menu-wrap.drop-up .row-dropdown {
-  top: auto;
-  bottom: calc(100% + 6px);
-}
-
-.row-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-body);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
-  transition: background var(--transition);
-
-  &:hover:not(:disabled) { background: var(--bg-subtle); }
-  &:focus { outline: none; }
-  &:focus-visible { background: var(--bg-subtle); }
-
-  .item-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
-
-  &.item-warning {
-    color: var(--color-warning);
-    &:hover:not(:disabled) { background: rgba(245, 158, 11, 0.08); }
-  }
-  &.item-danger {
-    color: var(--color-danger);
-    &:hover:not(:disabled) { background: rgba(239, 68, 68, 0.08); }
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-}
-
-.row-divider { height: 1px; background: var(--border-soft); margin: 2px 0; }

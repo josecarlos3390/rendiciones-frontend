@@ -1,21 +1,27 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { OfflineDimensionesService, Dimension } from './offline-dimensiones.service';
-import { ToastService } from '../../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent } from '../../../shared/paginator/paginator.component';
-import { AppSelectComponent, SelectOption } from '../../../shared/app-select/app-select.component';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { PaginatorComponent } from '@shared/paginator/paginator.component';
+import { SelectOption } from '@shared/app-select/app-select.component';
+import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { FormModalComponent } from '@shared/form-modal';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { FormFieldComponent } from '@shared/form-field';
+import { FormDirtyService } from '@shared/form-dirty';
 
 @Component({
   standalone: true,
   selector: 'app-offline-dimensiones',
   imports: [CommonModule, FormsModule, ReactiveFormsModule,
-            ConfirmDialogComponent, PaginatorComponent, AppSelectComponent],
+            ConfirmDialogComponent, PaginatorComponent, ActionMenuComponent,
+            FormModalComponent, StatusBadgeComponent, FormFieldComponent],
   templateUrl: './offline-dimensiones.component.html',
   styleUrls:   ['./offline-dimensiones.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OfflineDimensionesComponent implements OnInit {
 
@@ -32,7 +38,7 @@ export class OfflineDimensionesComponent implements OnInit {
   editingItem: Dimension | null = null;
   isSaving     = false;
   form!: FormGroup;
-  private initialValues: any = null;
+  initialValues: any = null;
 
   showDialog   = false;
   dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
@@ -42,6 +48,8 @@ export class OfflineDimensionesComponent implements OnInit {
     { value: 'Y', label: 'Activa' },
     { value: 'N', label: 'Inactiva' },
   ];
+
+  private dirtyService = inject(FormDirtyService);
 
   constructor(
     private svc:   OfflineDimensionesService,
@@ -83,7 +91,9 @@ export class OfflineDimensionesComponent implements OnInit {
     });
   }
 
-  get isDirty(): boolean { return JSON.stringify(this.form.value) !== JSON.stringify(this.initialValues); }
+  get isDirty(): boolean {
+    return this.dirtyService.isDirty(this.form, this.initialValues);
+  }
 
   openNew() {
     this.editingItem = null;
@@ -128,6 +138,21 @@ export class OfflineDimensionesComponent implements OnInit {
     }
   }
 
+  confirmToggle(d: Dimension) {
+    const nueva = d.DIM_ACTIVA === 'Y' ? 'N' : 'Y';
+    const label = nueva === 'Y' ? 'activar' : 'desactivar';
+    this.openDialog({
+      title: `¿${nueva === 'Y' ? 'Activar' : 'Desactivar'} dimensión?`,
+      message: `Se va a ${label} la dimensión "${d.DIM_CODE} — ${d.DIM_NAME}".`,
+      confirmLabel: 'Confirmar', type: 'warning',
+    }, () => {
+      this.svc.update(d.DIM_CODE, { DIM_ACTIVA: nueva }).subscribe({
+        next: () => { this.toast.exito(`Dimensión ${nueva === 'Y' ? 'activada' : 'desactivada'}`); this.load(); },
+        error: err => this.toast.error(err?.error?.message || 'Error al cambiar estado'),
+      });
+    });
+  }
+
   confirmDelete(d: Dimension) {
     this.openDialog({
       title: '¿Eliminar dimensión?',
@@ -146,4 +171,46 @@ export class OfflineDimensionesComponent implements OnInit {
   }
   onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
   onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+
+  getActionMenuItems(d: Dimension): ActionMenuItem[] {
+    const isActive = d.DIM_ACTIVA === 'Y';
+    const powerIcon = isActive
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.64 17.36a9 9 0 1 1 12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>';
+
+    return [
+      {
+        id: 'edit',
+        label: 'Editar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+      },
+      {
+        id: 'toggle',
+        label: isActive ? 'Desactivar' : 'Activar',
+        icon: powerIcon,
+        cssClass: isActive ? 'text-warning' : 'text-success',
+      },
+      {
+        id: 'delete',
+        label: 'Eliminar',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+        cssClass: 'text-danger',
+        divider: true,
+      },
+    ];
+  }
+
+  onActionClick(actionId: string, d: Dimension): void {
+    switch (actionId) {
+      case 'edit':
+        this.openEdit(d);
+        break;
+      case 'toggle':
+        this.confirmToggle(d);
+        break;
+      case 'delete':
+        this.confirmDelete(d);
+        break;
+    }
+  }
 }
