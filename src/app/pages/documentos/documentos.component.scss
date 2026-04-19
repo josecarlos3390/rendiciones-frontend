@@ -1,31 +1,31 @@
-// ═══════════════════════════════════════════════════════════════════════════════
+﻿// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // COMPONENTE: DOCUMENTOS
 // 
 // EXCEPCIONES DOCUMENTADAS:
 // 
-// 1. .doc-modal (líneas 2-20)
-//    Razón: El modal requiere 960px de ancho, superando el máximo de 
+// 1. .doc-modal (lÃ­neas 2-20)
+//    RazÃ³n: El modal requiere 960px de ancho, superando el mÃ¡ximo de 
 //    .modal-card-lg (700px) y .user-modal (900px). Se mantiene clase propia
 //    con las mismas propiedades base para consistencia visual.
 //
-// 2. .tax-grid (líneas 75-88)
-//    Razón: Grid específico de dominio fiscal (3col→2col→1col responsive)
-//    sin equivalente en patrones estándar.
+// 2. .tax-grid (lÃ­neas 75-88)
+//    RazÃ³n: Grid especÃ­fico de dominio fiscal (3colâ†’2colâ†’1col responsive)
+//    sin equivalente en patrones estÃ¡ndar.
 //
-// 3. .doc-table (líneas 143-168)
-//    Razón: Extensión de .data-table con columnas fiscales específicas
-//    (tax-col, tax-cell) que no existen en el patrón estándar.
+// 3. .doc-table (lÃ­neas 143-168)
+//    RazÃ³n: ExtensiÃ³n de .data-table con columnas fiscales especÃ­ficas
+//    (tax-col, tax-cell) que no existen en el patrÃ³n estÃ¡ndar.
 //
-// 4. .doc-cards (líneas 256-369)
-//    Razón: Patrón mobile específico. La tabla tiene demasiadas columnas
-//    fiscales para adaptarse al patrón estándar de cards mobile.
+// 4. .doc-cards (lÃ­neas 256-369)
+//    RazÃ³n: PatrÃ³n mobile especÃ­fico. La tabla tiene demasiadas columnas
+//    fiscales para adaptarse al patrÃ³n estÃ¡ndar de cards mobile.
 //
-// 5. .badge-calc (líneas 219-238)
-//    Razón: Badge específico para tipos de cálculo fiscal GD/GU con
-//    variantes grossing-up/down que requieren semántica particular.
-// ═══════════════════════════════════════════════════════════════════════════════
+// 5. .badge-calc (lÃ­neas 219-238)
+//    RazÃ³n: Badge especÃ­fico para tipos de cÃ¡lculo fiscal GD/GU con
+//    variantes grossing-up/down que requieren semÃ¡ntica particular.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── Selector de perfil en el header ───────────────────────────
+// â”€â”€ Selector de perfil en el header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .perfil-selector-inline {
   min-width: 220px;
   display: flex;
@@ -51,70 +51,16 @@
   }
 }
 
-// ── Modal ─────────────────────────────────────────────────────
-.doc-modal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  width: min(960px, 96vw);
-  max-height: 92vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: var(--shadow-modal);
-  animation: _modal-in 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
-
-  // Mobile: full height sheet desde abajo
-  @media (max-width: 480px) {
-    width: 100%;
-    max-height: 95vh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  }
-}
-
-// Formulario dentro del modal - necesita flex para que el footer se mantenga abajo
-.doc-modal form {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0; // Importante para que el flex funcione correctamente
-}
-
-// En móvil, asegurar que el modal ocupe toda la altura disponible
-@media (max-width: 480px) {
-  .doc-modal {
-    .modal-body {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-    }
-    
-    .modal-footer {
-      flex-shrink: 0;
-      background: var(--bg-surface);
-    }
-  }
-}
-
-@keyframes _modal-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-// El <form> envuelve modal-body + modal-footer; debe ser flex para que el footer no se pierda
+// El <form> dentro del ng-template de app-form-modal NO debe ser flex
+// porque app-form-modal ya gestiona el scroll en su propio .form-modal-body.
 form {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  display: block;
 }
 
+// Nota: .modal-body aquÃ­ es el div interno del contenido del formulario,
+// NO el .form-modal-body de app-form-modal. El scroll lo gestiona app-form-modal.
+// Solo necesitamos el padding interno.
 .modal-body {
-  flex: 1;           // ocupa todo el espacio disponible entre header y footer
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;  // scroll suave en iOS
-  overscroll-behavior: contain;       // evita que el scroll se propague al backdrop
   padding: 20px;
 
   @media (max-width: 480px) {
@@ -122,7 +68,7 @@ form {
   }
 }
 
-// ── Separador de sección ──────────────────────────────────────
+// â”€â”€ Separador de secciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 .section-divider {
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
@@ -160,7 +106,7 @@ form {
   max-width: 110px;
 }
 
-// ── Grid de impuestos — cards agrupadas ───────────────────────
+// â”€â”€ Grid de impuestos â€” cards agrupadas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 3 por fila en desktop, 2 en tablet, 1 en mobile
 .tax-grid {
   display: grid;
@@ -204,233 +150,9 @@ form {
   padding: 10px;
 }
 
-// ── Tabla ─────────────────────────────────────────────────────
-.table-scroll-outer {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-
-  &::-webkit-scrollbar { height: 5px; }
-  &::-webkit-scrollbar-track { background: var(--bg-subtle); border-radius: 0 0 var(--radius-md) var(--radius-md); }
-  &::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-}
-
-.doc-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-base);
-
-  th, td { padding: 8px 6px; white-space: nowrap; }
-
-  thead th {
-    text-align: left;
-    font-size: var(--text-xs);
-    font-weight: var(--weight-bold);
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--bg-faint);
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  tbody td {
-    border-bottom: 1px solid var(--border-soft);
-    color: var(--text-body);
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: var(--bg-faint); }
-}
-
-// ── Columna combinada: % + Cuenta ─────────────────────────────
-.tax-col {
-  min-width: 90px;
-}
-
-.tax-cell {
-  vertical-align: middle;
-
-  // Stack: porcentaje arriba, cuenta debajo en gris mono
-  display: table-cell; // mantener como celda
-
-  .tax-pct {
-    display: block;
-    font-variant-numeric: tabular-nums;
-    font-weight: var(--weight-semibold);
-    color: var(--text-heading);
-    font-size: var(--text-base);
-  }
-
-  .tax-cta {
-    display: block;
-    font-family: var(--font-mono, monospace);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-top: 1px;
-  }
-}
-
-// Celda dual (Tasa + ICE) — dos filas de fila+valor
-.tax-cell-dual {
-  .tax-dual-row {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    line-height: 1.5;
-  }
-  .tax-dual-label {
-    font-size: var(--text-xs);
-    font-weight: var(--weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-faint);
-    min-width: 32px;
-  }
-}
-
-.text-center { text-align: center; }
-.text-right  { text-align: right; }
-
-// ── Badge tipo cálculo ─────────────────────────────────────────
-.badge-calc {
-  display: inline-block; 
-  padding: 2px 8px; 
-  border-radius: 999px;
-  font-size: var(--text-sm); 
-  font-weight: var(--weight-bold);
-  background: var(--bg-subtle);
-  color: var(--text-muted);
-  border: 1px solid var(--border-color);
-
-  &.grossing-up {
-    background: var(--color-danger-soft);
-    color: var(--color-danger);
-    border: 1px solid var(--color-danger-border);
-  }
-
-  &.grossing-down {
-    background: var(--status-closed-bg);
-    color: var(--status-closed-color);
-    border: 1px solid var(--status-closed-border);
-  }
-}
-
-// ── Botones acción (tabla) ─────────────────────────────────────
-.btn-action {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 50%;
-  border: none; background: transparent; cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  &:active { transform: scale(0.9); }
-  &.edit   { color: var(--color-primary);  &:hover { background: var(--color-primary-bg); } }
-  &.remove { color: var(--color-danger);   &:hover { background: var(--color-danger-soft); } }
-}
-
-// ── Responsive toggle: tabla vs cards ─────────────────────────
-.hide-on-mobile  { display: block; }
-.show-on-mobile  { display: none !important; }
-
-// ── Cards mobile ──────────────────────────────────────────────
-.doc-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.doc-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-
-.doc-card-header {
-  margin-bottom: 10px;
-}
-
-.doc-card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-
-  strong {
-    font-size: var(--text-lg);
-    color: var(--text-heading);
-  }
-}
-
-.doc-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-.doc-card-meta-item b { color: var(--text-body); }
-.doc-card-sep { color: var(--text-faint); }
-
-// Taxes list en cards
-.doc-card-taxes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-  background: var(--bg-faint);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-}
-
-.doc-card-tax {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.doc-card-tax-name {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-primary);
-  min-width: 52px;
-}
-
-.doc-card-tax-pct {
-  font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-base);
-  color: var(--text-heading);
-  min-width: 52px;
-}
-
-.doc-card-tax-cta {
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-.doc-card-actions {
-  display: flex;
-  gap: 8px;
-}
-
-// ── Breakpoints ───────────────────────────────────────────────
-@media (max-width: 640px) {
-  .hide-on-mobile { display: none !important; }
-  .show-on-mobile { display: flex !important; }
-  .col-hide-mobile { display: none !important; }
-}
-
+// â”€â”€ Breakpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @media (max-width: 768px) {
-  .col-hide-tablet { display: none !important; }
-
-  // Form rows también se adaptan
+  // Form rows tambiÃ©n se adaptan
   .form-row.three-col {
     grid-template-columns: 1fr 1fr;
   }
@@ -442,48 +164,71 @@ form {
   }
 }
 
-// ── Selector de cuenta dentro de tax-card ─────────────────────
+// â”€â”€ Selector de cuenta dentro de tax-card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // El trigger del app-cuenta-search hereda el ancho del contenedor
 .tax-cta-field app-cuenta-search {
   display: block;
   width: 100%;
 }
 
-// Lo sobreescribimos para que funcione como celda de tabla
-.doc-table td.col-acciones {
-  display: table-cell;
-  white-space: nowrap;
-  text-align: center;
-  vertical-align: middle;
-  width: 90px;
-  padding: 4px 8px;
+// â”€â”€ Estilos de celdas fiscales (dentro de cellTemplates) â”€â”€
+.sap-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
-// El global _lists.scss pone display:flex en .actions
-// que colapsa los <td> de tabla. Forzamos con !important.
-.doc-table {
-  td.col-acciones {
-    display: table-cell !important;
-    white-space: nowrap;
+.tax-pct {
+  display: block;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  color: var(--text-heading);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tax-cta {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: var(--space-1);
+}
+
+.tax-dual-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.tax-dual-row + .tax-dual-row {
+  margin-top: var(--space-1);
+  padding-top: var(--space-1);
+  border-top: 1px dashed var(--border-soft);
+}
+
+.tax-dual-label {
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  letter-spacing: 0.05em;
+}
+
+// â”€â”€ Estilos que atraviesan hacia app-data-table (celdas creadas por el hijo) â”€â”€
+:host ::ng-deep app-data-table {
+  td.col-iva,
+  td.col-it,
+  td.col-iue,
+  td.col-rciva,
+  td.col-exento {
     text-align: center;
     vertical-align: middle;
-    width: 90px;
-    padding: 4px 10px;
+    min-width: 70px;
   }
-}
 
-// ── Celda de acciones (tabla) — clase propia para evitar conflicto con global ──
-th.doc-actions,
-td.doc-actions {
-  width: 90px;
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
-  padding: 4px 10px;
-}
-
-// ── Columna SAP — descripción más pequeña ─────────────────────
-.col-sap-label {
-  font-size: var(--text-base);
-  color: var(--text-muted);
+  td.col-tasaIce {
+    text-align: center;
+    vertical-align: middle;
+    min-width: 90px;
+  }
 }

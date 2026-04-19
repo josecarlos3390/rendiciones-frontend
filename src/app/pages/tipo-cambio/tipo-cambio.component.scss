@@ -29,8 +29,8 @@
   border-radius: var(--radius-sm);
 }
 
-// Fila inactiva
-.inactive-row {
+// Fila inactiva — el <tr> es creado por app-data-table (hijo)
+:host ::ng-deep app-data-table tr.inactive-row {
   opacity: 0.7;
   background: var(--bg-faint);
 }

@@ -1,7 +1,10 @@
 // ── Tabla ─────────────────────────────────────────────────────
 @use '../../../styles/tables' as tables;
 
-.row-inactive td { opacity: 0.5; }
+// Fila inactiva — el <tr> es creado por app-data-table (hijo)
+:host ::ng-deep app-data-table tr.row-inactive td {
+  opacity: 0.5;
+}
 
 .mono-cell { font-family: var(--font-mono); font-weight: 600; }
 
@@ -37,6 +40,66 @@
     
     td[data-label="Orden"] {
       align-items: flex-start;
+    }
+  }
+}
+
+// ── Filtros ──────────────────────────────────────────────────
+.table-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+
+  .search-box {
+    position: relative;
+    flex: 1 1 220px;
+    min-width: 180px;
+
+    .search-input {
+      width: 100%;
+      padding: 8px 28px 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background: var(--bg-surface);
+      color: var(--text-heading);
+      font-size: var(--text-sm);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+    }
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .filter-label {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      font-weight: var(--weight-medium);
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background: var(--bg-surface);
+      color: var(--text-heading);
+      font-size: var(--text-sm);
+      min-width: 120px;
     }
   }
 }

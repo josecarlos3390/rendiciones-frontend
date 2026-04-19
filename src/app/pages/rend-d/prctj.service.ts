@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
-import { RendPrctj, SavePrctjPayload } from '../../models/prctj.model';
+import { environment } from '@env';
+import { RendPrctj, SavePrctjPayload } from '@models/prctj.model';
 
 @Injectable({ providedIn: 'root' })
 export class PrctjService {

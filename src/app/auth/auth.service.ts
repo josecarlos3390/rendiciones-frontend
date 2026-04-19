@@ -3,11 +3,11 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { environment } from '@env';
 
 interface LoginResponse {
   access_token: string;
-  user: any;
+  user: unknown;
 }
 
 /** Estructura esperada del payload del JWT emitido por el backend */
@@ -31,14 +31,14 @@ interface JwtPayload {
 }
 
 /** Valida que el payload tenga los campos mínimos requeridos */
-function isValidPayload(p: any): p is JwtPayload {
+function isValidPayload(p: unknown): p is JwtPayload {
+  if (p === null || typeof p !== 'object') return false;
+  const obj = p as Record<string, unknown>;
   return (
-    p !== null &&
-    typeof p === 'object' &&
-    typeof p.sub      === 'number' &&
-    typeof p.role     === 'string' &&
-    typeof p.exp      === 'number' &&
-    (p.role === 'ADMIN' || p.role === 'USER')
+    typeof obj['sub']  === 'number' &&
+    typeof obj['role'] === 'string' &&
+    typeof obj['exp']  === 'number' &&
+    (obj['role'] === 'ADMIN' || obj['role'] === 'USER')
   );
 }
 
@@ -198,7 +198,7 @@ export class AuthService {
    * Requiere: sin aprobador (nivel final) + genDocPre habilitado.
    */
   get puedeSync(): boolean {
-    return this.isAdmin || (this.sinAprobador && this.puedeGenerarPre);
+    return this.sinAprobador && this.puedeGenerarPre;
   }
 
   /**

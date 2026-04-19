@@ -6,7 +6,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, of, takeUntil } from 'rxjs';
-import { SapService } from '../../services/sap.service';
+import { SapService } from '@services/sap.service';
 
 export interface ProjectDto {
   code: string;
@@ -208,7 +208,7 @@ export interface ProjectDto {
               placeholder="Buscar por código o nombre..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
-              autofocus autocomplete="off" />
+              autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="ps-search-clear"
               (click)="onSearch('')">✕</button>
           </div>

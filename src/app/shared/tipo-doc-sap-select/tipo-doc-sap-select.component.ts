@@ -6,7 +6,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '@env';
 
 export interface TipoDocSapItem {
   U_IdTipo:    number;

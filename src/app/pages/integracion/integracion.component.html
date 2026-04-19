@@ -1,61 +1,85 @@
 <!-- Header -->
-<app-integracion-header 
-  [isAdmin]="isAdmin" 
+<app-integracion-header
+  [isAdmin]="isAdmin"
   (refresh)="load()">
 </app-integracion-header>
 
 <!-- Estado carga -->
-<app-integracion-loading *ngIf="loading"></app-integracion-loading>
+<app-integracion-loading *ngIf="store.loading()"></app-integracion-loading>
 
 <!-- Estado error -->
-<app-integracion-error 
-  *ngIf="!loading && loadError" 
+<app-integracion-error
+  *ngIf="!store.loading() && store.loadError()"
   (retry)="load()">
 </app-integracion-error>
 
-<ng-container *ngIf="!loading && !loadError">
+<ng-container *ngIf="!store.loading() && !store.loadError()">
 
   <!-- Barra de filtros -->
   <app-integracion-filter-bar
-    [search]="search"
-    [count]="filtered.length"
+    [search]="store.search()"
+    [count]="store.filtered().length"
     (searchChange)="onSearchChange($event)"
     (searchCleared)="onSearchCleared()">
   </app-integracion-filter-bar>
 
   <!-- Estado vacio -->
   <app-integracion-empty
-    *ngIf="filtered.length === 0"
+    *ngIf="store.filtered().length === 0"
     [isAdmin]="isAdmin"
     [puedeSync]="puedeSync"
-    [search]="search">
+    [search]="store.search()">
   </app-integracion-empty>
 
-  <!-- Vista ADMIN/SYNC: tabla con acciones de sincronizacion -->
-  <app-integracion-pendientes-table
-    *ngIf="(isAdmin || puedeSync) && filtered.length > 0"
-    [items]="pendientesPaged"
-    [page]="page"
-    [limit]="limit"
-    [total]="filtered.length"
-    [totalPages]="totalPages"
-    (pageChange)="onPageChange($event)"
-    (limitChange)="onLimitChange($event)"
-    (actionClick)="onPendientesAction($event)">
-  </app-integracion-pendientes-table>
+  <!-- Templates de columna -->
+  <ng-template #nroCol let-item>
+    <a class="link-primary" [routerLink]="['/rend-m', item.U_IdRendicion, 'detalle']">
+      {{ item.U_IdRendicion }}
+    </a>
+  </ng-template>
 
-  <!-- Vista USER: tabla de solo lectura con doc SAP -->
-  <app-integracion-user-table
-    *ngIf="!isAdmin && !puedeSync && filtered.length > 0"
-    [items]="userPaged"
-    [page]="page"
-    [limit]="limit"
-    [total]="filtered.length"
-    [totalPages]="totalPages"
+  <ng-template #usuarioCol let-item>
+    {{ item.U_NomUsuario }}
+  </ng-template>
+
+  <ng-template #fechaIniCol let-item>
+    {{ item.U_FechaIni | ddmmyyyy }}
+  </ng-template>
+
+  <ng-template #fechaFinCol let-item>
+    {{ item.U_FechaFinal | ddmmyyyy }}
+  </ng-template>
+
+  <ng-template #montoCol let-item>
+    {{ item.U_Monto | number:'1.2-2' }}
+  </ng-template>
+
+  <ng-template #estadoCol let-item>
+    <app-status-badge [type]="getEstadoBadgeType(item.U_Estado)" [dot]="true">
+      {{ getEstadoBadgeText(item.U_Estado) }}
+    </app-status-badge>
+  </ng-template>
+
+  <ng-template #docSapCol let-item>
+    <code class="doc-erp-code" *ngIf="item.U_NroDocERP">{{ item.U_NroDocERP }}</code>
+    <span class="muted" *ngIf="!item.U_NroDocERP">-</span>
+  </ng-template>
+
+  <!-- Tabla -->
+  <app-data-table
+    *ngIf="store.filtered().length > 0"
+    [items]="store.paged()"
+    [loading]="store.loading()"
+    [config]="tableConfig"
+    [page]="store.page()"
+    [limit]="store.limit()"
+    [total]="store.filtered().length"
+    [totalPages]="store.totalPages()"
+    [rowClassFn]="rowClassFn"
     (pageChange)="onPageChange($event)"
     (limitChange)="onLimitChange($event)"
-    (actionClick)="onUserAction($event)">
-  </app-integracion-user-table>
+    (action)="onTableAction($event)">
+  </app-data-table>
 
 </ng-container>
 

@@ -6,7 +6,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, of, takeUntil } from 'rxjs';
-import { SapService, CuentaDto } from '../../services/sap.service';
+import { SapService, CuentaDto } from '@services/sap.service';
 
 /**
  * CuentaSearchComponent — selector de cuentas contables filtrado por perfil.
@@ -206,7 +206,7 @@ import { SapService, CuentaDto } from '../../services/sap.service';
               placeholder="Buscar por código o nombre..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
-              autofocus autocomplete="off" />
+              autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="cs-search-clear"
               (click)="onSearch('')">✕</button>
           </div>
@@ -253,8 +253,8 @@ export class CuentaSearchComponent implements OnInit, OnDestroy, OnChanges {
   @Input() placeholder   = '— Buscar y seleccionar cuenta —';
   @Input() initialCode:  string | null = null;
   @Input() initialName:  string | null = null;
-  @Input() cueCar:       string = 'TODOS';
-  @Input() cueTexto:     string = '';
+  @Input() cueCar = 'TODOS';
+  @Input() cueTexto = '';
   @Input() listaCuentas: CuentaDto[] = [];
   @Input() disabled      = false;
 

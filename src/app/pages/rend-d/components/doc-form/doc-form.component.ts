@@ -15,86 +15,23 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 // Componentes compartidos
-import { FormModalComponent, FormModalTab } from '../../../../shared/form-modal/form-modal.component';
-import { AppSelectComponent, SelectOption } from '../../../../shared/app-select/app-select.component';
-import { CuentaSearchComponent } from '../../../../shared/cuenta-search/cuenta-search.component';
-import { ProveedorSearchComponent } from '../../../../shared/proveedor-search/proveedor-search.component';
-import { ProjectSearchComponent, ProjectDto } from '../../../../shared/project-search/project-search.component';
+import { FormModalComponent, FormModalTab } from '@shared/form-modal';
+import { AppSelectComponent } from '@shared/app-select/app-select.component';
+import { CuentaSearchComponent } from '@shared/cuenta-search/cuenta-search.component';
+import { ProveedorSearchComponent } from '@shared/proveedor-search/proveedor-search.component';
+import { ProjectSearchComponent, ProjectDto } from '@shared/project-search/project-search.component';
 
 // Modelos
-import { RendD } from '../../../../models/rend-d.model';
-import { Documento } from '../../../../models/documento.model';
-import { Perfil } from '../../../../models/perfil.model';
-import { CuentaDto } from '../../../../services/sap.service';
+import { RendD } from '@models/rend-d.model';
+import { Documento } from '@models/documento.model';
+import { Perfil } from '@models/perfil.model';
+
 
 // Servicios IA
-import { AiService, ClasificacionSugeridaResponse } from '../../../../services/ai.service';
+import { AiDocumentoService, SugerenciaPendiente } from '@services/ai-documento.service';
+import { CalculoImpuestosService } from '@services/calculo-impuestos.service';
 
-export interface DocFormConfig {
-  cueCar: string;
-  cueTexto: string;
-  listaCuentas: CuentaDto[];
-  proCar: string;
-  proTexto: string;
-  tipoDocOptions: SelectOption[];
-  normaSlots: NormaSlotConfig[];
-}
-
-export interface NormaSlotConfig {
-  slot: number;
-  label: string;
-  dimensionId?: number;
-  dimensionName?: string;
-  rules: SelectOption[];
-}
-
-export interface DocFormSubmitData {
-  // Datos del formulario - mapear según necesidad del backend
-  cuenta: string;
-  nombreCuenta: string;
-  fecha: string;
-  tipoDoc: string;
-  idTipoDoc: number;
-  tipoDocName: string;
-  numDocumento: string;
-  nroAutor: string;
-  cuf: string;
-  ctrl: string;
-  prov: string;
-  codProv: string;
-  nit: string;
-  concepto: string;
-  // Montos
-  importe: number;
-  exento: number;
-  ice: number;
-  tasa: number;
-  tasaCero: number;
-  giftCard: number;
-  descuento: number;
-  // Impuestos calculados
-  iva: number;
-  it: number;
-  iue: number;
-  rciva: number;
-  montoIVA: number;
-  montoIT: number;
-  montoIUE: number;
-  montoRCIVA: number;
-  impRet: number;
-  total: number;
-  // Dimensiones/Normas
-  proyecto: string;
-  n1: string;
-  n2: string;
-  n3: string;
-  // Extras
-  ctaExento: string;
-  cuentaIVA: string;
-  cuentaIT: string;
-  cuentaIUE: string;
-  cuentaRCIVA: string;
-}
+import { DocFormConfig, DocFormSubmitData } from './doc-form.model';
 
 @Component({
   selector: 'app-doc-form',
@@ -144,19 +81,11 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
   totalImpuestos = 0;
   totalCalculado = 0;
   
-  // Estado de IA
-  iaLoading = false;
-  iaSugerencia: ClasificacionSugeridaResponse | null = null;
-  iaSugerenciaMensaje = '';
-  iaHabilitada = false;
-  
-  // Sugerencia pendiente de aprobación
-  iaSugerenciaPendiente: {
-    cuenta?: { codigo: string; nombre: string };
-    tipoDoc?: { id: string; nombre: string };
-    dimensiones: string[];
-    confianza: number;
-  } | null = null;
+  // Delegación de estado IA al servicio
+  get iaLoading(): boolean { return this.aiDocSvc.loading; }
+  get iaSugerenciaMensaje(): string { return this.aiDocSvc.mensaje; }
+  get iaHabilitada(): boolean { return this.aiDocSvc.habilitada; }
+  get iaSugerenciaPendiente(): SugerenciaPendiente | null { return this.aiDocSvc.sugerenciaPendiente; }
   
   // Outputs
   @Output() save = new EventEmitter<DocFormSubmitData>();
@@ -182,11 +111,9 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private aiService: AiService,
-  ) {
-    // Verificar estado inicial de IA
-    this.iaHabilitada = this.aiService.estaHabilitada;
-  }
+    private aiDocSvc: AiDocumentoService,
+    private calculoSvc: CalculoImpuestosService,
+  ) {}
 
   ngOnInit(): void {
     this.buildForm();
@@ -199,27 +126,15 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
       }
     }
     this._engancharCalculos();
-    
-    // Suscribirse a cambios en el estado de IA
-    this.aiService.aiStatus$.pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(status => {
-      const nuevaHabilitacion = status?.ia?.enabled === true && status?.ia?.configured === true;
-      if (this.iaHabilitada !== nuevaHabilitacion) {
-        this.iaHabilitada = nuevaHabilitacion;
-        this.cdr.detectChanges();
-      }
-    });
-    
-    // Cargar estado de IA si no está cargado
-    if (!this.aiService.status) {
-      this.aiService.cargarStatus().subscribe();
-    }
+
+    // Inicializar estado de IA
+    this.aiDocSvc.init(() => this.cdr.detectChanges());
   }
   
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.aiDocSvc.dispose();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -368,8 +283,7 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
     }, { emitEvent: false });
     
     this.isDirty = false;
-    this.iaSugerencia = null;
-    this.iaSugerenciaMensaje = '';
+    this.aiDocSvc.limpiarMensajeYSugerencia();
     this.cdr.detectChanges();
   }
 
@@ -445,8 +359,7 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
     this.form.reset();
     this.activeTab = 'doc';
     this.isDirty = false;
-    this.iaSugerencia = null;
-    this.iaSugerenciaMensaje = '';
+    this.aiDocSvc.limpiarMensajeYSugerencia();
   }
 
   // Event handlers
@@ -531,107 +444,41 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
     const doc = this.tiposDocs.find(d => String(d.U_IdDocumento) === String(tipoDoc));
     
     if (!doc) {
-      console.log('[recalcular] No se encontró tipo de documento:', tipoDoc);
       return;
     }
     
-    const idTipoDoc = Number(doc.U_IdTipoDoc);
-    // Solo calcular para tipos 1 (Factura), 4 (Recibo), 10 (Alquiler)
-    if (![1, 4, 10].includes(idTipoDoc)) return;
-    
     const r = this.form.getRawValue();
-    const importe = this._n(r.importe);
-    
-    // Debug: mostrar valores de configuración
-    console.log('[recalcular] Config:', {
-      exentoPct: doc.U_EXENTOpercent,
-      icePct: doc.U_ICE,
-      tasaPct: doc.U_TASA,
-    });
-    console.log('[recalcular] Form values:', {
-      exento: r.exento,
-      ice: r.ice,
-      tasa: r.tasa,
+    const resultado = this.calculoSvc.calcular(doc, {
       importe: r.importe,
+      exento: r.exento,
+      tasa: r.tasa,
+      tasaCero: r.tasaCero,
+      giftCard: r.giftCard,
+      ice: r.ice,
     });
     
-    // Calcular valores base
-    const exento = this._calcularExento(importe, doc);
-    const ice = this._calcularICE(importe, doc);
-    
-    console.log('[recalcular] Calculados:', { exento, ice, importe });
-    const tasa = Number(doc.U_TASA) === -1 ? this._n(r.tasa) : (Number(doc.U_TASA) ?? 0);
-    const tasaCero = this._n(r.tasaCero);
-    const giftCard = this._n(r.giftCard);
-    
-    // Base imponible
-    this.baseImponible = Math.max(0, importe - exento - ice - tasa - tasaCero - giftCard);
-    
-    console.log('[recalcular] Base imponible:', {
-      baseImponible: this.baseImponible,
-      importe,
-      exento,
-      ice,
-      tasa,
-      tasaCero,
-      giftCard,
-    });
-    
-    // Calcular impuestos según tipo de documento
-    const tipoCalc = String(doc.U_TipoCalc);
-    const esRecibo = idTipoDoc === 4 || idTipoDoc === 10;
-    
-    if (idTipoDoc === 1) {
-      // Factura: cálculo normal sobre base imponible
-      this.montoIVA = this._calcImpuesto(this.baseImponible, doc.U_IVApercent);
-      this.montoIT = this._calcImpuesto(this.baseImponible, doc.U_ITpercent);
-      this.montoIUE = this._calcImpuesto(this.baseImponible, doc.U_IUEpercent);
-      this.montoRCIVA = this._calcImpuesto(this.baseImponible, doc.U_RCIVApercent);
-    } else if (esRecibo && tipoCalc === '1') {
-      // Grossing Down: impuestos sobre importe
-      this.montoIT = this._calcImpuesto(importe, doc.U_ITpercent);
-      this.montoRCIVA = this._calcImpuesto(importe, doc.U_RCIVApercent);
-      this.montoIVA = this._calcImpuesto(importe, doc.U_IVApercent);
-      this.montoIUE = this._calcImpuesto(importe, doc.U_IUEpercent);
-    } else if (esRecibo && tipoCalc === '0') {
-      // Grossing Up: calcular bruto
-      const tasaIUE = (Number(doc.U_IUEpercent) || 0) / 100;
-      const tasaIT = (Number(doc.U_ITpercent) || 0) / 100;
-      const tasaRCIVA = (Number(doc.U_RCIVApercent) || 0) / 100;
-      const tasaIVA = (Number(doc.U_IVApercent) || 0) / 100;
-      const sumaTasas = tasaIUE + tasaIT + tasaRCIVA + tasaIVA;
-      
-      const bruto = sumaTasas > 0 && sumaTasas < 1
-        ? this._round(importe / (1 - sumaTasas))
-        : importe;
-      
-      this.montoIUE = this._round(bruto * tasaIUE);
-      this.montoIT = this._round(bruto * tasaIT);
-      this.montoRCIVA = this._round(bruto * tasaRCIVA);
-      this.montoIVA = this._round(bruto * tasaIVA);
+    if (!resultado) {
+      return;
     }
     
-    // Totales
-    this.totalImpuestos = this._round(this.montoIVA + this.montoIT + this.montoIUE + this.montoRCIVA);
-    
-    if (esRecibo && tipoCalc === '0') {
-      // Grossing Up: Total = Importe + ImpRet
-      this.totalCalculado = this._round(importe + this.totalImpuestos);
-    } else {
-      // Grossing Down / Factura: Total = Importe - ImpRet
-      this.totalCalculado = this._round(importe - this.totalImpuestos);
-    }
+    this.baseImponible = resultado.baseImponible;
+    this.montoIVA = resultado.montoIVA;
+    this.montoIT = resultado.montoIT;
+    this.montoIUE = resultado.montoIUE;
+    this.montoRCIVA = resultado.montoRCIVA;
+    this.totalImpuestos = resultado.impRet;
+    this.totalCalculado = resultado.total;
     
     // Actualizar formulario sin disparar valueChanges
     this.form.patchValue({
-      exento: exento,
-      ice: ice,
-      montoIVA: this.montoIVA,
-      montoIT: this.montoIT,
-      montoIUE: this.montoIUE,
-      montoRCIVA: this.montoRCIVA,
-      impRet: this.totalImpuestos,
-      total: this.totalCalculado,
+      exento: resultado.exento,
+      ice: resultado.ice,
+      montoIVA: resultado.montoIVA,
+      montoIT: resultado.montoIT,
+      montoIUE: resultado.montoIUE,
+      montoRCIVA: resultado.montoRCIVA,
+      impRet: resultado.impRet,
+      total: resultado.total,
       iva: doc.U_IVApercent || 0,
       it: doc.U_ITpercent || 0,
       iue: doc.U_IUEpercent || 0,
@@ -641,268 +488,45 @@ export class DocFormComponent implements OnInit, OnChanges, OnDestroy {
     this.cdr.detectChanges();
   }
   
-  private _calcularExento(importe: number, doc: Documento): number {
-    const exentoPct = Number(doc.U_EXENTOpercent);
-    const formExento = this._n(this.form.get('exento')?.value);
-    
-    console.log('[_calcularExento]', { exentoPct, formExento, importe });
-    
-    if (exentoPct === -1) {
-      console.log('  -> Usando valor del formulario:', formExento);
-      return formExento;
-    }
-    const calculado = exentoPct > 0 ? this._round(importe * (exentoPct / 100)) : 0;
-    console.log('  -> Calculado automático:', calculado);
-    return calculado;
-  }
-  
-  private _calcularICE(importe: number, doc: Documento): number {
-    const icePct = Number(doc.U_ICE);
-    if (icePct === -1) {
-      return this._n(this.form.get('ice')?.value);
-    }
-    return icePct > 0 ? this._round(importe * (icePct / 100)) : 0;
-  }
-  
-  private _calcImpuesto(base: number, percent: number | string | null): number {
-    const pct = Number(percent) || 0;
-    return pct > 0 ? this._round(base * (pct / 100)) : 0;
-  }
-  
-  private _n(val: any): number {
-    const n = Number(val);
-    return isNaN(n) ? 0 : n;
-  }
-  
-  private _round(n: number): number {
-    return Math.round((n + Number.EPSILON) * 100) / 100;
-  }
-  
   // ═══════════════════════════════════════════════════════════════
   // FUNCIONALIDAD IA - Sugerencia de cuenta y dimensiones
   // ═══════════════════════════════════════════════════════════════
   
-  /**
-   * Solicita sugerencia de clasificación contable a la IA
-   * basándose en el concepto/glosa del gasto
-   */
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIONALIDAD IA - delegada a AiDocumentoService
+  // ═══════════════════════════════════════════════════════════════
+
   solicitarSugerenciaIA(): void {
     const concepto = this.form.get('concepto')?.value || '';
     const importe = this.form.get('importe')?.value || 0;
     const proveedor = this.form.get('prov')?.value || '';
-    
-    if (!concepto || concepto.trim().length < 5) {
-      return; // No mostrar error, solo no hacer nada si el concepto es muy corto
-    }
-    
-    this.iaLoading = true;
-    this.cdr.detectChanges();
-    
-    this.aiService.sugerirClasificacion({
-      concepto: concepto.trim(),
-      monto: importe,
+
+    this.aiDocSvc.solicitarSugerencia(
+      concepto,
+      importe,
       proveedor,
-    }).subscribe({
-      next: (sugerencia) => {
-        this.iaLoading = false;
-        this.iaSugerencia = sugerencia;
-        this.cdr.detectChanges();
-        
-        if (sugerencia) {
-          // Auto-aplicar la sugerencia
-          this.aplicarSugerenciaIA(sugerencia);
-        }
-      },
-      error: () => {
-        this.iaLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-  
-  /**
-   * Sugiere tipo de documento basado en el concepto/glosa
-   * Analiza palabras clave en el concepto para determinar el tipo de documento más apropiado
-   */
-  private sugerirTipoDocumentoPorConcepto(concepto: string): { id: string; nombre: string } | null {
-    if (!concepto || this.tiposDocs.length === 0) return null;
-    
-    const conceptoLower = concepto.toLowerCase();
-    
-    // Mapeo de palabras clave a tipos de documento comunes
-    const keywordMap: { [key: string]: string[] } = {
-      'factura': ['factura', 'fact'],
-      'recibo': ['recibo', 'rec'],
-      'boleta': ['boleta', 'boleta de venta'],
-      'ticket': ['ticket', 'tiket', 'tkt'],
-      'nota': ['nota de credito', 'nota de debito', 'nota de crédito', 'nota de débito', 'nc', 'nd'],
-      'comprobante': ['comprobante', 'comp'],
-      'declaracion': ['declaracion', 'declaración', 'dj'],
-      'formulario': ['formulario', 'form'],
-      'invoice': ['invoice', 'invoce'],
-      'orden': ['orden de compra', 'oc', 'orden'],
-      'contrato': ['contrato'],
-      'memorandum': ['memorandum', 'memo'],
-      'acta': ['acta'],
-      'resolucion': ['resolucion', 'resolución'],
-    };
-    
-    // Buscar coincidencias
-    for (const [tipoBase, keywords] of Object.entries(keywordMap)) {
-      for (const keyword of keywords) {
-        if (conceptoLower.includes(keyword)) {
-          // Buscar tipo de documento que coincida
-          const tipoDoc = this.tiposDocs.find(d => 
-            d.U_TipDoc?.toLowerCase().includes(tipoBase)
-          );
-          if (tipoDoc) {
-            return { 
-              id: String(tipoDoc.U_IdDocumento), 
-              nombre: tipoDoc.U_TipDoc || 'Documento' 
-            };
-          }
-        }
-      }
-    }
-    
-    // Si no hay coincidencia, sugerir el primer tipo de documento (por defecto)
-    const defaultDoc = this.tiposDocs[0];
-    if (defaultDoc) {
-      return { 
-        id: String(defaultDoc.U_IdDocumento), 
-        nombre: defaultDoc.U_TipDoc || 'Documento' 
-      };
-    }
-    
-    return null;
+      this.tiposDocs,
+      () => this.cdr.detectChanges(),
+    );
   }
 
-  /**
-   * Procesa la sugerencia de IA y la guarda como pendiente de aprobación
-   */
-  private aplicarSugerenciaIA(sugerencia: ClasificacionSugeridaResponse): void {
-    const dimensionesAplicadas: string[] = [];
-    
-    // Recopilar dimensiones sugeridas
-    if (sugerencia.proyecto) {
-      dimensionesAplicadas.push('Proyecto');
-    }
-    if (sugerencia.dimension1) {
-      dimensionesAplicadas.push('N1');
-    }
-    if (sugerencia.norma) {
-      const normaSlot = this.config?.normaSlots?.find(s => 
-        s.dimensionName?.toLowerCase().includes('norma') || 
-        s.label.toLowerCase().includes('norma')
-      );
-      if (normaSlot) {
-        dimensionesAplicadas.push(normaSlot.label);
-      }
-    }
-    
-    // Sugerir tipo de documento basado en el concepto
-    const concepto = this.form.get('concepto')?.value || '';
-    const tipoDocSugerido = this.sugerirTipoDocumentoPorConcepto(concepto);
-    
-    // Guardar sugerencia pendiente (NO aplicar al formulario todavía)
-    this.iaSugerenciaPendiente = {
-      cuenta: sugerencia.cuentaContable ? {
-        codigo: sugerencia.cuentaContable.codigo,
-        nombre: sugerencia.cuentaContable.nombre
-      } : undefined,
-      tipoDoc: tipoDocSugerido ? {
-        id: tipoDocSugerido.id,
-        nombre: tipoDocSugerido.nombre
-      } : undefined,
-      dimensiones: dimensionesAplicadas,
-      confianza: Math.round(sugerencia.cuentaContable.confianza * 100)
-    };
-    
-    // Actualizar mensaje informativo
-    this.iaSugerenciaMensaje = '';
-    
-    this.cdr.detectChanges();
-  }
-  
-  /**
-   * Aplica la sugerencia pendiente al formulario cuando el usuario acepta
-   */
   aceptarSugerenciaIA(): void {
-    if (!this.iaSugerenciaPendiente) return;
-    
-    const patchValue: any = {};
-    
-    // Aplicar cuenta contable
-    if (this.iaSugerenciaPendiente.cuenta) {
-      patchValue.cuenta = this.iaSugerenciaPendiente.cuenta.codigo;
-      patchValue.nombreCuenta = this.iaSugerenciaPendiente.cuenta.nombre;
-    }
-    
-    // Aplicar tipo de documento
-    if (this.iaSugerenciaPendiente.tipoDoc) {
-      patchValue.tipoDoc = this.iaSugerenciaPendiente.tipoDoc.id;
-      patchValue.tipoDocName = this.iaSugerenciaPendiente.tipoDoc.nombre;
-    }
-    
-    // Aplicar dimensiones si existen (usando la sugerencia original guardada)
-    if (this.iaSugerencia?.dimension1) {
-      patchValue.n1 = this.iaSugerencia.dimension1.codigo;
-    }
-    if (this.iaSugerencia?.norma) {
-      const normaSlot = this.config?.normaSlots?.find(s => 
-        s.dimensionName?.toLowerCase().includes('norma') || 
-        s.label.toLowerCase().includes('norma')
-      );
-      if (normaSlot) {
-        patchValue['n' + normaSlot.slot] = String(this.iaSugerencia.norma.idNorma);
-      }
-    }
-    if (this.iaSugerencia?.proyecto) {
-      patchValue.proyecto = this.iaSugerencia.proyecto.codigo;
-    }
-    
-    this.form.patchValue(patchValue, { emitEvent: false });
-    
-    // Mostrar mensaje de confirmación
-    const cuenta = this.iaSugerenciaPendiente.cuenta;
-    const tipoDoc = this.iaSugerenciaPendiente.tipoDoc;
-    let mensajeConfirmacion = '✓ Aplicado:';
-    if (cuenta) {
-      mensajeConfirmacion += ` ${cuenta.nombre} (${cuenta.codigo})`;
-    }
-    if (tipoDoc) {
-      mensajeConfirmacion += ` • ${tipoDoc.nombre}`;
-    }
-    this.iaSugerenciaMensaje = mensajeConfirmacion;
-    
-    // Limpiar sugerencia pendiente
-    this.iaSugerenciaPendiente = null;
+    const patch = this.aiDocSvc.aceptarSugerencia(this.config?.normaSlots ?? []);
+    if (!patch) return;
+    this.form.patchValue(patch, { emitEvent: false });
     this.cdr.detectChanges();
   }
-  
-  /**
-   * Rechaza la sugerencia pendiente
-   */
+
   rechazarSugerenciaIA(): void {
-    this.iaSugerenciaPendiente = null;
-    this.iaSugerencia = null;
-    this.iaSugerenciaMensaje = '';
-    this.cdr.detectChanges();
+    this.aiDocSvc.rechazarSugerencia();
   }
-  
-  /**
-   * Verifica si hay una sugerencia pendiente de aprobación
-   */
+
   get tieneSugerenciaPendiente(): boolean {
-    return this.iaSugerenciaPendiente !== null;
+    return this.aiDocSvc.sugerenciaPendiente !== null;
   }
-  
-  /**
-   * Verifica si se puede solicitar sugerencia IA
-   * (hay suficiente texto en el concepto)
-   */
+
   puedeSolicitarIA(): boolean {
     const concepto = this.form.get('concepto')?.value || '';
-    return this.iaHabilitada && concepto.trim().length >= 5 && !this.iaSugerenciaPendiente;
+    return this.aiDocSvc.puedeSolicitar(concepto);
   }
 }

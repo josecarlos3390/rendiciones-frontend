@@ -6,8 +6,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin, catchError, of, takeUntil } from 'rxjs';
-import { SapService, ProveedorDto } from '../../services/sap.service';
-import { ProvService } from '../../services/prov.service';
+import { SapService, ProveedorDto } from '@services/sap.service';
+import { ProvService } from '@services/prov.service';
 
 @Component({
   selector: 'app-proveedor-search',
@@ -125,7 +125,7 @@ import { ProvService } from '../../services/prov.service';
               placeholder="Buscar por código, nombre o NIT..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
-              autofocus autocomplete="off" />
+              autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="ps-search-clear"
               (click)="onSearch('')">✕</button>
           </div>
@@ -166,8 +166,8 @@ import { ProvService } from '../../services/prov.service';
 export class ProveedorSearchComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input() placeholder = '— Buscar y seleccionar proveedor —';
-  @Input() proCar:    string = 'TODOS';
-  @Input() proTexto:  string = '';
+  @Input() proCar = 'TODOS';
+  @Input() proTexto = '';
   @Input() initialCode: string | null = null;
   @Input() set selected(val: { cardCode: string; cardName: string; licTradNum?: string } | null) {
     this._selected = val;

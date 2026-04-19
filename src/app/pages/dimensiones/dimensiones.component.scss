@@ -1,40 +1,13 @@
-// ─── Estilos específicos para Dimensiones ───
+// Estilos específicos para Dimensiones
 
 .dimension-modal {
   max-width: 480px;
 }
 
-.col-code {
-  font-family: var(--font-mono);
-  font-weight: var(--weight-semibold);
-  color: var(--text-heading);
-}
-
-.inactive-row {
+// Fila inactiva — el <tr> es creado por app-data-table (hijo)
+:host ::ng-deep app-data-table tr.inactive-row {
   opacity: 0.6;
   background-color: var(--bg-faint);
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-
-  &.active {
-    background-color: var(--status-closed-bg);
-    color: var(--status-closed-color);
-  }
-
-  &.inactive {
-    background-color: var(--bg-faint);
-    color: var(--text-muted);
-  }
 }
 
 // Form textarea - usa variables del tema
@@ -58,15 +31,16 @@ textarea {
   }
 }
 
-// ── Corrección layout tarjeta móvil ──────────────────────────────
+// Corrección layout tarjeta móvil
 // El global _lists.scss hace que td[data-label="Nombre"] ocupe fila completa,
 // pero en Dimensiones Código y Nombre deben ir lado a lado.
 @media (max-width: 640px) {
-  .data-table td[data-label="Nombre"] {
-    grid-column: auto;
-  }
-  // Código ocupa fila completa (es el campo principal identificador)
-  .data-table td[data-label="Código"] {
-    grid-column: 1 / -1;
+  :host ::ng-deep app-data-table {
+    td[data-label="Nombre"] {
+      grid-column: auto;
+    }
+    td[data-label="Código"] {
+      grid-column: 1 / -1;
+    }
   }
 }

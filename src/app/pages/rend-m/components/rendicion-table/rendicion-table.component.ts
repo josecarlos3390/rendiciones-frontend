@@ -10,10 +10,21 @@ import { RouterModule } from '@angular/router';
 import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu';
 import { PaginatorComponent } from '@shared/paginator/paginator.component';
 import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
-import { FormsModule } from '@angular/forms';
+
 
 import { RendM } from '@models/rend-m.model';
 import { ESTADO_LABEL, ESTADO_CLASS } from '@models/rend-m.model';
+import { TableActionHeaderComponent } from '@shared/table-action-header/table-action-header.component';
+import {
+  ICON_VIEW,
+  ICON_EDIT,
+  ICON_TRASH,
+  ICON_PRINT,
+  ICON_SYNC,
+  ICON_SEND,
+  ICON_RETRY_SYNC,
+  ICON_SYNC_SAP,
+} from '@common/constants/icons';
 
 export interface RendicionAction {
   action: string;
@@ -23,7 +34,7 @@ export interface RendicionAction {
 @Component({
   selector: 'app-rendicion-table',
   standalone: true,
-  imports: [CommonModule, RouterModule, ActionMenuComponent, PaginatorComponent, DdmmyyyyPipe],
+  imports: [TableActionHeaderComponent, CommonModule, RouterModule, ActionMenuComponent, PaginatorComponent, DdmmyyyyPipe],
   templateUrl: './rendicion-table.component.html',
   styleUrls: ['./rendicion-table.component.scss'],
 })
@@ -38,6 +49,10 @@ export class RendicionTableComponent {
   @Input() estadoFiltro = 'todas';
   @Input() isAdmin = false;
   @Input() esAprobador = false;
+  /** true si el usuario puede sincronizar directamente (sinAprobador + puedeGenerarPre) */
+  @Input() canSyncDirecto = false;
+  /** true si el usuario tiene aprobador configurado (U_NomSup) y debe ver la opción Enviar */
+  @Input() canEnviar = false;
 
   @Output() action = new EventEmitter<RendicionAction>();
   @Output() pageChange = new EventEmitter<number>();
@@ -52,25 +67,40 @@ export class RendicionTableComponent {
 
   getActionMenuItems(rend: RendM): ActionMenuItem[] {
     const items: ActionMenuItem[] = [
-      { id: 'view', label: 'Ver detalle', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' },
+      { id: 'view', label: 'Ver detalle', icon: ICON_VIEW },
     ];
 
     // Editar: solo si está abierta
     if (rend.U_Estado === 1) {
-      items.push({ id: 'edit', label: 'Editar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' });
+      items.push({ id: 'edit', label: 'Editar', icon: ICON_EDIT });
     }
 
     // Eliminar: solo admin o si está abierta
     if (this.isAdmin || rend.U_Estado === 1) {
-      items.push({ id: 'delete', label: 'Eliminar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>', cssClass: 'text-danger' });
+      items.push({ id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'text-danger' });
     }
 
     // Imprimir: siempre disponible
-    items.push({ id: 'print', label: 'Imprimir', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' });
+    items.push({ id: 'print', label: 'Imprimir', icon: ICON_PRINT });
 
-    // Sincronizar: si está enviada, aprobada o con error
-    if ([4, 5, 6, 7].includes(rend.U_Estado)) {
-      items.push({ id: 'sync', label: 'Sincronizar con SAP', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>' });
+    // Sincronizar desde ABIERTO (1): solo si puede sincronizar directo
+    if (rend.U_Estado === 1 && this.canSyncDirecto) {
+      items.push({ id: 'sync', label: 'Sincronizar', cssClass: 'text-success', icon: ICON_SYNC });
+    }
+
+    // Enviar a aprobación desde ABIERTO (1): solo si tiene aprobador configurado y no puede sincronizar directo
+    if (rend.U_Estado === 1 && this.canEnviar && !this.canSyncDirecto) {
+      items.push({ id: 'send', label: 'Enviar', cssClass: 'text-primary', icon: ICON_SEND });
+    }
+
+    // Reintentar sincronización: estado ERROR_SYNC (6)
+    if (rend.U_Estado === 6 && this.canSyncDirecto) {
+      items.push({ id: 'retry-sync', label: 'Reintentar Sincronización', cssClass: 'text-warning', icon: ICON_RETRY_SYNC });
+    }
+
+    // Sincronizar estados finales (7=APROBADO, 5=SINCRONIZADO): cualquiera con puedeSync
+    if ([4, 5, 7].includes(rend.U_Estado) && this.canSyncDirecto) {
+      items.push({ id: 'sync', label: 'Sincronizar con SAP', icon: ICON_SYNC_SAP });
     }
 
     return items;

@@ -2,7 +2,8 @@ import {
   Component,
   OnInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
+  TemplateRef,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -16,19 +17,24 @@ import {
 import { NormasService } from '@services/normas.service';
 import { DimensionesService } from '@services/dimensiones.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
 import { NormaConDimension } from '@models/norma.model';
 import { Dimension } from '@models/dimension.model';
-import { AuthService } from '../../auth/auth.service';
-import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
-import { LoadingStateComponent } from '@shared/loading-state';
-import { ActionMenuItem } from '@shared/action-menu';
+import { AuthService } from '@auth/auth.service';
+
 import { FormModalComponent } from '@shared/form-modal';
 import { StatusBadgeComponent } from '@shared/status-badge';
 import { FormFieldComponent } from '@shared/form-field';
 import { FormDirtyService } from '@shared/form-dirty';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state/crud-empty-state.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { ICON_EDIT, ICON_TRASH, ICON_TOGGLE_ON } from '@common/constants/icons';
 
-import { NormasFiltersComponent, NormasTableComponent } from './components';
+import { NormasFiltersComponent } from './components';
 
 @Component({
   standalone: true,
@@ -37,47 +43,35 @@ import { NormasFiltersComponent, NormasTableComponent } from './components';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    ConfirmDialogComponent,
-    LoadingStateComponent,
+    CrudPageHeaderComponent,
+    CrudEmptyStateComponent,
     FormModalComponent,
     FormFieldComponent,
     NormasFiltersComponent,
-    NormasTableComponent,
+    DataTableComponent,
+    StatusBadgeComponent,
   ],
   templateUrl: './normas.component.html',
   styleUrls: ['./normas.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NormasComponent implements OnInit {
-  normas: NormaConDimension[] = [];
-  filtered: NormaConDimension[] = [];
-  paged: NormaConDimension[] = [];
+export class NormasComponent extends AbstractCrudListComponent<NormaConDimension> implements OnInit {
+  @ViewChild('codeCol', { static: true }) codeCol!: TemplateRef<any>;
+  @ViewChild('descCol', { static: true }) descCol!: TemplateRef<any>;
+  @ViewChild('dimensionCol', { static: true }) dimensionCol!: TemplateRef<any>;
+  @ViewChild('estadoCol', { static: true }) estadoCol!: TemplateRef<any>;
+
+  readonly store = new CrudListStore<NormaConDimension>({ limit: 10, searchFields: ['factorCode', 'descripcion', 'dimensionName'] });
   dimensiones: Dimension[] = [];
-  search = '';
-  loadingState: 'idle' | 'loading' | 'success' | 'empty' | 'error' = 'idle';
-  filterActiva: 'todas' | 'activas' | 'inactivas' = 'todas';
 
-  estadoOptions: SelectOption<'todas' | 'activas' | 'inactivas'>[] = [
-    { value: 'todas', label: 'Todas', icon: '🔍' },
-    { value: 'activas', label: 'Activas', icon: '✅' },
-    { value: 'inactivas', label: 'Inactivas', icon: '⭕' },
-  ];
-
-  // Paginación
-  page = 1;
-  limit = 10;
-  totalPages = 1;
+  tableConfig!: DataTableConfig;
 
   showForm = false;
   editingNorma: NormaConDimension | null = null;
   isSaving = false;
   form!: FormGroup;
 
-  private initialValues: any = null;
-
-  showDialog = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
+  private initialValues: Record<string, unknown> | null = null;
 
   constructor(
     public auth: AuthService,
@@ -85,16 +79,21 @@ export class NormasComponent implements OnInit {
     private dimensionesService: DimensionesService,
     private toast: ToastService,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
     private dirtyService: FormDirtyService,
-  ) {}
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
     this.buildForm();
     this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
+    this.buildTableConfig();
     Promise.resolve().then(() => {
       this.load();
       this.loadDimensiones();
+      this._applyActivaFilter();
     });
   }
 
@@ -106,6 +105,12 @@ export class NormasComponent implements OnInit {
 
   get isAdmin(): boolean {
     return this.auth.role === 'ADMIN';
+  }
+
+  get loadingState(): 'idle' | 'loading' | 'success' | 'empty' | 'error' {
+    if (this.store.loading()) return 'loading';
+    if (this.store.loadError()) return 'error';
+    return this.store.filtered().length > 0 ? 'success' : 'empty';
   }
 
   get dimensionesActivas(): Dimension[] {
@@ -133,21 +138,7 @@ export class NormasComponent implements OnInit {
   // ── CRUD ─────────────────────────────────────────────────
 
   load(onComplete?: () => void) {
-    this.loadingState = 'loading';
-    this.cdr.markForCheck();
-    
-    this.normasService.getNormas().subscribe({
-      next: (data) => {
-        this.normas = data;
-        this.applyFilter();
-        onComplete?.();
-      },
-      error: () => {
-        this.loadingState = 'error';
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-    });
+    this.store.load(this.normasService.getNormas(), onComplete);
   }
 
   loadDimensiones() {
@@ -162,64 +153,8 @@ export class NormasComponent implements OnInit {
     });
   }
 
-  applyFilter() {
-    let result = this.normas;
-
-    // Filtro de búsqueda por texto
-    const q = this.search.toLowerCase().trim();
-    if (q) {
-      result = result.filter(
-        (n) =>
-          n.factorCode.toLowerCase().includes(q) ||
-          n.descripcion.toLowerCase().includes(q) ||
-          n.dimensionName.toLowerCase().includes(q),
-      );
-    }
-
-    // Filtro por estado activa
-    if (this.filterActiva === 'activas') {
-      result = result.filter((n) => n.activa);
-    } else if (this.filterActiva === 'inactivas') {
-      result = result.filter((n) => !n.activa);
-    }
-
-    this.filtered = result;
-    this.page = 1;
-    this.updatePaging();
-    // Set estado success o empty según haya resultados
-    this.loadingState = this.filtered.length > 0 ? 'success' : 'empty';
-    this.cdr.markForCheck();
-  }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number) {
-    this.page = p;
-    this.updatePaging();
-  }
-  onLimitChange(l: number) {
-    this.limit = l;
-    this.page = 1;
-    this.updatePaging();
-  }
-
-  onFilterActivaChange(value: string) {
-    this.filterActiva = value as 'todas' | 'activas' | 'inactivas';
-    this.applyFilter();
-  }
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
+  protected override getActiva(item: NormaConDimension): boolean {
+    return item.activa;
   }
 
   // ── Formulario ───────────────────────────────────────────
@@ -283,9 +218,7 @@ export class NormasComponent implements OnInit {
           },
           error: (err: any) => {
             this.isSaving = false;
-            const msg = err?.error?.message || 'Error al actualizar norma';
-            this.toast.error(msg);
-            this.cdr.markForCheck();
+            this.errorHandler.handle(err, 'Error al actualizar norma', this.cdr);
           },
         });
     } else {
@@ -307,9 +240,7 @@ export class NormasComponent implements OnInit {
           },
           error: (err: any) => {
             this.isSaving = false;
-            const msg = err?.error?.message || 'Error al crear norma';
-            this.toast.error(msg);
-            this.cdr.markForCheck();
+            this.errorHandler.handle(err, 'Error al crear norma', this.cdr);
           },
         });
     }
@@ -325,94 +256,68 @@ export class NormasComponent implements OnInit {
         this.load();
         this.cdr.markForCheck();
       },
-      error: (err: any) => {
-        const msg = err?.error?.message || 'Error al cambiar estado';
-        this.toast.error(msg);
-        this.cdr.markForCheck();
-      },
+      error: (err: any) => this.errorHandler.handle(err, 'Error al cambiar estado', this.cdr),
     });
   }
 
   // ── Eliminar ─────────────────────────────────────────────
 
   confirmDelete(n: NormaConDimension) {
-    this.openDialog(
-      {
-        title: '¿Eliminar norma?',
-        message: `Se eliminará la norma "${n.factorCode} - ${n.descripcion}" de forma permanente.`,
-        confirmLabel: 'Sí, eliminar',
-        type: 'danger',
-      },
-      () => {
-        this.normasService.eliminarNorma(n.factorCode).subscribe({
-          next: () => {
-            this.toast.exito('Norma eliminada');
-            this.load();
-            this.cdr.markForCheck();
-          },
-          error: (err: any) => {
-            const msg = err?.error?.message || 'Error al eliminar norma';
-            this.toast.error(msg);
-            this.cdr.markForCheck();
-          },
-        });
-      },
-    );
+    this.confirmDialog.ask({
+      title: '¿Eliminar norma?',
+      message: `Se eliminará la norma "${n.factorCode} - ${n.descripcion}" de forma permanente.`,
+      confirmLabel: 'Sí, eliminar',
+      type: 'danger',
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.normasService.eliminarNorma(n.factorCode).subscribe({
+        next: () => {
+          this.toast.exito('Norma eliminada');
+          this.load();
+          this.cdr.markForCheck();
+        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar norma', this.cdr),
+      });
+    });
   }
 
-  // ── Action Menu ──────────────────────────────────────────
-
-  getActionMenuItems(n: NormaConDimension): ActionMenuItem[] {
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: 'toggle',
-        label: n.activa ? 'Desactivar' : 'Activar',
-        icon: n.activa
-          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>'
-          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.64 17.36a9 9 0 1 1 12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-        cssClass: 'text-danger',
-      },
-    ];
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'factorCode', header: 'Código', cellTemplate: this.codeCol, mobile: { primary: true } },
+        { key: 'descripcion', header: 'Nombre', cellTemplate: this.descCol },
+        { key: 'dimensionName', header: 'Dimensión', cellTemplate: this.dimensionCol, mobile: { hide: true } },
+        { key: 'activa', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+        {
+          id: 'toggle',
+          label: 'Activar/Desactivar',
+          icon: ICON_TOGGLE_ON,
+        },
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
 
-  onActionClick(action: string, n: NormaConDimension): void {
-    switch (action) {
+  onTableAction(event: { action: string; item: NormaConDimension }): void {
+    switch (event.action) {
       case 'edit':
-        this.openEdit(n);
+        this.openEdit(event.item);
         break;
       case 'toggle':
-        this.toggleActiva(n);
+        this.toggleActiva(event.item);
         break;
       case 'delete':
-        this.confirmDelete(n);
+        this.confirmDelete(event.item);
         break;
     }
   }
 
-  // ── Dialog ───────────────────────────────────────────────
+  rowClassFn = (n: NormaConDimension): string => (!n.activa ? 'inactive-row' : '');
 
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig = config;
-    this._pendingAction = onConfirm;
-    this.showDialog = true;
-  }
-  onDialogConfirm() {
-    this.showDialog = false;
-    this._pendingAction?.();
-    this._pendingAction = null;
-  }
-  onDialogCancel() {
-    this.showDialog = false;
-    this._pendingAction = null;
-  }
 }

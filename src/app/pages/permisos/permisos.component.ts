@@ -1,31 +1,46 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { PermisosService } from './permisos.service';
 import { ToastService }    from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
 import { Permiso, UsuarioSimple } from '@models/permiso.model';
 import { Perfil } from '@models/perfil.model';
 import { SelectOption } from '@shared/app-select/app-select.component';
 import { AuthService } from '@auth/auth.service';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { ICON_TRASH } from '@common/constants/icons';
 
-import { PermisosFilterComponent, PermisosListComponent } from './components';
+import { PermisosFilterComponent } from './components';
 
 @Component({
   standalone: true,
   selector: 'app-permisos',
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, PermisosFilterComponent, PermisosListComponent],
+  imports: [CommonModule, FormsModule, PermisosFilterComponent, DataTableComponent, StatusBadgeComponent, CrudPageHeaderComponent],
   templateUrl: './permisos.component.html',
   styleUrls: ['./permisos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PermisosComponent implements OnInit {
+export class PermisosComponent extends AbstractCrudListComponent<Permiso> implements OnInit {
+
+  readonly store = new CrudListStore<Permiso>({
+    limit: 999,
+    searchFields: ['U_NOMBREPERFIL'],
+  });
+
+  @ViewChild('estadoCol', { static: true }) estadoCol!: TemplateRef<any>;
+
+  tableConfig!: DataTableConfig;
 
   // ── Datos ────────────────────────────────────────────────
   usuarios:  UsuarioSimple[] = [];
   perfiles:  Perfil[]        = [];
-  permisos:  Permiso[]       = [];
 
   // ── Options cacheadas (evitar nuevo array en cada ciclo de detección)
   usuarioOptions:           SelectOption[] = [];
@@ -34,26 +49,40 @@ export class PermisosComponent implements OnInit {
   // ── Selección ────────────────────────────────────────────
   selectedUsuarioId: number | null = null;
   selectedPerfilId:  number | null = null;
-  loading    = false;
   isSaving   = false;
-
-  // ── Confirm dialog ────────────────────────────────────────
-  showDialog    = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
 
   constructor(
     public  auth: AuthService,
     private service: PermisosService,
     private toast:   ToastService,
-    private cdr:     ChangeDetectorRef,
-  ) {}
+    protected override cdr: ChangeDetectorRef,
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
+    this.buildTableConfig();
     Promise.resolve().then(() => {
       this.loadUsuarios();
       this.loadPerfiles();
     });
+  }
+
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'U_NOMBREPERFIL', header: 'Perfil' },
+        { key: 'estado', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'text-danger' },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
 
   // ── Helpers ───────────────────────────────────────────────
@@ -67,7 +96,7 @@ export class PermisosComponent implements OnInit {
   }
 
   get perfilesDisponibles(): Perfil[] {
-    const asignados = new Set(this.permisos.map(p => p.U_IDPERFIL));
+    const asignados = new Set(this.store.items().map((p: Permiso) => p.U_IDPERFIL));
     return this.perfiles.filter(p => !asignados.has(p.U_CodPerfil));
   }
 
@@ -128,16 +157,10 @@ export class PermisosComponent implements OnInit {
   }
 
   loadPermisos() {
-    if (!this.selectedUsuarioId) { this.permisos = []; return; }
-    this.loading = true;
-    this.service.getByUsuario(this.selectedUsuarioId).subscribe({
-      next: (data) => {
-        this.permisos = data;
-        this.loading  = false;
-        this.rebuildPerfilOptions();
-        this.cdr.markForCheck();
-      },
-      error: () => { this.loading = false; this.cdr.markForCheck(); },
+    if (!this.selectedUsuarioId) { this.store.setItems([]); return; }
+    this.store.load(this.service.getByUsuario(this.selectedUsuarioId), () => {
+      this.rebuildPerfilOptions();
+      this.cdr.markForCheck();
     });
   }
 
@@ -157,10 +180,7 @@ export class PermisosComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al asignar permiso');
-          }
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al asignar permiso', this.cdr);
         },
       });
   }
@@ -168,50 +188,25 @@ export class PermisosComponent implements OnInit {
   // ── Eliminar permiso ──────────────────────────────────────
 
   confirmRemove(p: Permiso) {
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        '¿Eliminar permiso?',
       message:      `Se quitará el acceso al perfil "${p.U_NOMBREPERFIL}" del usuario seleccionado.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.service.remove(p.U_IDUSUARIO, p.U_IDPERFIL).subscribe({
         next:  () => { this.toast.exito('Permiso eliminado'); this.loadPermisos(); this.cdr.markForCheck(); },
-        error: (err: any) => {
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al eliminar');
-          }
-          this.cdr.markForCheck();
-        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar', this.cdr),
       });
     });
   }
 
-  // ── Dialog ────────────────────────────────────────────────
+  // ── Acciones tabla ───────────────────────────────────────
 
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
-
-  // ── Action Menu ───────────────────────────────────────────
-
-  getActionMenuItems(p: Permiso): any[] {
-    return [
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-        cssClass: 'danger',
-      },
-    ];
-  }
-
-  onActionClick(actionId: string, p: Permiso): void {
-    if (actionId === 'delete') {
-      this.confirmRemove(p);
+  onTableAction(event: { action: string; item: Permiso }): void {
+    if (event.action === 'delete') {
+      this.confirmRemove(event.item);
     }
   }
 }

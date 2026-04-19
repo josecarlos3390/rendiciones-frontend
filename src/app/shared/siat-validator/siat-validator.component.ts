@@ -19,12 +19,12 @@ export interface ValidacionSiatResult {
     fecha?: string;
     monto?: number;
   };
-  discrepancias: Array<{
+  discrepancias: {
     campo: string;
     pdf: string | number;
     siat: string | number;
     explicacion: string;
-  }>;
+  }[];
   recomendacion: string;
   riesgo: 'bajo' | 'medio' | 'alto';
 }

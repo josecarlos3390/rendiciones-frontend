@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ClasificacionSugeridaResponse } from '../../services/ai.service';
+import { ClasificacionSugeridaResponse } from '@services/ai.service';
 
 /**
  * Componente de sugerencia de IA para clasificación de gastos

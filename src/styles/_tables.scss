@@ -82,7 +82,6 @@ $table-mobile-shadow: var(--shadow-card);
 .table-scroll-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   background: var(--bg-surface);
   box-shadow: var(--shadow-sm);
@@ -117,9 +116,6 @@ $table-mobile-shadow: var(--shadow-card);
     position: sticky;
     top: 0;
     z-index: 10;
-
-    &:first-child { border-top-left-radius: var(--radius-lg); }
-    &:last-child { border-top-right-radius: var(--radius-lg); }
   }
 
   td {
@@ -131,8 +127,6 @@ $table-mobile-shadow: var(--shadow-card);
   }
 
   tbody tr:last-child td { border-bottom: none; }
-  tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius-lg); }
-  tbody tr:last-child td:last-child { border-bottom-right-radius: var(--radius-lg); }
   tbody tr:hover td { background: var(--bg-faint); }
 
   .col-checkbox { width: 40px; text-align: center; }
@@ -153,6 +147,10 @@ $table-mobile-shadow: var(--shadow-card);
 .data-table th.col-acciones-adjuntos {
   overflow: visible !important;
   position: relative;
+  text-align: center;
+  vertical-align: middle;
+  width: 60px;
+  min-width: 60px;
 }
 
 // ========================================

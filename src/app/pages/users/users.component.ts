@@ -1,72 +1,94 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
+  TemplateRef, ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { UsersService } from './users.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
 import { AuthService } from '@auth/auth.service';
 import { SkeletonLoaderComponent } from '@shared/skeleton-loader/skeleton-loader.component';
-import { ActionMenuItem } from '@shared/action-menu';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state/crud-empty-state.component';
 import { User } from '@models/user.model';
 import { SapService, DimensionWithRules } from '@services/sap.service';
 import { UserFormComponent } from './user-form/user-form.component';
-import { UsersFiltersComponent, UsersTableComponent } from './components';
+import { UsersFiltersComponent } from './components/users-filters.component';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { ICON_EDIT, ICON_TOGGLE_ON, ICON_TOGGLE_OFF } from '@common/constants/icons';
 
 @Component({
   standalone: true,
   selector: 'app-users',
   imports: [
     CommonModule, FormsModule,
-    ConfirmDialogComponent,
-    SkeletonLoaderComponent, UserFormComponent,
-    UsersFiltersComponent, UsersTableComponent,
+    SkeletonLoaderComponent, CrudPageHeaderComponent, CrudEmptyStateComponent,
+    UserFormComponent, UsersFiltersComponent,
+    DataTableComponent, StatusBadgeComponent,
   ],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UsersComponent implements OnInit {
-  users:    User[] = [];
-  filtered: User[] = [];
-  paged:    User[] = [];
-  search   = '';
-  loading   = false;
-  loadError = false;
+export class UsersComponent extends AbstractCrudListComponent<User> implements OnInit {
+  readonly store = new CrudListStore<User>({ limit: 10, searchFields: ['U_NomUser', 'U_Login'] });
+  tableConfig!: DataTableConfig;
+
+  @ViewChild('usuarioCol', { static: true }) usuarioCol!: TemplateRef<any>;
+  @ViewChild('tipoCol',   { static: true }) tipoCol!:   TemplateRef<any>;
+  @ViewChild('modulosCol',{ static: true }) modulosCol!:TemplateRef<any>;
+  @ViewChild('estadoCol', { static: true }) estadoCol!: TemplateRef<any>;
+  @ViewChild('expiraCol', { static: true }) expiraCol!: TemplateRef<any>;
 
   // Dimensiones SAP (NR1..NR5) — se pasan al form
   dimensions:  DimensionWithRules[] = [];
   loadingDims  = false;
-
-  // Paginacion
-  page       = 1;
-  limit      = 10;
-  totalPages = 1;
 
   // Form state
   showForm     = false;
   editingUser: User | null = null;
   isSaving     = false;
 
-  // Dialog
-  showDialog   = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
-
   constructor(
     private usersService: UsersService,
     private toast:        ToastService,
-    protected  auth:      AuthService,
-    private cdr:          ChangeDetectorRef,
+    protected auth:       AuthService,
+    protected override cdr: ChangeDetectorRef,
     private sapService:   SapService,
-  ) {}
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
+    this.buildTableConfig();
     Promise.resolve().then(() => {
       this.load();
       this.loadDimensions();
+      this._applyActivaFilter();
     });
   }
+
+  protected override getActiva(item: User): boolean {
+    return item.U_Estado === '1';
+  }
+
+  get loadingState(): 'idle' | 'loading' | 'success' | 'empty' | 'error' {
+    if (this.store.loading()) return 'loading';
+    if (this.store.loadError()) return 'error';
+    return this.store.filtered().length > 0 ? 'success' : 'empty';
+  }
+
+  rowClassFn = (item: User): string => {
+    return item.U_Estado !== '1' ? 'row-inactive' : '';
+  };
 
   // ── Dimensiones SAP ───────────────────────────────────────
   loadDimensions() {
@@ -98,6 +120,12 @@ export class UsersComponent implements OnInit {
     return 'Inactivo';
   }
 
+  getBadgeType(u: User): 'success' | 'danger' | 'neutral' {
+    if (u.U_Estado === '1') return 'success';
+    if (u.U_Estado === '2') return 'danger';
+    return 'neutral';
+  }
+
   isExpired(u: User): boolean {
     if (!u.U_FECHAEXPIRACION) return false;
     return new Date(u.U_FECHAEXPIRACION) < new Date();
@@ -105,54 +133,11 @@ export class UsersComponent implements OnInit {
 
   // ── CRUD ─────────────────────────────────────────────────
   load(onComplete?: () => void) {
-    this.loading   = true;
-    this.loadError = false;
-    this.usersService.getAll().subscribe({
-      next: (users) => {
-        this.users   = users;
-        this.loading = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-      error: () => {
-        this.loading   = false;
-        this.loadError = true;
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
+    this.store.load(this.usersService.getAll(), () => {
+      this.cdr.markForCheck();
+      onComplete?.();
     });
   }
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
-  }
-
-  applyFilter() {
-    const q = this.search.toLowerCase();
-    this.filtered = this.users.filter(u =>
-      (u.U_NomUser ?? '').toLowerCase().includes(q) ||
-      (u.U_Login   ?? '').toLowerCase().includes(q),
-    );
-    this.page = 1;
-    this.updatePaging();
-    this.cdr.markForCheck();
-  }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); this.cdr.markForCheck(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); this.cdr.markForCheck(); }
 
   // ── Formulario ───────────────────────────────────────────
   openNew() {
@@ -211,10 +196,7 @@ export class UsersComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al actualizar usuario');
-          }
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al actualizar usuario', this.cdr);
         },
       });
     } else {
@@ -229,10 +211,7 @@ export class UsersComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al crear usuario');
-          }
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al crear usuario', this.cdr);
         },
       });
     }
@@ -241,67 +220,67 @@ export class UsersComponent implements OnInit {
   // ── Dialog ───────────────────────────────────────────────
   confirmToggleStatus(u: User) {
     const isActive = u.U_Estado === '1';
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        isActive ? 'Inactivar usuario?' : 'Activar usuario?',
       message:      isActive
         ? u.U_NomUser + ' no podra iniciar sesion.'
         : u.U_NomUser + ' podra iniciar sesion nuevamente.',
       confirmLabel: isActive ? 'Si, inactivar' : 'Si, activar',
       type:         isActive ? 'warning' : 'primary',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.usersService.toggleStatus(u.U_IdU, isActive ? '0' : '1', u).subscribe({
         next:  () => {
           this.toast.exito(isActive ? 'Usuario inactivado' : 'Usuario activado');
           this.load();
           this.cdr.markForCheck();
         },
-        error: (err: any) => {
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al cambiar estado');
-          }
-          this.cdr.markForCheck();
-        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al cambiar estado', this.cdr),
       });
     });
   }
 
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
+  // ── Data Table ───────────────────────────────────────────
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'U_Login', header: 'Usuario', cellTemplate: this.usuarioCol, mobile: { primary: true, order: 1 } },
+        { key: 'U_SuperUser', header: 'Tipo', align: 'center', cellTemplate: this.tipoCol, mobile: { order: 2 } },
+        { key: 'modulos', header: 'Módulos', align: 'center', cellTemplate: this.modulosCol, mobile: { hide: true } },
+        { key: 'U_Estado', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+        { key: 'U_FECHAEXPIRACION', header: 'Expira', align: 'center', cellTemplate: this.expiraCol, mobile: { hide: true } },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+        {
+          id: 'activate',
+          label: 'Activar',
+          icon: ICON_TOGGLE_ON,
+          cssClass: 'text-success',
+          condition: (u) => !this.isActive(u),
+        },
+        {
+          id: 'deactivate',
+          label: 'Desactivar',
+          icon: ICON_TOGGLE_OFF,
+          cssClass: 'text-danger',
+          condition: (u) => this.isActive(u),
+        },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 
-  // ── Action Menu ───────────────────────────────────────────
-  getActionMenuItems(u: User): ActionMenuItem[] {
-    const isActive = this.isActive(u);
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: isActive ? 'deactivate' : 'activate',
-        label: isActive ? 'Inactivar' : 'Activar',
-        icon: isActive
-          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.64 17.36a9 9 0 1 1 12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>'
-          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>',
-        cssClass: isActive ? 'text-danger' : 'text-success',
-      },
-
-    ];
-  }
-
-  onActionClick(action: string, u: User) {
-    switch (action) {
+  onTableAction(event: { action: string; item: User }): void {
+    switch (event.action) {
       case 'edit':
-        this.openEdit(u);
+        this.openEdit(event.item);
         break;
       case 'activate':
       case 'deactivate':
-        this.confirmToggleStatus(u);
+        this.confirmToggleStatus(event.item);
         break;
     }
   }

@@ -61,7 +61,7 @@ export function calcLine(
   invoiced:     boolean,
   discountPct?: number | null,
   discountAmt?: number | null,
-  useSinTaxCalculation: boolean = false,
+  useSinTaxCalculation = false,
 ): LineCalc {
   const priceBase = price * quantity;
 
@@ -103,7 +103,7 @@ export function calcDocTotalsWithHeader(
   invoiced:             boolean,
   headerDiscountPct?:   number | null,
   headerDiscountAmt?:   number | null,
-  useSinTaxCalculation: boolean = false,
+  useSinTaxCalculation = false,
 ): DocTotals {
   const grossNet = lines.reduce((s, l) => s + l.lineNet, 0);
 

@@ -1,14 +1,9 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Dimensiones</h2>
-    <p class="page-subtitle">Administra las dimensiones para normas de reparto en modo OFFLINE.</p>
-  </div>
-  <button *ngIf="isAdmin" class="btn btn-primary btn-sm" (click)="openNew()">+ Nueva Dimensión</button>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Dimensiones"
+  subtitle="Administra las dimensiones para normas de reparto en modo OFFLINE."
+  [actionLabel]="isAdmin ? '+ Nueva Dimensión' : null"
+  (actionClick)="openNew()">
+</app-crud-page-header>
 
 <!-- ── Modal ─────────────────────────────────────────────────── -->
 <app-form-modal
@@ -84,35 +79,54 @@
 
 <!-- ── Filtros ── -->
 <app-dimensiones-filters
-  [search]="search"
+  [search]="store.search()"
   [filterActiva]="filterActiva"
   [estadoOptions]="estadoOptions"
-  [count]="filtered.length"
-  [loading]="loading"
+  [count]="store.filtered().length"
+  [loading]="store.loading()"
   (searchChange)="onSearchChange($event)"
   (estadoChange)="onFilterActivaChange($event)"
-  (reset)="onSearchCleared()">>
+  (reset)="onSearchCleared()">
 </app-dimensiones-filters>
 
-<!-- ── Loading / Error / Empty ── -->
-<div *ngIf="loading" class="empty-state">Cargando dimensiones...</div>
-<div *ngIf="!loading && loadError" class="empty-state">
-  Error al cargar los datos.
-  <a (click)="load()">Reintentar</a>
-</div>
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-  No hay dimensiones registradas.
-  <a *ngIf="isAdmin" (click)="openNew()">Crear la primera</a>
-</div>
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando dimensiones..."
+  errorText="Error al cargar los datos."
+  emptyText="No hay dimensiones registradas."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a *ngIf="isAdmin" (click)="openNew()">Crear la primera</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ── -->
-<app-dimensiones-table
-  *ngIf="!loading && !loadError && filtered.length > 0"
-  [items]="paged"
-  [page]="page"
-  [totalPages]="totalPages"
-  [isReadonly]="!isAdmin"
+<ng-template #codeCol let-item>
+  <span class="code-tag">{{ item.code }}</span>
+</ng-template>
+<ng-template #nameCol let-item>
+  {{ item.name }}
+</ng-template>
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="item.activa ? 'success' : 'neutral'" [dot]="true">
+    {{ item.activa ? 'Activa' : 'Inactiva' }}
+  </app-status-badge>
+</ng-template>
+
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
   (pageChange)="onPageChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmDelete($event)">
-</app-dimensiones-table>
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>

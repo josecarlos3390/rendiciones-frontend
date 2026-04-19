@@ -1,14 +1,10 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Plan de Cuentas (COA)</h2>
-    <p class="page-subtitle">Administra las cuentas contables para uso en modo OFFLINE.</p>
-  </div>
-  <button *ngIf="isAdmin" class="btn btn-primary btn-sm" (click)="openNew()">+ Nueva Cuenta</button>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Plan de Cuentas (COA)"
+  subtitle="Administra las cuentas contables para uso en modo OFFLINE."
+  actionLabel="+ Nueva Cuenta"
+  [actionDisabled]="!isAdmin"
+  (actionClick)="openNew()">
+</app-crud-page-header>
 
 <!-- ── Modal con FormModalComponent ─────────────────────────────── -->
 <app-form-modal
@@ -86,38 +82,61 @@
 
 <!-- ── Filtros ── -->
 <app-coa-filters
-  [search]="search"
+  [search]="store.search()"
   [filterActiva]="filterActiva"
   [estadoOptions]="estadoOptions"
-  [count]="filtered.length"
-  [loading]="loading"
+  [count]="store.filtered().length"
+  [loading]="store.loading()"
   (searchChange)="onSearchChange($event)"
   (searchCleared)="onSearchCleared()"
   (estadoChange)="onFilterActivaChange($event)">
 </app-coa-filters>
 
 <!-- ── Estados ── -->
-<div *ngIf="loading" class="empty-state">Cargando cuentas...</div>
-<div *ngIf="!loading && loadError" class="empty-state">
-  No se pudo cargar la lista de cuentas.
-  <a (click)="load()">Reintentar</a>
-</div>
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-  No hay cuentas registradas.
-  <ng-container *ngIf="isAdmin"><a (click)="openNew()">Crear la primera</a></ng-container>
-</div>
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando cuentas..."
+  errorText="No se pudo cargar la lista de cuentas."
+  emptyText="No hay cuentas registradas."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a *ngIf="isAdmin" (click)="openNew()">Crear la primera</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ── -->
-<app-coa-table
-  *ngIf="!loading && !loadError && filtered.length > 0"
-  [items]="paged"
-  [page]="page"
-  [limit]="limit"
-  [total]="filtered.length"
-  [totalPages]="totalPages"
-  [canEdit]="isAdmin"
+<ng-template #codeCol let-item>
+  <span class="code-tag">{{ item.code }}</span>
+</ng-template>
+<ng-template #nameCol let-item>
+  {{ item.name }}
+</ng-template>
+<ng-template #formatCodeCol let-item>
+  {{ item.formatCode || '—' }}
+</ng-template>
+<ng-template #asociadaCol let-item>
+  <app-boolean-badge [value]="item.asociada" />
+</ng-template>
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="item.activa ? 'success' : 'neutral'" [dot]="true">
+    {{ item.activa ? 'Activa' : 'Inactiva' }}
+  </app-status-badge>
+</ng-template>
+
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
   (pageChange)="onPageChange($event)"
   (limitChange)="onLimitChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmDelete($event)">
-</app-coa-table>
+  (action)="onTableAction($event)">
+</app-data-table>

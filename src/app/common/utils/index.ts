@@ -2,14 +2,12 @@
  * Utilidades y funciones helper globales
  */
 
-import { DATE_FORMATS } from '../constants';
-
 // ═══════════════════════════════════════════════════════════════
 // NÚMEROS Y CÁLCULOS
 // ═══════════════════════════════════════════════════════════════
 
 /** Convierte cualquier valor a número, retorna 0 si es inválido */
-export function toNumber(value: any): number {
+export function toNumber(value: unknown): number {
   const n = Number(value);
   return isNaN(n) ? 0 : n;
 }
@@ -162,8 +160,13 @@ export function uniqueBy<T>(array: T[], key: keyof T): T[] {
 }
 
 /** Busca recursivamente en objeto anidado */
-export function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((acc, part) => acc?.[part], obj);
+export function getNestedValue(obj: unknown, path: string): unknown {
+  return path.split('.').reduce((acc: unknown, part) => {
+    if (acc && typeof acc === 'object') {
+      return (acc as Record<string, unknown>)[part];
+    }
+    return undefined;
+  }, obj);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -189,7 +192,7 @@ export function isNotEmpty(value: string | null | undefined): boolean {
 }
 
 /** Valida que sea número positivo */
-export function isPositiveNumber(value: any): boolean {
+export function isPositiveNumber(value: unknown): boolean {
   const n = Number(value);
   return !isNaN(n) && n > 0;
 }
@@ -214,7 +217,7 @@ export function calcularLinea(
   invoiced: boolean,
   discountPct?: number | null,
   discountAmt?: number | null,
-  useSinTaxCalculation: boolean = false,
+  useSinTaxCalculation = false,
 ): LineCalc {
   const TAX_RATE_STANDARD = 13 / 87;
   const TAX_RATE_SIN = 0.13;

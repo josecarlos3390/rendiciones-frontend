@@ -1,45 +1,41 @@
 import {
-  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild,
+  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, TemplateRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 
-// Path Aliases - Services (Models incluidos en el servicio)
-import { 
-  IntegracionService, 
-  RendPendiente, 
-  RendicionSync, 
-  RendSync, 
-  SyncResult 
+import {
+  IntegracionService,
+  RendPendiente,
+  RendicionSync,
+  RendSync,
+  SyncResult,
 } from '@services/integracion.service';
-
-// Path Aliases - Core
 import { ToastService } from '@core/toast/toast.service';
-
-// Path Aliases - Shared
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
 import { SyncModalComponent } from '@shared/sync-modal';
+import { AuthService } from '@auth/auth.service';
+import { ICON_VIEW, ICON_HISTORY, ICON_SYNC, ICON_RETRY_SYNC } from '@common/constants/icons';
 
-// Auth (path alias relativo por compatibilidad)
-import { AuthService } from '../../auth/auth.service';
-
-// Dumb Components locales (Smart/Dumb pattern)
+// Dumb Components locales
 import {
   IntegracionHeaderComponent,
   IntegracionLoadingComponent,
   IntegracionErrorComponent,
   IntegracionEmptyComponent,
   IntegracionFilterBarComponent,
-  IntegracionPendientesTableComponent,
-  IntegracionUserTableComponent,
   IntegracionHistorialModalComponent,
-  PendientesTableActionEvent,
-  UserTableActionEvent,
 } from './components';
+
+type IntegracionItem = RendPendiente | RendicionSync;
 
 /**
  * Smart Component: Integracion ERP
- * 
+ *
  * Contiene toda la logica de negocio, estado y efectos secundarios.
  * Los Dumb Components se encargan de la presentacion.
  */
@@ -48,45 +44,45 @@ import {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, 
-    RouterModule, 
-    // Shared
-    SyncModalComponent, 
-    // Dumb Components
+    CommonModule,
+    RouterModule,
+    DataTableComponent,
+    StatusBadgeComponent,
+    DdmmyyyyPipe,
+    SyncModalComponent,
     IntegracionHeaderComponent,
     IntegracionLoadingComponent,
     IntegracionErrorComponent,
     IntegracionEmptyComponent,
     IntegracionFilterBarComponent,
-    IntegracionPendientesTableComponent,
-    IntegracionUserTableComponent,
     IntegracionHistorialModalComponent,
   ],
   templateUrl: './integracion.component.html',
   styleUrl: './integracion.component.scss',
 })
-export class IntegracionComponent implements OnInit {
+export class IntegracionComponent extends AbstractCrudListComponent<IntegracionItem> implements OnInit {
 
-  // ── Vista segun rol ───────────────────────────────────
+  readonly store = new CrudListStore<IntegracionItem>({
+    limit: 10,
+    searchFields: ['U_NomUsuario', 'U_NombrePerfil', 'U_Objetivo', 'U_NroDocERP', 'U_IdRendicion'] as (keyof IntegracionItem)[],
+  });
+
+  @ViewChild('nroCol', { static: true }) nroCol!: TemplateRef<any>;
+  @ViewChild('usuarioCol', { static: true }) usuarioCol!: TemplateRef<any>;
+  @ViewChild('fechaIniCol', { static: true }) fechaIniCol!: TemplateRef<any>;
+  @ViewChild('fechaFinCol', { static: true }) fechaFinCol!: TemplateRef<any>;
+  @ViewChild('montoCol', { static: true }) montoCol!: TemplateRef<any>;
+  @ViewChild('estadoCol', { static: true }) estadoCol!: TemplateRef<any>;
+  @ViewChild('docSapCol', { static: true }) docSapCol!: TemplateRef<any>;
+
+  adminConfig!: DataTableConfig;
+  userConfig!: DataTableConfig;
+
   get isAdmin(): boolean { return this.auth.isAdmin; }
   get puedeSync(): boolean { return this.auth.puedeSync; }
-
-  // ── Estado general ────────────────────────────────────
-  // ADMIN: lista de pendientes para sincronizar
-  pendientes:  RendPendiente[] = [];
-  // USER: sus propias rendiciones en estados 3/5/6
-  misRend:     RendicionSync[] = [];
-
-  filtered:    (RendPendiente | RendicionSync)[] = [];
-  paged:       (RendPendiente | RendicionSync)[] = [];
-  search       = '';
-  loading      = false;
-  loadError    = false;
-
-  // Paginacion
-  page       = 1;
-  limit      = 10;
-  totalPages = 1;
+  get tableConfig(): DataTableConfig {
+    return (this.isAdmin || this.puedeSync) ? this.adminConfig : this.userConfig;
+  }
 
   // Modal historial
   showHistorial    = false;
@@ -94,7 +90,7 @@ export class IntegracionComponent implements OnInit {
   historialItems:  RendSync[] = [];
   loadingHistorial = false;
 
-  // Modal sincronizacion SAP (componente compartido)
+  // Modal sincronizacion SAP
   @ViewChild(SyncModalComponent) syncModal?: SyncModalComponent;
   selectedRend: RendPendiente | null = null;
 
@@ -102,95 +98,95 @@ export class IntegracionComponent implements OnInit {
     public  auth:      AuthService,
     private svc:       IntegracionService,
     private toast:     ToastService,
-    private cdr:       ChangeDetectorRef,
+    protected override cdr: ChangeDetectorRef,
     private router:    Router,
-  ) {}
+  ) {
+    super();
+  }
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.buildTableConfigs();
+    this.load();
+  }
+
+  // ── Configuracion de tabla ────────────────────────────────
+
+  private buildTableConfigs(): void {
+    this.adminConfig = {
+      columns: [
+        { key: 'U_IdRendicion', header: 'Nro', align: 'center', cellTemplate: this.nroCol, mobile: { primary: true } },
+        { key: 'U_NomUsuario', header: 'Usuario', cellTemplate: this.usuarioCol },
+        { key: 'U_NombrePerfil', header: 'Perfil', mobile: { hide: true } },
+        { key: 'U_Objetivo', header: 'Objetivo', mobile: { hide: true } },
+        { key: 'U_FechaIni', header: 'Fecha Inicio', align: 'center', cellTemplate: this.fechaIniCol, mobile: { hide: true } },
+        { key: 'U_FechaFinal', header: 'Fecha Final', align: 'center', cellTemplate: this.fechaFinCol, mobile: { hide: true } },
+        { key: 'U_Monto', header: 'Monto', align: 'right', cellTemplate: this.montoCol },
+        { key: 'U_Estado', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'ver-detalle', label: 'Ver detalle', icon: ICON_VIEW, cssClass: 'text-primary' },
+        { id: 'historial', label: 'Ver historial', icon: ICON_HISTORY },
+        { id: 'sincronizar', label: 'Sincronizar con ERP', icon: ICON_SYNC, cssClass: 'text-success', condition: (item: any) => item.U_Estado !== 6 },
+        { id: 'reintentar', label: 'Reintentar sincronización', icon: ICON_RETRY_SYNC, cssClass: 'text-warning', condition: (item: any) => item.U_Estado === 6 },
+      ],
+      striped: true,
+      hoverable: true,
+    };
+
+    this.userConfig = {
+      columns: [
+        { key: 'U_IdRendicion', header: 'Nro', align: 'center', cellTemplate: this.nroCol, mobile: { primary: true } },
+        { key: 'U_NombrePerfil', header: 'Perfil', mobile: { hide: true } },
+        { key: 'U_Objetivo', header: 'Objetivo', mobile: { hide: true } },
+        { key: 'U_FechaIni', header: 'Fecha Inicio', align: 'center', cellTemplate: this.fechaIniCol, mobile: { hide: true } },
+        { key: 'U_FechaFinal', header: 'Fecha Final', align: 'center', cellTemplate: this.fechaFinCol, mobile: { hide: true } },
+        { key: 'U_Monto', header: 'Monto', align: 'right', cellTemplate: this.montoCol },
+        { key: 'U_Estado', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+        { key: 'U_NroDocERP', header: 'Doc. SAP', align: 'center', cellTemplate: this.docSapCol, mobile: { hide: true } },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'ver-detalle', label: 'Ver detalle', icon: ICON_VIEW, cssClass: 'text-primary' },
+        { id: 'historial', label: 'Ver historial sync', icon: ICON_HISTORY },
+      ],
+      striped: true,
+      hoverable: true,
+    };
+  }
+
+  rowClassFn = (item: IntegracionItem): string => (item.U_Estado === 6 ? 'row-error' : '');
+
+  // ── Carga ─────────────────────────────────────────────────
 
   load() {
-    this.loading   = true;
-    this.loadError = false;
-    this.cdr.markForCheck();
+    const obs$ = (this.isAdmin || this.puedeSync)
+      ? this.svc.getPendientes()
+      : this.svc.getMisRendiciones();
 
-    if (this.isAdmin || this.puedeSync) {
-      this.svc.getPendientes().subscribe({
-        next: (data) => {
-          this.pendientes = data;
-          this.loading    = false;
-          this.applyFilter();
-          this.cdr.markForCheck();
-        },
-        error: () => { 
-          this.loading = false; 
-          this.loadError = true; 
-          this.cdr.markForCheck(); 
-        },
-      });
-    } else {
-      this.svc.getMisRendiciones().subscribe({
-        next: (data) => {
-          this.misRend = data;
-          this.loading = false;
-          this.applyFilter();
-          this.cdr.markForCheck();
-        },
-        error: () => { 
-          this.loading = false; 
-          this.loadError = true; 
-          this.cdr.markForCheck(); 
-        },
-      });
+    this.store.load(obs$, () => this.cdr.markForCheck());
+  }
+
+  // ── Acciones tabla ────────────────────────────────────────
+
+  onTableAction(event: { action: string; item: IntegracionItem }): void {
+    const item = event.item as RendPendiente;
+    switch (event.action) {
+      case 'ver-detalle':
+        this.router.navigate(['/rend-m', item.U_IdRendicion, 'detalle']);
+        break;
+      case 'historial':
+        this.openHistorial(item);
+        break;
+      case 'sincronizar':
+      case 'reintentar':
+        this.abrirSyncModal(item);
+        break;
     }
   }
 
-  // ── Busqueda y paginacion ─────────────────────────────
-  applyFilter() {
-    const q      = this.search.toLowerCase().trim();
-    const source = (this.isAdmin || this.puedeSync) ? this.pendientes : this.misRend;
-    this.filtered = q
-      ? source.filter((r: any) =>
-          (r.U_NomUsuario   ?? '').toLowerCase().includes(q) ||
-          (r.U_NombrePerfil ?? '').toLowerCase().includes(q) ||
-          (r.U_Objetivo     ?? '').toLowerCase().includes(q) ||
-          String(r.U_IdRendicion).includes(q)
-        )
-      : [...source];
-    this.page = 1;
-    this.updatePaging();
-    this.cdr.markForCheck();
-  }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged  = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number)  { 
-    this.page = p;  
-    this.updatePaging(); 
-    this.cdr.markForCheck(); 
-  }
-  
-  onLimitChange(l: number) { 
-    this.limit = l; 
-    this.page = 1; 
-    this.updatePaging(); 
-    this.cdr.markForCheck(); 
-  }
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
-  }
-
   // ── Modal sincronizacion SAP ─────────────────────────────
+
   abrirSyncModal(rend: RendPendiente) {
     this.selectedRend = rend;
     this.syncModal?.open({
@@ -202,11 +198,12 @@ export class IntegracionComponent implements OnInit {
     });
   }
 
-  onSyncComplete(res: SyncResult) {
+  onSyncComplete(_res: SyncResult) {
     this.load();
   }
 
-  // ── Historial ─────────────────────────────────────────
+  // ── Historial ───────────────────────────────────────────
+
   openHistorial(rend: RendPendiente) {
     this.historialRend    = rend;
     this.historialItems   = [];
@@ -220,9 +217,9 @@ export class IntegracionComponent implements OnInit {
         this.loadingHistorial = false;
         this.cdr.markForCheck();
       },
-      error: () => { 
-        this.loadingHistorial = false; 
-        this.cdr.markForCheck(); 
+      error: () => {
+        this.loadingHistorial = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -234,40 +231,23 @@ export class IntegracionComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  // ── Handlers para Dumb Components ─────────────────────
-  onPendientesAction(event: PendientesTableActionEvent): void {
-    const { action, item } = event;
-    switch (action) {
-      case 'ver-detalle':
-        this.router.navigate(['/rend-m', item.U_IdRendicion, 'detalle']);
-        break;
-      case 'historial':
-        this.openHistorial(item);
-        break;
-      case 'sincronizar':
-        this.abrirSyncModal(item);
-        break;
-    }
+  // ── Helpers visuales ─────────────────────────────────────
+
+  getEstadoBadgeType(estado: number): 'sync' | 'error' | 'success' | 'neutral' {
+    const map: Record<number, 'sync' | 'error' | 'success' | 'neutral'> = {
+      5: 'sync',
+      6: 'error',
+      7: 'success',
+    };
+    return map[estado] ?? 'neutral';
   }
 
-  onUserAction(event: UserTableActionEvent): void {
-    const { action, item } = event;
-    switch (action) {
-      case 'ver-detalle':
-        this.router.navigate(['/rend-m', item.U_IdRendicion, 'detalle']);
-        break;
-      case 'historial':
-        this.openHistorial(item);
-        break;
-    }
-  }
-
-  // ── Getters para templates ────────────────────────────
-  get pendientesPaged(): RendPendiente[] {
-    return this.paged as RendPendiente[];
-  }
-
-  get userPaged(): RendicionSync[] {
-    return this.paged as RendicionSync[];
+  getEstadoBadgeText(estado: number): string {
+    const map: Record<number, string> = {
+      5: 'SINCRONIZADO',
+      6: 'ERROR SYNC',
+      7: 'APROBADO',
+    };
+    return map[estado] ?? 'Estado ' + estado;
   }
 }

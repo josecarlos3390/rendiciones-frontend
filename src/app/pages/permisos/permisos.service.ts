@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Permiso, UsuarioSimple, CreatePermisoPayload } from '../../models/permiso.model';
-import { Perfil } from '../../models/perfil.model';
-import { environment } from '../../../environments/environment';
+import { Permiso, UsuarioSimple, CreatePermisoPayload } from '@models/permiso.model';
+import { Perfil } from '@models/perfil.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class PermisosService {

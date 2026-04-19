@@ -23,7 +23,7 @@ import { SearchInputComponent } from '@shared/debounce';
 
         <app-select
           [options]="estadoOptions"
-          [value]="filterActivo"
+          [value]="filterActiva"
           (valueChange)="onEstadoChange($event)">
         </app-select>
 
@@ -65,8 +65,8 @@ import { SearchInputComponent } from '@shared/debounce';
 })
 export class ProyectosFiltersComponent {
   @Input() search = '';
-  @Input() filterActivo: 'todos' | 'activos' | 'inactivos' = 'todos';
-  @Input() estadoOptions: SelectOption<string>[] = [];
+  @Input() filterActiva: 'todas' | 'activas' | 'inactivas' = 'todas';
+  @Input() estadoOptions: SelectOption<'todas' | 'activas' | 'inactivas'>[] = [];
   @Input() count = 0;
   @Input() loading = false;
 

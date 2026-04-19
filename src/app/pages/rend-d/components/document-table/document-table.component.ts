@@ -1,12 +1,21 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { RendD } from '../../../../models/rend-d.model';
-import { Documento } from '../../../../models/documento.model';
-import { DdmmyyyyPipe } from '../../../../shared/ddmmyyyy.pipe';
-import { VirtualTableBodyComponent } from '../../../../shared/virtual-table';
-import { ActionMenuComponent, ActionMenuItem } from '../../../../shared/action-menu';
-import { PaginatorComponent } from '../../../../shared/paginator/paginator.component';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { RendD } from '@models/rend-d.model';
+import { Documento } from '@models/documento.model';
+import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
+import { VirtualTableBodyComponent } from '@shared/virtual-table';
+import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu';
+import { PaginatorComponent } from '@shared/paginator/paginator.component';
+import { TableActionHeaderComponent } from '@shared/table-action-header/table-action-header.component';
+import {
+  ICON_EDIT,
+  ICON_TRASH,
+  ICON_PAPERCLIP,
+  ICON_PIE_CHART,
+  ICON_DISTRIBUTE,
+} from '@common/constants/icons';
 
 export interface DocumentTableConfig {
   isReadonly: boolean;
@@ -28,7 +37,7 @@ export interface DocumentAction {
 @Component({
   selector: 'app-document-table',
   standalone: true,
-  imports: [CommonModule, RouterModule, DdmmyyyyPipe, VirtualTableBodyComponent, ActionMenuComponent, PaginatorComponent],
+  imports: [CommonModule, RouterModule, DdmmyyyyPipe, VirtualTableBodyComponent, ActionMenuComponent, PaginatorComponent, TableActionHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-wrapper" *ngIf="documentos.length > 0">
@@ -61,10 +70,7 @@ export interface DocumentAction {
               <th class="text-right">Imp/Ret</th>
               <th class="text-right col-total">Total</th>
               <th class="text-center col-acciones-adjuntos" title="Acciones y Adjuntos">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
+                <app-table-action-header />
               </th>
             </tr>
           </thead>
@@ -74,6 +80,10 @@ export interface DocumentAction {
                 <!-- 1. CONCEPTO: Título principal -->
                 <td class="col-sticky col-mobile-primary" data-label="Concepto">
                   <span class="sticky-id">#{{ d.U_RD_IdRD }} · {{ d.U_RD_Concepto }}</span>
+                  <span class="sticky-cuenta">
+                    <span class="sticky-code">{{ d.U_RD_Cuenta || '—' }}</span>
+                    <span class="sticky-cuenta-nombre">{{ d.U_RD_NombreCuenta || 'Sin cuenta' }}</span>
+                  </span>
                 </td>
                 
                 <!-- 2. FECHA -->
@@ -133,20 +143,16 @@ export interface DocumentAction {
                       [itemLabel]="'Documento ' + d.U_RD_IdRD"
                       (actionClick)="onAction($event, d)">
                     </app-action-menu>
-                    <button class="btn btn-sm btn-ghost btn-dist" 
+                    <button class="btn btn-sm btn-ghost btn-dist"
                             *ngIf="config.isReadonly"
                             title="Distribución porcentual"
                             (click)="onAction('distribuir', d)">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="9" cy="12" r="3"/><path d="M9 3v3M9 18v3M3 9h3M18 9h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
-                      </svg>
+                      <span [innerHTML]="sanitizeIcon(ICON_DISTRIBUTE)"></span>
                     </button>
-                    <button class="btn btn-sm btn-ghost btn-adjuntos" 
+                    <button class="btn btn-sm btn-ghost btn-adjuntos"
                       title="Ver adjuntos"
                       (click)="onAction('adjuntos', d)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-                      </svg>
+                      <span [innerHTML]="sanitizeIcon(ICON_PAPERCLIP)"></span>
                       <span class="adjuntos-badge" *ngIf="getAdjuntosCount(d.U_RD_IdRD) > 0">
                         {{ getAdjuntosCount(d.U_RD_IdRD) }}
                       </span>
@@ -200,6 +206,10 @@ export interface DocumentAction {
                   <div class="impuestos-prov">
                     <span class="impuestos-id">#{{ d.U_RD_IdRD }}</span>
                     <span class="impuestos-nombre">{{ d.U_RD_Concepto }}</span>
+                    <span class="impuestos-cuenta">
+                      <span class="sticky-code">{{ d.U_RD_Cuenta || '—' }}</span>
+                      <span class="impuestos-cuenta-nombre">{{ d.U_RD_NombreCuenta || 'Sin cuenta' }}</span>
+                    </span>
                   </div>
                 </td>
                 
@@ -296,6 +306,16 @@ export class DocumentTableComponent {
   @Input() limit = 10;
   @Input() totalPages = 1;
   @Input() activeTab: 'documentos' | 'impuestos' = 'documentos';
+
+  readonly ICON_DISTRIBUTE = ICON_DISTRIBUTE;
+  readonly ICON_PAPERCLIP = ICON_PAPERCLIP;
+
+  private sanitizer = inject(DomSanitizer);
+
+  sanitizeIcon(icon: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(icon);
+  }
+
   @Input() totales = {
     importe: 0, exento: 0, ice: 0, tasa: 0, tasaCero: 0, giftcard: 0, descuento: 0,
     base: 0, impRet: 0, total: 0
@@ -319,20 +339,12 @@ export class DocumentTableComponent {
     this.limitChange.emit(limit);
   }
 
-  // Iconos SVG para el action menu
-  private readonly icons = {
-    edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-    paperclip: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
-    'pie-chart': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>',
-    trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
-  };
-
-  getActionItems(doc: RendD): ActionMenuItem[] {
+  getActionItems(_doc: RendD): ActionMenuItem[] {
     const items: ActionMenuItem[] = [
-      { id: 'edit', label: 'Editar', icon: this.icons.edit },
-      { id: 'adjuntos', label: 'Adjuntos', icon: this.icons.paperclip },
-      { id: 'distribuir', label: 'Distribución', icon: this.icons['pie-chart'] },
-      { id: 'delete', label: 'Eliminar', icon: this.icons.trash, cssClass: 'danger' },
+      { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+      { id: 'adjuntos', label: 'Adjuntos', icon: ICON_PAPERCLIP },
+      { id: 'distribuir', label: 'Distribución', icon: ICON_PIE_CHART },
+      { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
     ];
     return items;
   }

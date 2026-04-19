@@ -19,12 +19,6 @@
 // hay un perfil seleccionado, antes del botÃ³n Nueva RendiciÃ³n
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-.page-header-actions {
-  display:     flex;
-  align-items: center;
-  gap:         10px;
-  flex-wrap:   wrap;
-}
 
 .perfil-activo-badge {
   display:       flex;
@@ -197,7 +191,7 @@
 }
 
 .perfil-step__icon {
-  font-size: 40px;
+  font-size: var(--text-4xl);
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -469,7 +463,6 @@
 .data-table td.col-acciones {
   width: 90px;
   min-width: 90px;
-  text-align: center;
   white-space: nowrap;
 }
 
@@ -592,8 +585,8 @@
 .sub-count-badge {
   background: var(--color-primary);
   color:      var(--bg-surface);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
   padding: 1px 6px;
   border-radius: 10px;
   line-height: 1.4;
@@ -719,8 +712,8 @@
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   transition: background var(--transition);
 
   &:hover:not(:disabled) { 
@@ -802,11 +795,11 @@
       gap: 2px;
       padding: 0;
       border: none;
-      font-size: 13px;
+      font-size: var(--text-base);
       
       &::before {
         content: attr(data-label);
-        font-size: 9px;
+        font-size: var(--text-2xs);
         font-weight: var(--weight-bold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -834,7 +827,7 @@
       &.col-objetivo {
         grid-column: 1 / -1;
         grid-row: 2;
-        font-size: 14px;
+        font-size: var(--text-md);
         font-weight: var(--weight-semibold);
       }
       

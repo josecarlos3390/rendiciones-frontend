@@ -12,7 +12,7 @@ export interface DirtyCheckConfig {
   /** Campos a incluir (si se especifica, solo estos se comparan) */
   includeFields?: string[];
   /** Función de comparación personalizada */
-  compareFn?: (current: any, initial: any) => boolean;
+  compareFn?: (current: unknown, initial: unknown) => boolean;
 }
 
 @Injectable({
@@ -27,7 +27,7 @@ export class FormDirtyService {
    * @param config Configuración opcional
    * @returns true si hay cambios, false si son iguales
    */
-  isDirty(form: FormGroup | null | undefined, initialValues: any, config?: DirtyCheckConfig): boolean {
+  isDirty(form: FormGroup | null | undefined, initialValues: Record<string, unknown> | null, config?: DirtyCheckConfig): boolean {
     if (!form || !initialValues) return true; // Sin valores iniciales = siempre dirty
     
     const currentValues = form.getRawValue();
@@ -53,7 +53,7 @@ export class FormDirtyService {
    * @param initialValue Valor inicial del campo
    * @returns true si el campo cambió
    */
-  fieldChanged(control: AbstractControl | null | undefined, initialValue: any): boolean {
+  fieldChanged(control: AbstractControl | null | undefined, initialValue: unknown): boolean {
     if (!control) return false;
     return JSON.stringify(control.value) !== JSON.stringify(initialValue);
   }
@@ -63,7 +63,7 @@ export class FormDirtyService {
    * @param form FormGroup
    * @returns Copia profunda de los valores
    */
-  createSnapshot(form: FormGroup | null | undefined): any {
+  createSnapshot(form: FormGroup | null | undefined): Record<string, unknown> | null {
     if (!form) return null;
     return JSON.parse(JSON.stringify(form.getRawValue()));
   }
@@ -73,7 +73,7 @@ export class FormDirtyService {
    * @param form FormGroup
    * @returns Nuevos valores iniciales
    */
-  resetDirty(form: FormGroup | null | undefined): any {
+  resetDirty(form: FormGroup | null | undefined): Record<string, unknown> | null {
     return this.createSnapshot(form);
   }
 

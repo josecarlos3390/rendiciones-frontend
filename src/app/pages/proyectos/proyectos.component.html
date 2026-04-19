@@ -1,14 +1,9 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Gestión de Proyectos</h2>
-    <p class="page-subtitle">Administra los proyectos disponibles para asignar en las rendiciones.</p>
-  </div>
-  <button *ngIf="isAdmin" class="btn btn-primary btn-sm" (click)="openNew()">+ Nuevo Proyecto</button>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Gestión de Proyectos"
+  subtitle="Administra los proyectos disponibles para asignar en las rendiciones."
+  [actionLabel]="isAdmin ? '+ Nuevo Proyecto' : null"
+  (actionClick)="openNew()">
+</app-crud-page-header>
 
 <!-- ── Modal ─────────────────────────────────────────────────── -->
 <app-form-modal
@@ -84,35 +79,54 @@
 
 <!-- ── Filtros ── -->
 <app-proyectos-filters
-  [search]="search"
-  [filterActivo]="filterActivo"
+  [search]="store.search()"
+  [filterActiva]="filterActiva"
   [estadoOptions]="estadoOptions"
-  [count]="filtered.length"
-  [loading]="loading"
+  [count]="store.filtered().length"
+  [loading]="store.loading()"
   (searchChange)="onSearchChange($event)"
-  (estadoChange)="onFilterActivoChange($event)"
-  (reset)="onSearchCleared()">>
+  (estadoChange)="onFilterActivaChange($event)"
+  (reset)="onSearchCleared()">
 </app-proyectos-filters>
 
-<!-- ── Loading / Error / Empty ── -->
-<div *ngIf="loading" class="empty-state">Cargando proyectos...</div>
-<div *ngIf="!loading && loadError" class="empty-state">
-  Error al cargar los datos.
-  <a (click)="load()">Reintentar</a>
-</div>
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-  No hay proyectos registrados.
-  <a *ngIf="isAdmin" (click)="openNew()">Crear el primero</a>
-</div>
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando proyectos..."
+  errorText="Error al cargar los datos."
+  emptyText="No hay proyectos registrados."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a *ngIf="isAdmin" (click)="openNew()">Crear el primero</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ── -->
-<app-proyectos-table
-  *ngIf="!loading && !loadError && filtered.length > 0"
-  [items]="paged"
-  [page]="page"
-  [totalPages]="totalPages"
-  [isReadonly]="!isAdmin"
+<ng-template #codeCol let-item>
+  <span class="code-tag">{{ item.code }}</span>
+</ng-template>
+<ng-template #nameCol let-item>
+  {{ item.name }}
+</ng-template>
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="item.activo ? 'success' : 'neutral'" [dot]="true">
+    {{ item.activo ? 'Activo' : 'Inactivo' }}
+  </app-status-badge>
+</ng-template>
+
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
   (pageChange)="onPageChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmDelete($event)">
-</app-proyectos-table>
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>

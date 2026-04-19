@@ -1,23 +1,30 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, ApplicationRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, ApplicationRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { DocumentosService } from './documentos.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
 import { Documento, TIPO_CALC_OPTIONS, TIPO_DOC_SAP_OPTIONS } from '@models/documento.model';
 import { TipoDocSapSelectComponent, TipoDocSapItem } from '@shared/tipo-doc-sap-select/tipo-doc-sap-select.component';
 import { Perfil } from '@models/perfil.model';
 import { AppSelectComponent } from '@shared/app-select/app-select.component';
 import { CuentaSearchComponent } from '@shared/cuenta-search/cuenta-search.component';
-import { AuthService } from '../../auth/auth.service';
-import { ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { AuthService } from '@auth/auth.service';
 import { FormModalComponent } from '@shared/form-modal/form-modal.component';
 import { FormFieldComponent } from '@shared/form-field/form-field.component';
 import { FormDirtyService } from '@shared/form-dirty';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { ICON_EDIT, ICON_TRASH } from '@common/constants/icons';
 
 // Dumb Components
-import { DocumentosFiltersComponent, DocumentosTableComponent } from './components';
+import { DocumentosFiltersComponent } from './components';
 
 @Component({
   standalone: true,
@@ -28,25 +35,34 @@ import { DocumentosFiltersComponent, DocumentosTableComponent } from './componen
     ReactiveFormsModule,
     // Dumb Components
     DocumentosFiltersComponent,
-    DocumentosTableComponent,
+    DataTableComponent,
+    StatusBadgeComponent,
     // Shared Components (para el formulario modal)
     TipoDocSapSelectComponent,
-    ConfirmDialogComponent,
     AppSelectComponent,
     CuentaSearchComponent,
     FormModalComponent,
     FormFieldComponent,
+    CrudPageHeaderComponent,
+    CrudEmptyStateComponent,
   ],
   templateUrl: './documentos.component.html',
   styleUrls: ['./documentos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DocumentosComponent implements OnInit {
+export class DocumentosComponent extends AbstractCrudListComponent<Documento> implements OnInit {
+  @ViewChild('tipoDocCol', { static: true }) tipoDocCol!: TemplateRef<any>;
+  @ViewChild('sapCol', { static: true }) sapCol!: TemplateRef<any>;
+  @ViewChild('calculoCol', { static: true }) calculoCol!: TemplateRef<any>;
+  @ViewChild('ivaCol', { static: true }) ivaCol!: TemplateRef<any>;
+  @ViewChild('itCol', { static: true }) itCol!: TemplateRef<any>;
+  @ViewChild('iueCol', { static: true }) iueCol!: TemplateRef<any>;
+  @ViewChild('rcivaCol', { static: true }) rcivaCol!: TemplateRef<any>;
+  @ViewChild('exentoCol', { static: true }) exentoCol!: TemplateRef<any>;
+  @ViewChild('tasaIceCol', { static: true }) tasaIceCol!: TemplateRef<any>;
 
-  // ── Datos ────────────────────────────────────────────────
-  documentos: Documento[] = [];
-  filtered: Documento[] = [];
-  paged: Documento[] = [];
+  store = new CrudListStore<Documento>({ limit: 5, searchFields: ['U_TipDoc'] });
+  tableConfig!: DataTableConfig;
 
   readonly tipoCalcOptions = TIPO_CALC_OPTIONS;
   readonly tipoDocSapOptions = TIPO_DOC_SAP_OPTIONS;
@@ -54,38 +70,31 @@ export class DocumentosComponent implements OnInit {
   // ── Filtros ──────────────────────────────────────────────
   selectedPerfilId: number | null = null;
   selectedPerfil: Perfil | null = null;
-  search = '';
-  loading = false;
-
-  // ── Paginación ───────────────────────────────────────────
-  page = 1;
-  limit = 5;
-  totalPages = 1;
 
   // ── Formulario ───────────────────────────────────────────
   showForm = false;
   isSaving = false;
   editingId: number | null = null;
   form!: FormGroup;
-  initialValues: any = null;
-
-  // ── Confirm dialog ────────────────────────────────────────
-  showDialog = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
+  initialValues: Record<string, unknown> | null = null;
 
   constructor(
     public auth: AuthService,
     private service: DocumentosService,
     private toast: ToastService,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
+    protected override cdr: ChangeDetectorRef,
     private appRef: ApplicationRef,
     private dirtyService: FormDirtyService,
-  ) {}
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
     this.buildForm();
+    this.buildTableConfig();
     this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
   }
 
@@ -130,55 +139,51 @@ export class DocumentosComponent implements OnInit {
 
   loadDocumentos(onComplete?: () => void) {
     if (!this.selectedPerfilId) {
-      this.documentos = []; this.filtered = []; this.paged = [];
+      this.store.setItems([]);
       return;
     }
-    this.loading = true;
-    this.service.getByPerfil(this.selectedPerfilId).subscribe({
-      next: (data) => {
-        this.documentos = data;
-        this.loading = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-        this.appRef.tick();
-        onComplete?.();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
+    this.store.load(this.service.getByPerfil(this.selectedPerfilId), () => {
+      this.cdr.markForCheck();
+      this.appRef.tick();
+      onComplete?.();
     });
   }
 
   // ── Filtro y paginación ───────────────────────────────────
 
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'U_TipDoc', header: 'Tipo Documento', cellTemplate: this.tipoDocCol, mobile: { primary: true } },
+        { key: 'U_CodPerfil', header: 'Cod.', align: 'center' },
+        { key: 'U_IdTipoDoc', header: 'SAP', cellTemplate: this.sapCol, mobile: { hide: true } },
+        { key: 'U_TipoCalc', header: 'Calculo', align: 'center', cellTemplate: this.calculoCol, mobile: { hide: true } },
+        { key: 'iva', header: 'IVA', align: 'center', cellTemplate: this.ivaCol, mobile: { hide: true } },
+        { key: 'it', header: 'IT', align: 'center', cellTemplate: this.itCol, mobile: { hide: true } },
+        { key: 'iue', header: 'IUE', align: 'center', cellTemplate: this.iueCol, mobile: { hide: true } },
+        { key: 'rciva', header: 'RC-IVA', align: 'center', cellTemplate: this.rcivaCol, mobile: { hide: true } },
+        { key: 'exento', header: 'Exento', align: 'center', cellTemplate: this.exentoCol, mobile: { hide: true } },
+        { key: 'tasaIce', header: 'Tasa/ICE', align: 'center', cellTemplate: this.tasaIceCol, mobile: { hide: true } },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger', condition: () => this.auth.puedeEditarConf },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
 
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
-  }
-
-  applyFilter() {
-    const q = this.search.toLowerCase();
-    this.filtered = this.documentos.filter(d =>
-      (d.U_TipDoc ?? '').toLowerCase().includes(q),
-    );
-    this.page = 1;
-    this.updatePaging();
-  }
-
-  onPageChange(p: number) { this.page = p; this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged = this.filtered.slice(start, start + this.limit);
+  onTableAction(event: { action: string; item: Documento }): void {
+    switch (event.action) {
+      case 'edit':
+        this.openEdit(event.item);
+        break;
+      case 'delete':
+        this.confirmRemove(event.item);
+        break;
+    }
   }
 
   // ── Crear / Editar ────────────────────────────────────────
@@ -271,10 +276,7 @@ export class DocumentosComponent implements OnInit {
       },
       error: (err: any) => {
         this.isSaving = false;
-        if (err?.status === 409 || err?.status === 422) {
-          this.toast.error(err?.error?.message || 'Error al guardar');
-        }
-        this.cdr.markForCheck();
+        this.errorHandler.handle(err, 'Error al guardar', this.cdr);
       },
     });
   }
@@ -282,34 +284,19 @@ export class DocumentosComponent implements OnInit {
   // ── Eliminar ──────────────────────────────────────────────
 
   confirmRemove(doc: Documento) {
-    this.openDialog({
+    this.confirmDialog.ask({
       title: '¿Eliminar documento?',
       message: `Se eliminará la configuración de "${doc.U_TipDoc}" del perfil.`,
       confirmLabel: 'Sí, eliminar',
       type: 'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.service.remove(doc.U_IdDocumento).subscribe({
         next: () => { this.toast.exito('Documento eliminado'); this.loadDocumentos(); this.cdr.markForCheck(); },
-        error: (err: any) => {
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al eliminar');
-          }
-          this.cdr.markForCheck();
-        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar', this.cdr),
       });
     });
   }
-
-  // ── Dialog ────────────────────────────────────────────────
-
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig = config;
-    this._pendingAction = onConfirm;
-    this.showDialog = true;
-  }
-
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel() { this.showDialog = false; this._pendingAction = null; }
 
   /**
    * Handler genérico para los selectores de cuenta.
@@ -338,33 +325,7 @@ export class DocumentosComponent implements OnInit {
   isGrossingUp(val: string | number) { return val == 1 || val === '1' || val === 'G'; }
   isGrossingDown(val: string | number) { return val == 0 || val === '0' || val === 'N' || val === 'D'; }
 
-  // ── Action Menu ───────────────────────────────────────────
-
-  getActionMenuItems(d: Documento): ActionMenuItem[] {
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-        cssClass: 'danger',
-      },
-    ];
-  }
-
-  onActionClick(actionId: string, d: Documento): void {
-    if (actionId === 'edit') {
-      this.openEdit(d);
-    } else if (actionId === 'delete') {
-      this.confirmRemove(d);
-    }
-  }
-
-  /**
+/**
    * Formatea un porcentaje para la tabla:
    *  - 0      → '—'
    *  - entero → '13%'

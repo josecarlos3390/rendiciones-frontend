@@ -1,39 +1,43 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ApplicationRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ApplicationRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RendCmpService, RendCmp } from '@services/rend-cmp.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
-import { SkeletonLoaderComponent } from '@shared/skeleton-loader/skeleton-loader.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state';
 import { FormModalComponent } from '@shared/form-modal/form-modal.component';
-
 import { FormFieldComponent } from '@shared/form-field/form-field.component';
 import { FormDirtyService } from '@shared/form-dirty';
 import { AuthService } from '@auth/auth.service';
-import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { ICON_EDIT, ICON_TRASH } from '@common/constants/icons';
 
 @Component({
   selector:        'app-rend-cmp',
   standalone:      true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, SkeletonLoaderComponent, ActionMenuComponent, FormModalComponent, FormFieldComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DataTableComponent, FormModalComponent, FormFieldComponent, CrudPageHeaderComponent, CrudEmptyStateComponent],
   templateUrl:     './rend-cmp.component.html',
   styleUrls:       ['./rend-cmp.component.scss'],
 })
-export class RendCmpComponent implements OnInit {
+export class RendCmpComponent extends AbstractCrudListComponent<RendCmp> implements OnInit {
 
-  items:     RendCmp[] = [];
-  loading    = false;
-  loadError  = false;
+  readonly store = new CrudListStore<RendCmp>({
+    limit: 999,
+    searchFields: ['U_Descripcion', 'U_Campo'],
+  });
+
+  @ViewChild('campoCol', { static: true }) campoCol!: TemplateRef<any>;
+
+  tableConfig!: DataTableConfig;
 
   showForm     = false;
   editingItem: RendCmp | null = null;
   isSaving     = false;
-  initialValues: any = null;
-
-  showDialog   = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
+  initialValues: Record<string, unknown> | null = null;
 
   form!: FormGroup;
 
@@ -42,14 +46,35 @@ export class RendCmpComponent implements OnInit {
     private svc:    RendCmpService,
     private fb:     FormBuilder,
     private toast:  ToastService,
-    private cdr:    ChangeDetectorRef,
+    protected override cdr: ChangeDetectorRef,
     private appRef: ApplicationRef,
     private dirtyService: FormDirtyService,
-  ) {}
+    private confirmDialog: ConfirmDialogService,
+  ) {
+    super();
+  }
 
   ngOnInit() {
     this.buildForm();
+    this.buildTableConfig();
     setTimeout(() => this.load(), 0);
+  }
+
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'U_IdCampo', header: '#', align: 'center' },
+        { key: 'U_Descripcion', header: 'Descripción' },
+        { key: 'U_Campo', header: 'Campo SAP B1', cellTemplate: this.campoCol },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'text-danger' },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
 
   private buildForm() {
@@ -68,23 +93,9 @@ export class RendCmpComponent implements OnInit {
 
 
   load() {
-    this.loading   = true;
-    this.loadError = false;
-    this.cdr.markForCheck();
-
-    this.svc.getAll().subscribe({
-      next: (data) => {
-        this.items   = data;
-        this.loading = false;
-        this.cdr.markForCheck();
-        this.appRef.tick();
-      },
-      error: () => {
-        this.loading   = false;
-        this.loadError = true;
-        this.cdr.markForCheck();
-        this.appRef.tick();
-      },
+    this.store.load(this.svc.getAll(), () => {
+      this.cdr.markForCheck();
+      this.appRef.tick();
     });
   }
 
@@ -139,12 +150,13 @@ export class RendCmpComponent implements OnInit {
   }
 
   remove(item: RendCmp) {
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        '¿Eliminar campo de mapeo?',
       message:      `Se eliminará "${item.U_Descripcion}" (Campo SAP: ${item.U_Campo}) de forma permanente.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.svc.remove(item.U_IdCampo).subscribe({
         next:  () => { this.toast.exito('Campo eliminado'); this.load(); },
         error: (err) => this.toast.error(err?.error?.message ?? 'Error al eliminar'),
@@ -152,40 +164,13 @@ export class RendCmpComponent implements OnInit {
     });
   }
 
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
-
-  getActionMenuItems(item: RendCmp): ActionMenuItem[] {
-    if (!this.auth.puedeEditarConf) {
-      return [];
-    }
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        cssClass: 'danger',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-      },
-    ];
-  }
-
-  onActionClick(actionId: string, item: RendCmp): void {
-    switch (actionId) {
+  onTableAction(event: { action: string; item: RendCmp }): void {
+    switch (event.action) {
       case 'edit':
-        this.openEdit(item);
+        this.openEdit(event.item);
         break;
       case 'delete':
-        this.remove(item);
+        this.remove(event.item);
         break;
     }
   }

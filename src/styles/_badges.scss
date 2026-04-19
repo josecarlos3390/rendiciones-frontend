@@ -13,17 +13,6 @@
   border: 1px solid transparent;
   white-space: nowrap;
   letter-spacing: 0.01em;
-  // Punto de estado (opcional — se muestra con ::before cuando hay clase)
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: currentColor;
-    opacity: 0.7;
-  }
 }
 
 .status-open {
@@ -43,8 +32,6 @@
   background: var(--status-cancelled-bg);
   color: var(--status-cancelled-color);
   border-color: var(--status-cancelled-border);
-  // Cancelado: sin punto de estado
-  &::before { display: none; }
 }
 
 .status-confirmed {
@@ -182,4 +169,9 @@
   border: 1px solid var(--border-color);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
+}
+
+/* Fila inactiva en tablas */
+.inactive-row {
+  opacity: 0.7;
 }

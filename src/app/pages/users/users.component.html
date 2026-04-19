@@ -1,16 +1,11 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Administracion de Usuarios</h2>
-    <p class="page-subtitle">Cree y gestione los accesos al sistema. Asigne roles y contrasenas para cada operador.</p>
-  </div>
-  <button class="btn btn-primary btn-sm" (click)="openNew()">+ Nuevo Usuario</button>
-</div>
+<app-crud-page-header
+  title="Administración de Usuarios"
+  subtitle="Cree y gestione los accesos al sistema. Asigne roles y contraseñas para cada operador."
+  actionLabel="+ Nuevo Usuario"
+  (actionClick)="openNew()">
+</app-crud-page-header>
 
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
-
-<!-- --- Formulario (componente separado) --- -->
+<!-- --- Formulario (componente separado) -->
 <app-user-form
   [visible]="showForm"
   [user]="editingUser"
@@ -23,37 +18,76 @@
 
 <!-- --- Filtros (dumb component) --- -->
 <app-users-filters
-  [search]="search"
-  [loading]="loading"
-  [count]="filtered.length"
+  [search]="store.search()"
+  [loading]="store.loading()"
+  [count]="store.filtered().length"
   (searchChange)="onSearchChange($event)"
   (searchCleared)="onSearchCleared()">
 </app-users-filters>
 
-<app-skeleton-loader *ngIf="loading" variant="table" [rows]="5"
+<app-skeleton-loader *ngIf="store.loading()" variant="table" [rows]="5"
   [columns]="['18%','22%','12%','14%','12%','12%','10%']">
 </app-skeleton-loader>
 
-<div *ngIf="!loading && loadError" class="empty-state">
-  No se pudo cargar la lista de usuarios.
-  <a (click)="load()">Reintentar</a>
-</div>
+<app-crud-empty-state
+  *ngIf="!store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loadError() && !!store.search() && store.filtered().length === 0"
+  errorText="No se pudo cargar la lista de usuarios."
+  emptyText="No hay usuarios registrados aún."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a (click)="openNew()">Crear el primer usuario</a>
+  </ng-container>
+</app-crud-empty-state>
 
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-  No hay usuarios registrados aun. <a (click)="openNew()">Crear el primer usuario</a>
-</div>
+<!-- --- Templates de columna --- -->
+<ng-template #usuarioCol let-item>
+  <div class="user-cell">
+    <div class="user-avatar" [class.avatar-inactive]="!isActive(item)">{{ initial(item) }}</div>
+    <div class="user-cell-info">
+      <span class="user-login">{{ item.U_Login }}</span>
+      <span class="user-sup" *ngIf="item.U_NomSup">↑ {{ item.U_NomSup }}</span>
+    </div>
+  </div>
+</ng-template>
 
-<!-- --- Tabla (dumb component) --- -->
-<app-users-table
-  *ngIf="!loading && !loadError && filtered.length > 0"
-  [items]="paged"
-  [page]="page"
-  [limit]="limit"
-  [totalPages]="totalPages"
-  [total]="filtered.length"
-  [loading]="loading"
+<ng-template #tipoCol let-item>
+  <span class="type-badge" [class.role-admin]="item.U_SuperUser === 1" [class.role-user]="item.U_SuperUser === 0">
+    {{ item.U_SuperUser === 1 ? 'Admin' : 'Normal' }}
+  </span>
+</ng-template>
+
+<ng-template #modulosCol let-item>
+  <div class="perm-badges">
+    <span class="perm-badge" [class.perm-on]="item.U_AppRend == '1'" title="Rendiciones">R</span>
+    <span class="perm-badge" [class.perm-on]="item.U_AppConf == '1'" title="Configuraciones">C</span>
+  </div>
+</ng-template>
+
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="getBadgeType(item)" [dot]="true">{{ estadoLabel(item) }}</app-status-badge>
+</ng-template>
+
+<ng-template #expiraCol let-item>
+  <span [class.text-expired]="isExpired(item)">
+    {{ item.U_FECHAEXPIRACION | date:'dd/MM/yyyy' }}
+  </span>
+</ng-template>
+
+<!-- --- Tabla --- -->
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
   (pageChange)="onPageChange($event)"
   (limitChange)="onLimitChange($event)"
-  (edit)="openEdit($event)"
-  (toggleActivo)="confirmToggleStatus($event)">
-</app-users-table>
+  (action)="onTableAction($event)">
+</app-data-table>

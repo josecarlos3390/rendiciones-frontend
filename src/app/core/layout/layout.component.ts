@@ -6,8 +6,8 @@ import { HeaderComponent } from '../layout/header/header.component';
 import { ToastComponent } from '../toast/toast.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { ConfirmDialogService } from '../confirm-dialog/confirm-dialog.service';
-import { AiProcessingIndicatorComponent } from '../../shared/ai-suggestion/ai-processing-indicator.component';
-import { AiChatbotComponent } from '../../shared/ai-chatbot/ai-chatbot.component';
+import { AiProcessingIndicatorComponent } from '@shared/ai-suggestion/ai-processing-indicator.component';
+import { AiChatbotComponent } from '@shared/ai-chatbot/ai-chatbot.component';
 import { LoadingIndicatorComponent } from '../loading-indicator/loading-indicator.component';
 
 @Component({

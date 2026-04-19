@@ -15,7 +15,7 @@ export { DocumentTableComponent } from './document-table/document-table.componen
 
 // Formulario
 export { DocFormComponent } from './doc-form/doc-form.component';
-export type { DocFormConfig, NormaSlotConfig } from './doc-form/doc-form.component';
+export type { DocFormConfig, NormaSlotConfig } from './doc-form/doc-form.model';
 
 // Modales
 export { ModeSelectorModalComponent } from './modals/mode-selector/mode-selector.component';

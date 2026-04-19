@@ -1,79 +1,116 @@
 import {
-  Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef,
+  Component, OnInit, ChangeDetectionStrategy,
+  TemplateRef, ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+
 import { TipoDocSapService, TipoDocSap } from '@services/tipo-doc-sap.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { FormDirtyService } from '@shared/form-dirty';
+import { AuthService } from '@auth/auth.service';
+
 import { FormModalComponent } from '@shared/form-modal';
 import { StatusBadgeComponent } from '@shared/status-badge';
 import { FormFieldComponent } from '@shared/form-field';
-import { FormDirtyService } from '@shared/form-dirty';
-import { AuthService } from '@auth/auth.service';
 import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
-import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state/crud-empty-state.component';
+import { DataTableComponent, DataTableConfig, DataTableAction } from '@shared/data-table';
+import { ICON_EDIT, ICON_TRASH } from '@common/constants/icons';
 
 @Component({
   selector:        'app-tipo-doc-sap',
   standalone:      true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports:         [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, AppSelectComponent, ActionMenuComponent, FormModalComponent, StatusBadgeComponent, FormFieldComponent],
+  imports:         [
+    CommonModule, FormsModule, ReactiveFormsModule,
+    AppSelectComponent, FormModalComponent, StatusBadgeComponent,
+    FormFieldComponent, CrudPageHeaderComponent, CrudEmptyStateComponent,
+    DataTableComponent,
+  ],
   templateUrl:     './tipo-doc-sap.component.html',
   styleUrls:       ['./tipo-doc-sap.component.scss'],
 })
-export class TipoDocSapComponent implements OnInit {
+export class TipoDocSapComponent extends AbstractCrudListComponent<TipoDocSap> implements OnInit {
 
-  items:       TipoDocSap[] = [];
-  loading      = false;
-  loadError    = false;
+  @ViewChild('codigoCol',   { static: true }) codigoCol!:   TemplateRef<any>;
+  @ViewChild('nombreCol',   { static: true }) nombreCol!:   TemplateRef<any>;
+  @ViewChild('tipoCol',     { static: true }) tipoCol!:     TemplateRef<any>;
+  @ViewChild('guCol',       { static: true }) guCol!:       TemplateRef<any>;
+  @ViewChild('gdCol',       { static: true }) gdCol!:       TemplateRef<any>;
+  @ViewChild('ordenCol',    { static: true }) ordenCol!:    TemplateRef<any>;
+  @ViewChild('estadoCol',   { static: true }) estadoCol!:   TemplateRef<any>;
+
+  readonly store = new CrudListStore<TipoDocSap>({
+    limit: 10,
+    searchFields: ['U_Nombre', 'U_EsTipoF'],
+  });
+
+  tableConfig!: DataTableConfig;
 
   showForm     = false;
   editingItem:  TipoDocSap | null = null;
+  isSaving     = false;
+  initialValues: Record<string, unknown> | null = null;
+  form!: FormGroup;
 
   tipoOptions: SelectOption<string>[] = [
     { value: 'F', label: 'Factura — Impuestos sobre base imponible', icon: '🧾' },
     { value: 'R', label: 'Recibo — Impuestos sobre importe bruto', icon: '📄' },
   ];
-  isSaving     = false;
-  initialValues: any = null;
-
-  showDialog   = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
-
-  form!: FormGroup;
 
   constructor(
     public  auth: AuthService,
     private svc:   TipoDocSapService,
     private fb:    FormBuilder,
     private toast: ToastService,
-    private cdr:   ChangeDetectorRef,
     private dirtyService: FormDirtyService,
-  ) {}
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
     this.buildForm();
-    setTimeout(() => this.load(), 0);
-  }
-
-  load() {
-    this.loading   = true;
-    this.loadError = false;
-    this.svc.getAll().subscribe({
-      next: (data) => {
-        this.items   = data;
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loading   = false;
-        this.loadError = true;
-        this.cdr.markForCheck();
-      },
+    this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
+    this.buildTableConfig();
+    Promise.resolve().then(() => {
+      this.load();
+      this._applyActivaFilter();
     });
   }
+
+  protected override getActiva(item: TipoDocSap): boolean {
+    return item.U_Activo === 'Y';
+  }
+
+  get isDirty(): boolean {
+    return this.dirtyService.isDirty(this.form, this.initialValues);
+  }
+
+  get loadingState(): 'idle' | 'loading' | 'success' | 'empty' | 'error' {
+    if (this.store.loading()) return 'loading';
+    if (this.store.loadError()) return 'error';
+    return this.store.filtered().length > 0 ? 'success' : 'empty';
+  }
+
+  rowClassFn = (item: TipoDocSap): string => {
+    return item.U_Activo === 'N' ? 'row-inactive' : '';
+  };
+
+  // ── CRUD ─────────────────────────────────────────────────
+
+  load(onComplete?: () => void) {
+    this.store.load(this.svc.getAll(), onComplete);
+  }
+
+  // ── Formulario ───────────────────────────────────────────
 
   private buildForm() {
     this.form = this.fb.group({
@@ -85,22 +122,19 @@ export class TipoDocSapComponent implements OnInit {
       orden:     [0,    Validators.required],
       activo:    [true],
     });
-    this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
-  }
-
-  get isDirty(): boolean {
-    return this.dirtyService.isDirty(this.form, this.initialValues);
   }
 
   openCreate() {
     this.editingItem = null;
+    this.initialValues = null;
     this.form.reset({
       idTipo: null, nombre: '', esTipoF: 'F',
-      permiteGU: false, permiteGD: false, orden: this.items.length + 1, activo: true,
+      permiteGU: false, permiteGD: false,
+      orden: this.store.items().length + 1, activo: true,
     });
     this.form.get('idTipo')?.enable();
-    this.initialValues = null;
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   openEdit(item: TipoDocSap) {
@@ -117,13 +151,16 @@ export class TipoDocSapComponent implements OnInit {
     this.form.get('idTipo')?.disable();
     this.initialValues = this.form.getRawValue();
     this.showForm = true;
+    this.cdr.markForCheck();
   }
 
   closeForm() {
     this.showForm    = false;
     this.editingItem = null;
     this.isSaving    = false;
+    this.initialValues = null;
     this.form.get('idTipo')?.enable();
+    this.cdr.markForCheck();
   }
 
   save() {
@@ -152,76 +189,67 @@ export class TipoDocSapComponent implements OnInit {
       },
       error: (err) => {
         this.isSaving = false;
-        this.toast.error(err?.error?.message ?? 'Error al guardar');
-        this.cdr.markForCheck();
+        this.errorHandler.handle(err, 'Error al guardar', this.cdr);
       },
     });
   }
 
-  remove(item: TipoDocSap) {
-    this.openDialog({
+  confirmDelete(item: TipoDocSap) {
+    this.confirmDialog.ask({
       title:        '¿Eliminar tipo de documento?',
       message:      `Se eliminará "${item.U_Nombre}" (ID: ${item.U_IdTipo}) de forma permanente.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.svc.remove(item.U_IdTipo).subscribe({
         next:  () => { this.toast.exito('Tipo eliminado'); this.load(); },
-        error: (err) => this.toast.error(err?.error?.message ?? 'Error al eliminar'),
+        error: (err) => this.errorHandler.handle(err, 'Error al eliminar', this.cdr),
       });
     });
   }
 
-  // ── Dialog ───────────────────────────────────────────────
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
+  // ── Data Table ───────────────────────────────────────────
 
-  // ── Action Menu ──────────────────────────────────────────
-  getActionMenuItems(item: TipoDocSap): ActionMenuItem[] {
-    if (!this.auth.puedeEditarConf) return [];
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        cssClass: 'danger',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-      },
-    ];
+  private buildTableConfig(): void {
+    const actions: DataTableAction[] = this.auth.puedeEditarConf
+      ? [
+          { id: 'edit',   label: 'Editar',   icon: ICON_EDIT },
+          { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
+        ]
+      : [];
+
+    this.tableConfig = {
+      columns: [
+        { key: 'U_IdTipo',    header: 'Cód. SAP', width: '90px', align: 'center', cellTemplate: this.codigoCol },
+        { key: 'U_Nombre',    header: 'Nombre',   cellTemplate: this.nombreCol, mobile: { primary: true } },
+        { key: 'U_EsTipoF',   header: 'Tipo',     align: 'center', cellTemplate: this.tipoCol },
+        { key: 'U_PermiteGU', header: 'Grossing Up',   align: 'center', cellTemplate: this.guCol,   mobile: { hide: true } },
+        { key: 'U_PermiteGD', header: 'Grossing Down', align: 'center', cellTemplate: this.gdCol,   mobile: { hide: true } },
+        { key: 'U_Orden',     header: 'Orden',    align: 'center', cellTemplate: this.ordenCol,  mobile: { hide: true } },
+        { key: 'U_Activo',    header: 'Estado',   align: 'center', cellTemplate: this.estadoCol },
+      ],
+      showActions: actions.length > 0,
+      actions,
+      striped: true,
+      hoverable: true,
+    };
   }
 
-  onActionClick(actionId: string, item: TipoDocSap): void {
-    if (actionId === 'edit') {
-      this.openEdit(item);
-    } else if (actionId === 'delete') {
-      this.remove(item);
+  onTableAction(event: { action: string; item: TipoDocSap }): void {
+    switch (event.action) {
+      case 'edit':
+        this.openEdit(event.item);
+        break;
+      case 'delete':
+        this.confirmDelete(event.item);
+        break;
     }
   }
 
   // ── Helpers ──────────────────────────────────────────────
   tipoLabel(t: TipoDocSap): string {
     return t.U_EsTipoF === 'F' ? 'Factura' : 'Recibo';
-  }
-
-  tipoCss(t: TipoDocSap): string {
-    return t.U_EsTipoF === 'F' ? 'badge badge-primary' : 'badge badge-info';
-  }
-
-  activoCss(t: TipoDocSap): string {
-    return t.U_Activo === 'Y' ? 'badge badge-success' : 'badge badge-secondary';
-  }
-
-  boolCss(value: string): string {
-    return value === 'Y' ? 'badge badge-success' : 'badge badge-secondary';
   }
 
   fieldChanged(field: string): boolean {

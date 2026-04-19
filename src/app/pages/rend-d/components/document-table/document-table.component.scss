@@ -23,8 +23,8 @@
 
 .table-tab {
   padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
   color: var(--text-muted, #6b7280);
   background: transparent;
   border: none;
@@ -55,12 +55,12 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-base);
 
   th {
     padding: 12px;
     text-align: left;
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
     color: var(--text-secondary, #4b5563);
     background: var(--bg-secondary, #f9fafb);
     border-bottom: 1px solid var(--border-color, #e5e7eb);
@@ -130,8 +130,8 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
   color: white;
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   border-radius: 8px;
@@ -143,12 +143,12 @@
 
 .sticky-id {
   display: block;
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .sticky-concepto {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-muted, #6b7280);
   margin-top: 2px;
 }
@@ -158,7 +158,7 @@
   background: var(--bg-secondary, #f3f4f6);
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .type-tag {
@@ -166,7 +166,7 @@
   padding: 2px 8px;
   background: var(--bg-secondary, #f3f4f6);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .mono {
@@ -174,7 +174,7 @@
 }
 
 .total-cell {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .col-total {
@@ -191,7 +191,7 @@
 
 .col-impuesto .imp-valor {
   color: var(--primary-color, #6366f1);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 // Vista Impuestos
@@ -202,18 +202,42 @@
 }
 
 .impuestos-id {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--text-primary, #111827);
 }
 
 .impuestos-nombre {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--text-muted, #6b7280);
 }
 
+.sticky-cuenta {
+  display: block;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.sticky-cuenta-nombre {
+  font-size: var(--text-xs);
+  color: var(--text-muted, #6b7280);
+  margin-left: 4px;
+}
+
+.impuestos-cuenta {
+  display: block;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.impuestos-cuenta-nombre {
+  font-size: var(--text-xs);
+  color: var(--text-muted, #6b7280);
+  margin-left: 4px;
+}
+
 .imp-valor-iva.con-valor {
-  color: #3b82f6;
-  font-weight: 600;
+  color: var(--color-info);
+  font-weight: var(--weight-semibold);
 }
 
 // Footer
@@ -221,7 +245,7 @@ tfoot {
   background: var(--bg-secondary, #f9fafb);
 
   .totals-label {
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
     color: var(--text-secondary, #4b5563);
   }
 }
@@ -239,7 +263,7 @@ tfoot {
   // Solo ajustes específicos si son necesarios
   td.col-sticky {
     .sticky-id {
-      font-size: 15px;
+      font-size: var(--text-md);
       font-weight: var(--weight-semibold);
     }
   }
@@ -247,7 +271,7 @@ tfoot {
   // Vista Impuestos: Ajustes específicos
   td.col-prov {
     .impuestos-id {
-      font-size: 15px;
+      font-size: var(--text-md);
       font-weight: var(--weight-semibold);
     }
   }
@@ -259,88 +283,88 @@ tfoot {
 
 :host-context([data-theme="dark"]) {
   .table-wrapper {
-    background: #1f2937;
-    border-color: #374151;
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
   }
 
   .table-tabs {
-    background: #111827;
-    border-color: #374151;
+    background: var(--bg-surface);
+    border-color: var(--border-color);
   }
 
   .table-tab {
-    color: #9ca3af;
+    color: var(--text-muted);
 
     &:hover {
-      color: #f9fafb;
-      background: #374151;
+      color: var(--text-heading);
+      background: var(--bg-hover);
     }
 
     &.active {
-      color: #818cf8;
-      border-bottom-color: #818cf8;
-      background: #1f2937;
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+      background: var(--bg-elevated);
     }
   }
 
   .data-table th {
-    color: #9ca3af;
-    background: #111827;
-    border-bottom-color: #374151;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    border-bottom-color: var(--border-color);
   }
 
   .data-table td {
-    border-bottom-color: #374151;
-    color: #e5e7eb;
+    border-bottom-color: var(--border-color);
+    color: var(--text-body);
   }
 
   .sticky-id {
-    color: #f9fafb;
+    color: var(--text-heading);
   }
 
   .sticky-concepto {
-    color: #9ca3af;
+    color: var(--text-muted);
   }
 
   .sticky-code {
-    background: #374151;
-    color: #e5e7eb;
+    background: var(--bg-hover);
+    color: var(--text-body);
   }
 
   .type-tag {
-    background: #374151;
-    color: #e5e7eb;
+    background: var(--bg-hover);
+    color: var(--text-body);
   }
 
   .col-reduccion {
-    color: #9ca3af;
+    color: var(--text-muted);
   }
 
   tfoot {
-    background: #111827;
+    background: var(--bg-surface);
   }
 
   .totals-label {
-    color: #9ca3af;
+    color: var(--text-muted);
   }
 
   .col-total {
-    background: rgba(129, 140, 248, 0.1);
+    background: var(--color-primary-subtle);
   }
 
   .col-base {
-    background: rgba(96, 165, 250, 0.1);
+    background: var(--color-info-soft);
   }
 
   .impuestos-id {
-    color: #f9fafb;
+    color: var(--text-heading);
   }
 
   .impuestos-nombre {
-    color: #9ca3af;
+    color: var(--text-muted);
   }
 
   .imp-valor-iva.con-valor {
-    color: #60a5fa;
+    color: var(--color-info);
   }
 }

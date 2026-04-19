@@ -18,3 +18,6 @@ export type { RendicionAction } from './rendicion-table/rendicion-table.componen
 
 // Selector de perfil
 export { PerfilSelectorComponent } from './perfil-selector/perfil-selector.component';
+
+// Tabla de subordinados
+export { SubordinadosTableComponent } from './subordinados-table/subordinados-table.component';

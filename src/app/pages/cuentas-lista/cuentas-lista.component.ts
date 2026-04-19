@@ -4,9 +4,8 @@ import { FormsModule } from '@angular/forms';
 
 import { CuentasListaService }   from './cuentas-lista.service';
 import { ToastService }          from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }    from '@shared/paginator/paginator.component';
-import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
 import { PerfilSelectComponent } from '@shared/perfil-select/perfil-select.component';
 import { CuentaSearchComponent } from '@shared/cuenta-search/cuenta-search.component';
 import { SearchInputComponent } from '@shared/debounce';
@@ -16,6 +15,12 @@ import { ChartOfAccount }        from '@services/sap.service';
 import { AuthService } from '@auth/auth.service';
 import { FormModalComponent } from '@shared/form-modal';
 import { FormFieldComponent } from '@shared/form-field/form-field.component';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state';
+import { ICON_TRASH } from '@common/constants/icons';
 
 @Component({
   standalone: true,
@@ -23,39 +28,44 @@ import { FormFieldComponent } from '@shared/form-field/form-field.component';
   imports: [
     CommonModule,
     FormsModule,
-    ConfirmDialogComponent,
-    PaginatorComponent,
+    DataTableComponent,
     PerfilSelectComponent,
     CuentaSearchComponent,
     SearchInputComponent,
-    ActionMenuComponent,
     FormModalComponent,
-
     FormFieldComponent,
+    CrudPageHeaderComponent,
+    CrudEmptyStateComponent,
   ],
   templateUrl: './cuentas-lista.component.html',
   styleUrls: ['./cuentas-lista.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CuentasListaComponent implements OnInit {
+export class CuentasListaComponent extends AbstractCrudListComponent<CuentaLista> implements OnInit {
 
-  // ── Datos ───────────────────────────────────────────────
-  cuentas:  CuentaLista[] = [];
-  filtered: CuentaLista[] = [];
-  paged:    CuentaLista[] = [];
+  readonly store = new CrudListStore<CuentaLista>({
+    limit: 5,
+    searchFields: ['U_Cuenta', 'U_NombreCuenta', 'U_CuentaSys'],
+  });
+
+  tableConfig: DataTableConfig = {
+    columns: [
+      { key: 'U_IdPerfil', header: 'Cod. Perfil', align: 'center' },
+      { key: 'U_CuentaSys', header: 'Código SYS', mobile: { hide: true } },
+      { key: 'U_Cuenta', header: 'Código Cuenta' },
+      { key: 'U_NombreCuenta', header: 'Nombre Cuenta', mobile: { primary: true } },
+    ],
+    showActions: true,
+    actions: [
+      { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'text-danger', condition: () => this.auth.puedeEditarConf },
+    ],
+    striped: true,
+    hoverable: true,
+  };
 
   // ── Perfil seleccionado ──────────────────────────────────
   selectedPerfilId: number | null = null;
   selectedPerfil:   Perfil | null = null;
-
-  // ── Filtros ─────────────────────────────────────────────
-  search  = '';
-  loading = false;
-
-  // ── Paginación ──────────────────────────────────────────
-  page       = 1;
-  limit      = 5;
-  totalPages = 1;
 
   // ── Formulario agregar ──────────────────────────────────
   showForm      = false;
@@ -67,17 +77,16 @@ export class CuentasListaComponent implements OnInit {
     return !!this.selectedCuenta;
   }
 
-  // ── Confirm dialog ──────────────────────────────────────
-  showDialog   = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
-
   constructor(
     public  auth: AuthService,
     private cuentasService: CuentasListaService,
     private toast: ToastService,
-    private cdr:   ChangeDetectorRef,
-  ) {}
+    protected override cdr:   ChangeDetectorRef,
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {}
 
@@ -92,53 +101,13 @@ export class CuentasListaComponent implements OnInit {
 
   loadCuentas(onComplete?: () => void) {
     if (!this.selectedPerfilId) {
-      this.cuentas = []; this.filtered = []; this.paged = [];
+      this.store.setItems([]);
       return;
     }
-    this.loading = true;
-    this.cuentasService.getByPerfil(this.selectedPerfilId).subscribe({
-      next: (data) => {
-        this.cuentas = data;
-        this.loading = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-      error: () => { this.loading = false; this.cdr.markForCheck();
-      onComplete?.(); },
+    this.store.load(this.cuentasService.getByPerfil(this.selectedPerfilId), () => {
+      this.cdr.markForCheck();
+      onComplete?.();
     });
-  }
-
-  // ── Filtro y paginación ──────────────────────────────────
-
-  applyFilter() {
-    const q = this.search.toLowerCase();
-    this.filtered = this.cuentas.filter(c =>
-      (c.U_Cuenta       ?? '').toLowerCase().includes(q) ||
-      (c.U_NombreCuenta ?? '').toLowerCase().includes(q) ||
-      (c.U_CuentaSys    ?? '').toLowerCase().includes(q),
-    );
-    this.page = 1;
-    this.updatePaging();
-  }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged  = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
   }
 
   // ── Agregar cuenta ────────────────────────────────────────
@@ -192,8 +161,7 @@ export class CuentasListaComponent implements OnInit {
       },
       error: (err: any) => {
         this.isSaving = false;
-        this.toast.error(err?.error?.message || 'Error al agregar cuenta');
-        this.cdr.markForCheck();
+        this.errorHandler.handle(err, 'Error al agregar cuenta', this.cdr);
       },
     });
   }
@@ -201,49 +169,25 @@ export class CuentasListaComponent implements OnInit {
   // ── Eliminar ─────────────────────────────────────────────
 
   confirmRemove(c: CuentaLista) {
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        '¿Eliminar cuenta?',
       message:      `Se eliminará "${c.U_NombreCuenta}" (${c.U_Cuenta}) del perfil.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.cuentasService.remove(c.U_IdPerfil, c.U_CuentaSys).subscribe({
         next:  () => { this.toast.exito('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
-        error: (err: any) => { this.toast.error(err?.error?.message || 'Error al eliminar'); this.cdr.markForCheck(); },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar', this.cdr),
       });
     });
   }
 
-  // ── Dialog ────────────────────────────────────────────────
+  // ── Acciones tabla ───────────────────────────────────────
 
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
-
-  // ── Action Menu ────────────────────────────────────────────
-
-  getActionMenuItems(c: CuentaLista): ActionMenuItem[] {
-    const items: ActionMenuItem[] = [];
-
-    if (this.auth.puedeEditarConf) {
-      items.push({
-        id: 'delete',
-        label: 'Eliminar',
-        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
-        cssClass: 'action-delete',
-      });
-    }
-
-    return items;
-  }
-
-  onActionClick(actionId: string, c: CuentaLista): void {
-    if (actionId === 'delete') {
-      this.confirmRemove(c);
+  onTableAction(event: { action: string; item: CuentaLista }): void {
+    if (event.action === 'delete') {
+      this.confirmRemove(event.item);
     }
   }
 }

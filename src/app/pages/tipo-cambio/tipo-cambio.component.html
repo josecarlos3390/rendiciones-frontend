@@ -1,10 +1,9 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Tipo de Cambio</h2>
-    <p class="page-subtitle">Administra las tasas de cambio en modo OFFLINE.</p>
-  </div>
-  <button class="btn btn-primary btn-sm" (click)="openCreate()">+ Nueva Tasa</button>
-</div>
+<app-crud-page-header
+  title="Tipo de Cambio"
+  subtitle="Administra las tasas de cambio en modo OFFLINE."
+  actionLabel="+ Nueva Tasa"
+  (actionClick)="openCreate()">
+</app-crud-page-header>
 
 <!-- Estado OFFLINE -->
 <div *ngIf="isOffline" class="alert alert-info">
@@ -17,35 +16,57 @@
   [filterMoneda]="filterMoneda"
   [filterFechaDesde]="filterFechaDesde"
   [filterFechaHasta]="filterFechaHasta"
-  [count]="filtered.length"
-  [loading]="loading"
+  [count]="store.filtered().length"
+  [loading]="store.loading()"
   (monedaChange)="onMonedaChange($event)"
   (fechaDesdeChange)="onFechaDesdeChange($event)"
   (fechaHastaChange)="onFechaHastaChange($event)"
-  (reset)="onResetFilters()">>
+  (reset)="onResetFilters()">
 </app-tipo-cambio-filters>
 
-<!-- Loading / Error / Empty -->
-<div *ngIf="loading" class="empty-state">Cargando tasas de cambio...</div>
-<div *ngIf="!loading && loadError" class="empty-state">
-  Error al cargar los datos.
-  <a (click)="loadTasas()">Reintentar</a>
-</div>
-<div *ngIf="!loading && !loadError && filtered.length === 0" class="empty-state">
-  No hay tasas de cambio registradas.
-  <a (click)="openCreate()">Crear la primera</a>
-</div>
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  loadingText="Cargando tasas de cambio..."
+  errorText="Error al cargar los datos."
+  emptyText="No hay tasas de cambio registradas."
+  (retry)="loadTasas()">
+  <ng-container emptyAction>
+    <a (click)="openCreate()">Crear la primera</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ── -->
-<app-tipo-cambio-table
-  *ngIf="!loading && !loadError && filtered.length > 0"
-  [items]="paged"
-  [page]="page"
-  [totalPages]="totalPages"
+<ng-template #fechaCol let-item>
+  {{ item.fecha | date:'dd/MM/yyyy' }}
+</ng-template>
+<ng-template #monedaCol let-item>
+  <span class="code-tag">{{ item.moneda }}</span>
+</ng-template>
+<ng-template #tasaCol let-item>
+  {{ formatTasa(item.tasa) }}
+</ng-template>
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="item.activo === 'Y' ? 'success' : 'neutral'" [dot]="true">
+    {{ item.activo === 'Y' ? 'Activo' : 'Inactivo' }}
+  </app-status-badge>
+</ng-template>
+
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
   (pageChange)="onPageChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmDelete($event)">
-</app-tipo-cambio-table>
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>
 
 <app-form-modal
   [title]="'Tasa de Cambio'"
@@ -57,7 +78,7 @@
   [submitDisabled]="form.invalid"
   (save)="save()"
   (cancel)="closeModal()">
-  
+
   <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
       <app-form-field
@@ -84,8 +105,8 @@
         [required]="true"
         controlName="tasa"
         [hint]="'Cuántos BOB equivalen a 1 ' + (form.get('moneda')?.value || 'USD')">
-        <input 
-          type="number" 
+        <input
+          type="number"
           formControlName="tasa"
           step="0.0001"
           min="0.0001"
@@ -94,11 +115,3 @@
     </form>
   </ng-template>
 </app-form-modal>
-
-<!-- Confirm Dialog -->
-<app-confirm-dialog
-  *ngIf="confirmVisible"
-  [config]="confirmConfig"
-  (confirm)="onConfirmDelete()"
-  (cancel)="closeConfirm()"
-/>

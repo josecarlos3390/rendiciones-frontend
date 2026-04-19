@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, catchError, tap, shareReplay } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { environment } from '@env';
 
 export interface PdfProcessingResult {
   id: string;
@@ -114,12 +114,12 @@ export interface ValidacionSiatResult {
     fecha?: string;
     monto?: number;
   };
-  discrepancias: Array<{
+  discrepancias: {
     campo: string;
     pdf: string | number;
     siat: string | number;
     explicacion: string;
-  }>;
+  }[];
   recomendacion: string;
   riesgo: 'bajo' | 'medio' | 'alto';
 }
@@ -341,7 +341,7 @@ export class AiService {
    */
   chat(params: {
     mensaje: string;
-    historial?: Array<{ rol: string; contenido: string }>;
+    historial?: { rol: string; contenido: string }[];
     usuarioId?: string;
     paginaActual?: string;
   }): Observable<{ mensaje: string; tipo: string; sugerencias: string[] } | null> {
@@ -371,7 +371,7 @@ export class AiService {
   /**
    * Establece estado de carga y mensaje
    */
-  private setLoading(loading: boolean, mensaje: string = ''): void {
+  private setLoading(loading: boolean, mensaje = ''): void {
     this.loadingSubject.next(loading);
     this.mensajeIASubject.next(mensaje);
   }

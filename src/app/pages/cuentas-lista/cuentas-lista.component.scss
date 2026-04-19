@@ -7,38 +7,29 @@
 // ═══════════════════════════════════════════════════════════════
 // TABLA — Control de anchos para columnas de texto largo
 // ═══════════════════════════════════════════════════════════════
-.data-table {
-  table-layout: auto;
-  
-  th, td {
-    // Códigos - ancho fijo
-    &:nth-child(1),  // Cod. Perfil
-    &:nth-child(2),  // Código SYS
-    &:nth-child(3) { // Código Cuenta
-      min-width: 110px;
-      white-space: nowrap;
-    }
-    
-    // Nombre Cuenta - permitir multilinea
-    &:nth-child(4) {
-      max-width: 280px;
-      min-width: 150px;
-      white-space: normal;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      line-height: 1.4;
-    }
-  }
+:host ::ng-deep app-data-table .col-U_IdPerfil,
+:host ::ng-deep app-data-table .col-U_CuentaSys,
+:host ::ng-deep app-data-table .col-U_Cuenta {
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+:host ::ng-deep app-data-table .col-U_NombreCuenta {
+  max-width: 280px;
+  min-width: 150px;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
 }
 
 // Celda de acciones - ancho fijo
-.data-table td.col-acciones {
+:host ::ng-deep app-data-table td.col-acciones {
   position:    relative;
   white-space: nowrap;
   width:       90px;
   min-width:   90px;
   max-width:   90px;
-  text-align:  center;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -47,26 +38,26 @@
 @media (max-width: 640px) {
   :host ::ng-deep {
     @include tables.table-mobile-grid;
-    
+
     // Grid específico: CodPerfil + CodSys | CodCuenta | Nombre | Acciones
-    td:nth-child(1) { // CodPerfil
+    td.col-U_IdPerfil {
       align-items: flex-start;
     }
-    
-    td:nth-child(2) { // CodSys
+
+    td.col-U_CuentaSys {
       align-items: flex-end;
       text-align: right;
-      
+
       &::before { align-self: flex-end; }
     }
-    
-    td:nth-child(3) { // CodCuenta
+
+    td.col-U_Cuenta {
       grid-column: 1 / -1;
       padding-top: var(--space-2);
       border-top: 1px dashed var(--border-color-subtle);
     }
-    
-    td:nth-child(4) { // Nombre
+
+    td.col-U_NombreCuenta {
       grid-column: 1 / -1;
       max-width: none;
       min-width: auto;
@@ -78,7 +69,7 @@
       border-bottom: 1px dashed var(--border-color-subtle);
     }
   }
-  
+
   // Layout general
   .filter-bar {
     flex-direction: column;
@@ -108,21 +99,21 @@
   min-width: 220px;
   display: flex;
   flex-direction: column;
-  
+
   label {
-    font-size: var(--text-sm); 
+    font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
-    color: var(--text-muted); 
-    text-transform: uppercase; 
+    color: var(--text-muted);
+    text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  
+
   /* El selector debe ocupar todo el ancho disponible */
   app-perfil-select {
     display: block;
     width: 100%;
   }
-  
+
   @media (max-width: 640px) {
     min-width: 0;
     width: 100%;

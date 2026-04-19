@@ -132,7 +132,7 @@ export class HttpErrorInterceptor implements HttpInterceptor {
   /**
    * Maneja error 401 (no autorizado)
    */
-  private handleUnauthorized(skipRedirect: boolean = false): void {
+  private handleUnauthorized(skipRedirect = false): void {
     this.toast.error(this.errorMessages[HttpStatusCode.Unauthorized]);
     
     if (!skipRedirect) {
@@ -221,6 +221,6 @@ export class HttpErrorInterceptor implements HttpInterceptor {
  *   context: setErrorContext({ skipToast: true })
  * })
  */
-export function setErrorContext(context: HttpErrorContext): { [key: string]: HttpErrorContext } {
+export function setErrorContext(context: HttpErrorContext): Record<string, HttpErrorContext> {
   return { httpErrorContext: context };
 }

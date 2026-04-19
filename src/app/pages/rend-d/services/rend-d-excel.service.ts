@@ -6,9 +6,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import * as XLSX from 'xlsx';
-import { RendD, CreateRendDPayload } from '../../../models/rend-d.model';
-import { Documento } from '../../../models/documento.model';
+import { RendD, CreateRendDPayload } from '@models/rend-d.model';
+
 
 export interface ExcelExportRow {
   'N°': number;
@@ -61,11 +60,12 @@ export class RendDExcelService {
   /**
    * Exporta documentos a archivo Excel
    */
-  exportarDocumentos(
+  async exportarDocumentos(
     documentos: RendD[],
     getTipoDocName: (id: string) => string | undefined,
     idRendicion: number
-  ): { blob: Blob; filename: string } {
+  ): Promise<{ blob: Blob; filename: string }> {
+    const XLSX = await import('xlsx');
     const rows: ExcelExportRow[] = documentos.map(d => ({
       'N°': d.U_RD_IdRD,
       'Fecha': d.U_RD_Fecha ?? '',
@@ -111,7 +111,8 @@ export class RendDExcelService {
   /**
    * Descarga el formato de importación vacío
    */
-  descargarFormato(): { blob: Blob; filename: string } {
+  async descargarFormato(): Promise<{ blob: Blob; filename: string }> {
+    const XLSX = await import('xlsx');
     const ejemplo: ExcelImportRow[] = [{
       'Fecha': '2026-03-23',
       'Tipo Doc': 'FACTURA',
@@ -154,7 +155,8 @@ export class RendDExcelService {
    * Parsea un archivo Excel y retorna las filas válidas
    */
   async parsearArchivo(file: File): Promise<ImportResult> {
-    return new Promise((resolve, reject) => {
+    const XLSX = await import('xlsx');
+    return new Promise((resolve, _reject) => {
       const reader = new FileReader();
 
       reader.onload = (e) => {

@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CuentaLista, CreateCuentaListaPayload } from '../../models/cuenta-lista.model';
-import { Perfil } from '../../models/perfil.model';
-import { environment } from '../../../environments/environment';
+import { CuentaLista, CreateCuentaListaPayload } from '@models/cuenta-lista.model';
+import { Perfil } from '@models/perfil.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class CuentasListaService {

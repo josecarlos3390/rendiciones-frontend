@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, OnChanges, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef, Input, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AiService } from '../../services/ai.service';
+import { AiService } from '@services/ai.service';
 import { Subject, takeUntil } from 'rxjs';
 import { FormatChatPipe } from '../pipes/format-chat.pipe';
 

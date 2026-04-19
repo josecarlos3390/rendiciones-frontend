@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrateg
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { AiService, AiStatus } from '../../services/ai.service';
+import { AiService, AiStatus } from '@services/ai.service';
 
 /**
  * Indicador visual del estado de IA en el header

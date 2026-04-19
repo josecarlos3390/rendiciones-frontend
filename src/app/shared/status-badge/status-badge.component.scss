@@ -6,31 +6,29 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-weight: var(--weight-medium);
   white-space: nowrap;
   vertical-align: middle;
-  
+
   // Tamaños
   &.badge-sm {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     padding: 2px 8px;
     border-radius: var(--radius-sm);
   }
-  
+
   &.badge-md {
-    font-size: 11px;
-    padding: 4px 10px;
+    font-size: var(--text-sm);
+    padding: 4px 12px;
     border-radius: var(--radius-md);
   }
-  
+
   &.badge-lg {
-    font-size: 12px;
+    font-size: var(--text-base);
     padding: 6px 14px;
     border-radius: var(--radius-md);
   }
-  
+
   // Pill (bordes redondeados máximo)
   &.badge-pill {
     border-radius: var(--radius-pill);
@@ -39,8 +37,8 @@
 
 // Dot indicator
 .badge-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: currentColor;
   flex-shrink: 0;

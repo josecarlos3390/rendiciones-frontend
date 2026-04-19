@@ -1,24 +1,16 @@
-<!-- ── Cabecera de página ── -->
-<div class="page-header">
-  <h2>Cabeceras de Rendición</h2>
-  <div class="page-header-actions">
-    <ng-container *ngIf="perfilActivo">
-      <div class="perfil-activo-badge">
-        <span class="perfil-activo-badge__label">Perfil:</span>
-        <span class="perfil-activo-badge__nombre">{{ permisoActivo?.U_NOMBREPERFIL }}</span>
-        <button class="perfil-activo-badge__change" type="button"
-          title="Cambiar perfil" (click)="openPerfilPicker()">↺ Cambiar</button>
-      </div>
-      <button class="btn btn-primary btn-sm" (click)="openNew()">+ Nueva Rendición</button>
-    </ng-container>
-    <button *ngIf="!perfilActivo" class="btn btn-primary btn-sm"
-      (click)="openPerfilPicker()">+ Nueva Rendición</button>
-  </div>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Cabeceras de Rendición"
+  actionLabel="+ Nueva Rendición"
+  (actionClick)="perfilActivo ? openNew() : openPerfilPicker()">
+  <ng-container headerActions>
+    <div class="perfil-activo-badge" *ngIf="perfilActivo">
+      <span class="perfil-activo-badge__label">Perfil:</span>
+      <span class="perfil-activo-badge__nombre">{{ permisoActivo?.U_NOMBREPERFIL }}</span>
+      <button class="perfil-activo-badge__change" type="button"
+        title="Cambiar perfil" (click)="openPerfilPicker()">↺ Cambiar</button>
+    </div>
+  </ng-container>
+</app-crud-page-header>
 
 <!-- ════ Modal: Selector de Perfil ════ -->
 <app-picker-modal
@@ -47,6 +39,8 @@
   [filtroEmpleadoCar]="filtroEmpleadoCar"
   [filtroEmpleado]="filtroEmpleado"
   [editingPerfilNombre]="editingPerfilNombre"
+  [initialCuenta]="form.get('cuenta')?.value ?? ''"
+  [initialNombreCuenta]="form.get('nombreCuenta')?.value ?? ''"
   (save)="onSaveRendicion($event)"
   (cancel)="closeForm()"
   (empleadoChange)="onEmpleadoSelected($event)"
@@ -163,6 +157,8 @@
     [estadoFiltro]="estadoFiltro"
     [isAdmin]="isAdmin"
     [esAprobador]="auth.esAprobador"
+    [canSyncDirecto]="(auth.isAdmin || auth.esAprobador || auth.sinAprobador) && auth.puedeGenerarPre"
+    [canEnviar]="!!auth.nomSup"
     (action)="onTableAction($event)"
     (pageChange)="onPageChange($event)">
   </app-rendicion-table>
@@ -175,73 +171,18 @@
       <span>Rendiciones de subordinados</span>
     </div>
 
-    <app-skeleton-loader *ngIf="loadingSubordinados" variant="table" [rows]="3"></app-skeleton-loader>
-
-    <app-empty-state
-      *ngIf="!loadingSubordinados && rendicionesSubordinados.length === 0"
-      icon="users"
-      title="No hay rendiciones de subordinados"
-      message="No se encontraron rendiciones de tus subordinados con los filtros seleccionados."
-      [compact]="true">
-    </app-empty-state>
-
-    <!-- Tabla de subordinados (mantener código original por ahora) -->
-    <div class="table-wrapper" *ngIf="!loadingSubordinados && rendicionesSubordinados.length > 0">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th class="text-center">N°</th>
-            <th>Usuario</th>
-            <th>Objetivo</th>
-            <th>Cuenta</th>
-            <th class="text-center">Fecha Fin</th>
-            <th class="text-right">Monto</th>
-            <th class="text-center">Estado</th>
-            <th class="col-acciones" title="Acciones">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of rendicionesSubordinados">
-            <td class="text-center col-id" data-label="N°">{{ r.U_IdRendicion }}</td>
-            <td data-label="Usuario">
-              <span class="user-pill">{{ r.U_NomUsuario }}</span>
-            </td>
-            <td class="col-objetivo" data-label="Objetivo">{{ r.U_Objetivo }}</td>
-            <td class="col-cuenta" data-label="Cuenta">
-              <div class="cuenta-inner">
-                <span class="code-tag">{{ r.U_Cuenta }}</span>
-                <span class="cuenta-nombre">{{ r.U_NombreCuenta }}</span>
-              </div>
-            </td>
-            <td class="text-center" data-label="Fecha Fin">{{ r.U_FechaFinal | ddmmyyyy }}</td>
-            <td class="text-right col-monto" data-label="Monto">{{ r.U_Monto | number:'1.2-2' }}</td>
-            <td class="text-center" data-label="Estado">
-              <span [class]="estadoCss(r.U_Estado)">{{ estadoTexto(r.U_Estado) }}</span>
-            </td>
-            <td class="col-acciones" data-label="Acciones">
-              <div class="acciones-wrap">
-                <app-action-menu
-                  [actions]="getActionMenuItemsSubordinados(r)"
-                  [itemLabel]="'Rendición N° ' + r.U_IdRendicion"
-                  (actionClick)="onActionClickSubordinados($event, r)">
-                </app-action-menu>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <app-paginator
-        [page]="pageSubordinados" [limit]="limit"
-        [total]="totalSubordinados" [totalPages]="totalPagesSubordinados"
-        (pageChange)="onPageSubordinadosChange($event)"
-        (limitChange)="onLimitChange($event)">
-      </app-paginator>
-    </div>
+    <app-subordinados-table
+      [items]="rendicionesSubordinados"
+      [loading]="loadingSubordinados"
+      [page]="pageSubordinados"
+      [limit]="limit"
+      [total]="totalSubordinados"
+      [totalPages]="totalPagesSubordinados"
+      [getActionItems]="getActionMenuItemsSubordinados"
+      (actionClick)="onActionClickSubordinados($event.action, $event.item)"
+      (pageChange)="onPageSubordinadosChange($event)"
+      (limitChange)="onLimitChange($event)">
+    </app-subordinados-table>
 
   </ng-container>
 

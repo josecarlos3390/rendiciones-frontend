@@ -6,6 +6,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
+  top: 60px; /* Compensar el header fijo de la aplicación */
   background: var(--bg-scrim);
   display: flex;
   align-items: center;
@@ -13,9 +14,24 @@
   z-index: var(--z-modal);
   padding: var(--space-6);
   animation: modal-fade-in 0.2s ease;
-  backdrop-filter: blur(4px);
+
+  // El blur se aplica via ::before para NO crear un stacking context
+  // que atraparía los position:fixed de componentes hijos (ej: cuenta-selector)
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: -1;
+    pointer-events: none;
+  }
 
   // En móvil: padding reducido para aprovechar el espacio
+  @media (max-width: 768px) {
+    top: 56px; /* Altura reducida del header en móvil */
+  }
+
   @media (max-width: 640px) {
     padding: 0;
     align-items: flex-end;

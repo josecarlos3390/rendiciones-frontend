@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { environment } from '@env';
 import {
   Proyecto,
   CrearProyectoPayload,
   ActualizarProyectoPayload,
   ProyectoFiltro,
-} from '../models/proyecto.model';
+} from '@models/proyecto.model';
 
 @Injectable({
   providedIn: 'root',

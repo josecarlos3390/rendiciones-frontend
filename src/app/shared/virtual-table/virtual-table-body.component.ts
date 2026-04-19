@@ -84,7 +84,7 @@ export class VirtualTableBodyComponent<T> implements OnChanges {
   @Input() emptyMessage = 'No hay datos para mostrar';
 
   /** TrackBy function para optimizar re-renders */
-  @Input() trackByFn: (index: number, item: T) => any = (index, item) => index;
+  @Input() trackByFn: (index: number, _item: T) => any = (index, _item) => index;
 
   @ContentChild('rowTemplate', { static: false })
   rowTemplate!: TemplateRef<{ $implicit: T; index: number }>;

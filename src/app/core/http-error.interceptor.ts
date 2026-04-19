@@ -3,7 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { ToastService } from './toast/toast.service';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '@auth/auth.service';
 
 /**
  * Track if we're already handling a 401 to prevent race conditions
@@ -18,38 +18,40 @@ let isHandling401 = false;
  *   - Array de strings: ["Error 1", "Error 2"]
  *   - Objeto con message: { message: "..." } o { message: ["...", "..."] }
  */
-function extractErrorMessages(error: any): string[] {
+function extractErrorMessages(error: unknown): string[] {
   if (!error) return [];
-  
+
+  const err = error as Record<string, unknown>;
+
   // Caso 1: message es un array
-  if (Array.isArray(error.message)) {
-    return error.message.map((m: any) => String(m));
+  if (Array.isArray(err['message'])) {
+    return err['message'].map((m: unknown) => String(m));
   }
-  
+
   // Caso 2: message es un string
-  if (typeof error.message === 'string' && error.message.trim()) {
-    return [error.message];
+  if (typeof err['message'] === 'string' && err['message'].trim()) {
+    return [err['message']];
   }
-  
+
   // Caso 3: error es un string directo
   if (typeof error === 'string' && error.trim()) {
     return [error];
   }
-  
+
   // Caso 4: error es un array directo
   if (Array.isArray(error)) {
-    return error.map((e: any) => 
-      typeof e === 'string' ? e : (e.message || e.toString())
-    ).filter(Boolean);
+    return error.map((e: unknown) =>
+      typeof e === 'string' ? e : ((e as Record<string, unknown>)?.['message'] || String(e))
+    ).filter(Boolean) as string[];
   }
-  
+
   // Caso 5: propiedad error (algunos backends usan esta estructura)
-  if (error.error) {
-    if (typeof error.error === 'string') return [error.error];
-    if (Array.isArray(error.error)) return error.error.map(String);
-    if (error.error.message) return extractErrorMessages(error.error);
+  if (err['error']) {
+    if (typeof err['error'] === 'string') return [err['error']];
+    if (Array.isArray(err['error'])) return (err['error'] as unknown[]).map(String);
+    if ((err['error'] as Record<string, unknown>)?.['message']) return extractErrorMessages(err['error']);
   }
-  
+
   return [];
 }
 

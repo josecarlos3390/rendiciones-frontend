@@ -1,7 +1,7 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { DdmmyyyyPipe } from '../../../../shared/ddmmyyyy.pipe';
-import { RendM } from '../../../../models/rend-m.model';
+import { CommonModule } from '@angular/common';
+import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
+import { RendM } from '@models/rend-m.model';
 
 /**
  * Panel de datos maestros de la rendición
@@ -113,7 +113,7 @@ import { RendM } from '../../../../models/rend-m.model';
     }
 
     .maestro-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--text-muted, #6b7280);
       text-transform: uppercase;
@@ -121,7 +121,7 @@ import { RendM } from '../../../../models/rend-m.model';
     }
 
     .maestro-value {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-primary, #111827);
       font-weight: 500;
       line-height: 1.3;
@@ -154,7 +154,7 @@ import { RendM } from '../../../../models/rend-m.model';
     }
 
     .maestro-monto {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: var(--color-primary, #6366f1);
       font-family: ui-monospace, monospace;
@@ -194,11 +194,11 @@ import { RendM } from '../../../../models/rend-m.model';
       }
       
       .maestro-value {
-        font-size: 14px;
+        font-size: 13px;
       }
       
       .maestro-monto {
-        font-size: 20px;
+        font-size: 18px;
       }
     }
 

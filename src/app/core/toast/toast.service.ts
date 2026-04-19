@@ -32,7 +32,7 @@ export class ToastService {
   /**
    * Muestra un toast genérico
    */
-  mostrar(mensaje: string, tipo: ToastType = 'info', duracion: number = 3000): void {
+  mostrar(mensaje: string, tipo: ToastType = 'info', duracion = 3000): void {
     const toast: Toast = {
       id: this.generateId(),
       mensaje,
@@ -51,35 +51,35 @@ export class ToastService {
   /**
    * Toast de éxito
    */
-  exito(mensaje: string, duracion: number = 3000): void {
+  exito(mensaje: string, duracion = 3000): void {
     this.mostrar(mensaje, 'success', duracion);
   }
 
   /**
    * Toast de error
    */
-  error(mensaje: string, duracion: number = 5000): void {
+  error(mensaje: string, duracion = 5000): void {
     this.mostrar(mensaje, 'error', duracion);
   }
 
   /**
    * Toast de advertencia
    */
-  advertencia(mensaje: string, duracion: number = 4000): void {
+  advertencia(mensaje: string, duracion = 4000): void {
     this.mostrar(mensaje, 'warning', duracion);
   }
 
   /**
    * Alias en inglés para advertencia
    */
-  warning(mensaje: string, duracion: number = 4000): void {
+  warning(mensaje: string, duracion = 4000): void {
     this.advertencia(mensaje, duracion);
   }
 
   /**
    * Toast informativo
    */
-  info(mensaje: string, duracion: number = 3000): void {
+  info(mensaje: string, duracion = 3000): void {
     this.mostrar(mensaje, 'info', duracion);
   }
 

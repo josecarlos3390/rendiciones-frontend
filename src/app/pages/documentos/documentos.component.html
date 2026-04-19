@@ -1,28 +1,22 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Configuración de Documentos</h2>
-    <p class="page-subtitle">Configurá los tipos de documento habilitados y su método de cálculo fiscal para cada perfil.</p>
-  </div>
-  <button class="btn btn-primary btn-sm" (click)="openCreate()" [disabled]="!selectedPerfilId">
-    + Adicionar
-  </button>
-</div>
+<app-crud-page-header
+  title="Configuración de Documentos"
+  subtitle="Configurá los tipos de documento habilitados y su método de cálculo fiscal para cada perfil."
+  actionLabel="+ Adicionar"
+  [actionDisabled]="!selectedPerfilId"
+  (actionClick)="openCreate()">
+</app-crud-page-header>
 
 <!-- ── Dumb Component: Filtros ────────────────────────────── -->
 <app-documentos-filters
   [selectedPerfilId]="selectedPerfilId"
-  [search]="search"
-  [loading]="loading"
-  [filteredCount]="filtered.length"
+  [search]="store.search()"
+  [loading]="store.loading()"
+  [filteredCount]="store.filtered().length"
   (perfilChange)="onPerfilSelect($event)"
   (perfilObjChange)="onPerfilObjChange($event)"
   (searchChange)="onSearchChange($event)"
   (searchCleared)="onSearchCleared()">
 </app-documentos-filters>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
 
 <!-- ── Modal con FormModalComponent (mantenido en Smart) ─── -->
 <app-form-modal
@@ -204,26 +198,84 @@
 
 <!-- ── Estados vacíos ─────────────────────────────────────── -->
 <div *ngIf="!selectedPerfilId" class="empty-state">Seleccioná un perfil para ver los tipos de documento habilitados y su cálculo fiscal.</div>
-<div *ngIf="selectedPerfilId && loading" class="empty-state">Cargando documentos...</div>
-<div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && !search" class="empty-state">
-  Este perfil aún no tiene documentos configurados. <a (click)="openCreate()">Agregar el primero</a>
-</div>
-<div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && search" class="empty-state">
-  No se encontraron documentos para "{{ search }}".
-</div>
 
-<!-- ── Dumb Component: Tabla ──────────────────────────────── -->
-<app-documentos-table
-  *ngIf="selectedPerfilId && !loading && filtered.length > 0"
-  [items]="paged"
-  [page]="page"
-  [limit]="limit"
-  [total]="filtered.length"
-  [totalPages]="totalPages"
-  [loading]="loading"
-  [canEdit]="auth.puedeEditarConf"
+<app-crud-empty-state
+  *ngIf="selectedPerfilId"
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0 && !store.search()"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando documentos..."
+  errorText="No se pudieron cargar los documentos."
+  emptyText="Este perfil aún no tiene documentos configurados."
+  (retry)="loadDocumentos()">
+  <ng-container emptyAction>
+    <a (click)="openCreate()">Agregar el primero</a>
+  </ng-container>
+</app-crud-empty-state>
+
+<!-- ── Templates de columna ───────────────────────────────── -->
+<ng-template #tipoDocCol let-d>
+  <strong>{{ d.U_TipDoc }}</strong>
+</ng-template>
+
+<ng-template #sapCol let-d>
+  <span class="sap-label">{{ tipoDocSapLabel(d.U_IdTipoDoc) }}</span>
+</ng-template>
+
+<ng-template #calculoCol let-d>
+  <app-status-badge [type]="isGrossingUp(d.U_TipoCalc) ? 'success' : 'neutral'" [dot]="true">
+    {{ tipoCalcLabel(d.U_TipoCalc) }}
+  </app-status-badge>
+</ng-template>
+
+<ng-template #ivaCol let-d>
+  <span class="tax-pct">{{ fmtPct(d.U_IVApercent) }}</span>
+  <span class="tax-cta" *ngIf="d.U_IVApercent !== 0 && d.U_IVAcuenta">{{ d.U_IVAcuenta }}</span>
+</ng-template>
+
+<ng-template #itCol let-d>
+  <span class="tax-pct">{{ fmtPct(d.U_ITpercent) }}</span>
+  <span class="tax-cta" *ngIf="d.U_ITpercent !== 0 && d.U_ITcuenta">{{ d.U_ITcuenta }}</span>
+</ng-template>
+
+<ng-template #iueCol let-d>
+  <span class="tax-pct">{{ fmtPct(d.U_IUEpercent) }}</span>
+  <span class="tax-cta" *ngIf="d.U_IUEpercent !== 0 && d.U_IUEcuenta">{{ d.U_IUEcuenta }}</span>
+</ng-template>
+
+<ng-template #rcivaCol let-d>
+  <span class="tax-pct">{{ fmtPct(d.U_RCIVApercent) }}</span>
+  <span class="tax-cta" *ngIf="d.U_RCIVApercent !== 0 && d.U_RCIVAcuenta">{{ d.U_RCIVAcuenta }}</span>
+</ng-template>
+
+<ng-template #exentoCol let-d>
+  <span class="tax-pct">{{ fmtPct(d.U_EXENTOpercent) }}</span>
+  <span class="tax-cta" *ngIf="d.U_EXENTOpercent !== 0 && d.U_CTAEXENTO">{{ d.U_CTAEXENTO }}</span>
+</ng-template>
+
+<ng-template #tasaIceCol let-d>
+  <span class="tax-dual-row">
+    <span class="tax-dual-label">Tasa</span>
+    <span class="tax-pct">{{ fmtPct(d.U_TASA) }}</span>
+  </span>
+  <span class="tax-dual-row">
+    <span class="tax-dual-label">ICE</span>
+    <span class="tax-pct">{{ fmtPct(d.U_ICE) }}</span>
+  </span>
+</ng-template>
+
+<!-- ── Tabla ──────────────────────────────────────────────── -->
+<app-data-table
+  *ngIf="selectedPerfilId && !store.loading() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
   (pageChange)="onPageChange($event)"
   (limitChange)="onLimitChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmRemove($event)">
-</app-documentos-table>
+  (action)="onTableAction($event)">
+</app-data-table>

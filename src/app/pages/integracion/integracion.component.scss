@@ -1,8 +1,9 @@
 /**
  * Smart Component: Integracion
- * 
+ *
  * Estilos minimos - los estilos especificos de UI estan en los Dumb Components.
- * Este archivo solo contiene estilos de layout a nivel de pagina.
+ * Este archivo solo contiene estilos de layout a nivel de pagina
+ * y clases usadas dentro de los cellTemplates de app-data-table.
  */
 
 :host {
@@ -15,4 +16,34 @@
   :host {
     padding: var(--spacing-sm);
   }
+}
+
+// ── Celdas custom (templates en el smart component) ────────
+.link-primary {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.doc-erp-code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--bg-faint);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-text);
+  letter-spacing: 0.3px;
+}
+
+.muted {
+  color: var(--text-faint);
+}
+
+// ── Fila error — el <tr> es creado por app-data-table (hijo) ──
+:host ::ng-deep app-data-table tr.row-error td {
+  background: var(--color-danger-soft);
 }

@@ -1,0 +1,195 @@
+// ═══════════════════════════════════════════════════════════════
+// SubordinadosTable — estilos específicos de la tabla de subordinados
+// (extraídos de rend-m.component.scss para evitar regresiones visuales)
+// ═══════════════════════════════════════════════════════════════
+
+.col-id {
+  width: 50px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.col-objetivo {
+  max-width: 200px;
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  color: var(--text-heading);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.col-cuenta {
+  max-width: 200px;
+
+  .cuenta-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+  }
+}
+
+.cuenta-nombre {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.col-empleado {
+  max-width: 160px;
+  font-size: var(--text-sm);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.col-monto {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  color: var(--text-heading);
+}
+
+.data-table th.col-acciones,
+.data-table td.col-acciones {
+  width: 90px;
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.acciones-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--color-bg-secondary);
+  border: 0.5px solid var(--color-border);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.data-table th.col-objetivo,
+.data-table td.col-objetivo,
+.data-table th.col-empleado,
+.data-table td.col-empleado {
+  min-width: 180px;
+}
+
+.data-table th.col-cuenta,
+.data-table td.col-cuenta {
+  min-width: 200px;
+}
+
+// ── Responsive: Tabla como tarjetas en móvil ────────────────────────────────
+@media (max-width: 640px) {
+  .table-wrapper {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .data-table {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0;
+      border: none;
+      font-size: var(--text-base);
+
+      &::before {
+        content: attr(data-label);
+        font-size: var(--text-2xs);
+        font-weight: var(--weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-faint);
+      }
+
+      &.col-acciones {
+        grid-column: 2;
+        grid-row: 1;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: flex-start;
+
+        &::before {
+          display: none;
+        }
+      }
+
+      &.col-id {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      &.col-objetivo {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        font-size: var(--text-md);
+        font-weight: var(--weight-semibold);
+      }
+
+      &.col-cuenta {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+
+      &.col-empleado,
+      &[data-label="Usuario"] {
+        grid-column: 1 / -1;
+        grid-row: 4;
+      }
+
+      &[data-label="Fecha Fin"] {
+        grid-column: 1;
+        grid-row: 5;
+      }
+
+      &.col-monto {
+        grid-column: 2;
+        grid-row: 6;
+        text-align: right;
+        align-items: flex-end;
+        font-weight: var(--weight-semibold);
+      }
+
+      &[data-label="Estado"] {
+        grid-column: 1;
+        grid-row: 6;
+        align-items: flex-start;
+        justify-content: center;
+      }
+    }
+  }
+}

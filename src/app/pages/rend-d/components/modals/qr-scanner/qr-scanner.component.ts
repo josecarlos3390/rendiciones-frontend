@@ -8,7 +8,7 @@
 import { Component, Input, Output, EventEmitter, ElementRef, AfterViewInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormModalComponent } from '@shared/form-modal/form-modal.component';
-import QrScanner from 'qr-scanner';
+import type QrScanner from 'qr-scanner';
 
 @Component({
   selector: 'app-qr-scanner-modal',
@@ -21,6 +21,7 @@ import QrScanner from 'qr-scanner';
 export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() isOpen = false;
   @Input() loading = false;
+  @Input() scanning = false;
   @Input() error: string | null = null; // Error desde el padre (API/Servicio)
 
   @Output() scan = new EventEmitter<string>(); // Emite la URL del QR escaneado
@@ -32,8 +33,8 @@ export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDest
   isInitializing = false;
   
   private qrScanner: QrScanner | null = null;
-  private initTimeout: any = null;
-  private checkInterval: any = null;
+  private initTimeout: ReturnType<typeof setTimeout> | undefined;
+  private checkInterval: ReturnType<typeof setInterval> | undefined;
   private readonly CHECK_INTERVAL_MS = 100;
   private readonly MAX_CHECK_ATTEMPTS = 50; // 5 segundos máximo
   private checkAttempts = 0;
@@ -73,11 +74,11 @@ export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDest
     this.destroyScanner();
     if (this.initTimeout) {
       clearTimeout(this.initTimeout);
-      this.initTimeout = null;
+      this.initTimeout = undefined;
     }
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
-      this.checkInterval = null;
+      this.checkInterval = undefined;
     }
   }
 
@@ -98,12 +99,12 @@ export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDest
         // Video element encontrado, proceder con inicialización
         console.log(`[QR Scanner] Video element encontrado en intento ${this.checkAttempts}`);
         clearInterval(this.checkInterval!);
-        this.checkInterval = null;
+        this.checkInterval = undefined;
         this.initScanner(videoEl);
       } else if (this.checkAttempts >= this.MAX_CHECK_ATTEMPTS) {
         // Timeout - no se encontró el video element
         clearInterval(this.checkInterval!);
-        this.checkInterval = null;
+        this.checkInterval = undefined;
         this.isInitializing = false;
         console.error('[QR Scanner] Timeout: no se encontró el video element después de 5 segundos');
         this.setCameraError('No se pudo inicializar la cámara. Intentá de nuevo.');
@@ -136,8 +137,11 @@ export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDest
       this.cameraError = null;
       this.cdr.markForCheck();
 
+      // Dynamic import para compatibilidad SSR
+      const { default: QrScannerLib } = await import('qr-scanner');
+
       // Crear instancia de QrScanner
-      this.qrScanner = new QrScanner(
+      this.qrScanner = new QrScannerLib(
         videoEl,
         (result: QrScanner.ScanResult) => {
           const url = result?.data;
@@ -161,7 +165,7 @@ export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDest
       this.checkAttempts = 0;
       this.cdr.markForCheck();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[QR Scanner] Error iniciando escáner:', err);
       this.isInitializing = false;
       this.handleCameraError(err);
@@ -176,11 +180,11 @@ export class QrScannerModalComponent implements AfterViewInit, OnChanges, OnDest
     this.scan.emit(url);
   }
 
-  private handleCameraError(err: any): void {
+  private handleCameraError(err: unknown): void {
     let message: string;
-    
+
     // QrScanner envuelve los errores, verificamos el mensaje
-    const errorMsg = err?.message || err?.toString() || '';
+    const errorMsg = (err && typeof err === 'object' ? (err as Error).message : undefined) || String(err);
     
     if (errorMsg.includes('Permission denied') || errorMsg.includes('NotAllowed')) {
       message = 'Permiso de cámara denegado. Permití el acceso en la barra de direcciones del navegador.';

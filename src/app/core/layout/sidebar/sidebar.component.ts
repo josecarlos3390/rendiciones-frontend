@@ -2,11 +2,11 @@ import { Component, EventEmitter, OnInit, OnDestroy, Output, ChangeDetectionStra
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { AuthService } from '../../../auth/auth.service';
-import { AprobacionesService } from '../../../services/aprobaciones.service';
-import { IntegracionService } from '../../../services/integracion.service';
-import { NotificacionesService } from '../../../services/notificaciones.service';
-import { AppModeService } from '../../../services/app-mode.service';
+import { AuthService } from '@auth/auth.service';
+import { AprobacionesService } from '@services/aprobaciones.service';
+import { IntegracionService } from '@services/integracion.service';
+import { NotificacionesService } from '@services/notificaciones.service';
+import { AppModeService } from '@services/app-mode.service';
 import { interval, Subscription } from 'rxjs';
 import { startWith, switchMap } from 'rxjs/operators';
 import { ThemeService } from '../../theme/theme.service';
@@ -91,7 +91,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ];
 
   private _filteredItems: { label: string; route: string; icon: string; section: string }[] = [];
-  private _groupedResults: { [key: string]: { label: string; route: string; icon: string; section: string }[] } = {};
+  private _groupedResults: Record<string, { label: string; route: string; icon: string; section: string }[]> = {};
   private _searchCache = '';
 
   get filteredItems() {
@@ -120,7 +120,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   get groupedSearchResults() {
-    this.filteredItems;
     return this._groupedResults;
   }
 

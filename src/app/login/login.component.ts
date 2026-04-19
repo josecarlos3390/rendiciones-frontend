@@ -2,25 +2,27 @@ import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
-import { ToastService } from '../core/toast';
+import { AuthService } from '@auth/auth.service';
+import { ToastService } from '@core/toast';
 
 /**
  * Mapea errores HTTP del backend a mensajes amigables para el usuario.
  */
-function getLoginErrorMessage(err: any): string {
+function getLoginErrorMessage(err: unknown): string {
+  const e = err as Record<string, unknown>;
+
   // Si el backend envió un mensaje específico
-  if (err?.error?.message && typeof err.error.message === 'string') {
-    return err.error.message;
+  if (e?.['error'] && typeof (e['error'] as Record<string, unknown>)?.['message'] === 'string') {
+    return (e['error'] as Record<string, unknown>)['message'] as string;
   }
 
   // Si el error es un string directo
-  if (typeof err?.error === 'string') {
-    return err.error;
+  if (typeof e?.['error'] === 'string') {
+    return e['error'];
   }
 
   // Errores HTTP estándar
-  switch (err?.status) {
+  switch (e?.['status']) {
     case 401:
       return 'Usuario o contraseña incorrectos';
     case 429:

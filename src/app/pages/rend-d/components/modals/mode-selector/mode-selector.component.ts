@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormModalComponent } from '../../../../../shared/form-modal';
+import { FormModalComponent } from '@shared/form-modal';
 
 export type InputMode = 'qr' | 'manual' | 'url' | 'pdf';
 

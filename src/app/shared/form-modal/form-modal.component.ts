@@ -395,7 +395,7 @@ export class FormModalComponent implements OnDestroy, OnChanges {
     }
   }
 
-  onBackdropClick(event: MouseEvent): void {
+  onBackdropClick(_event: MouseEvent): void {
     if (!this.loading) {
       this.cancel.emit();
     }

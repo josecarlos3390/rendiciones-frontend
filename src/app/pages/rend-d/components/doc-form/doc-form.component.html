@@ -112,6 +112,7 @@
                 <input type="text" formControlName="concepto" maxlength="250" placeholder="Descripción del gasto" autocomplete="off" />
                 <!-- Botón IA -->
                 <button 
+                  *ngIf="iaHabilitada"
                   type="button" 
                   class="btn-ia-sugerencia"
                   [class.loading]="iaLoading"
@@ -124,7 +125,7 @@
                 </button>
               </div>
               <!-- Tarjeta de sugerencia IA pendiente -->
-              <div class="ia-sugerencia-card" *ngIf="tieneSugerenciaPendiente">
+              <div class="ia-sugerencia-card" *ngIf="iaHabilitada && tieneSugerenciaPendiente">
                 <div class="ia-sugerencia-header">
                   <span class="ia-icon">🤖</span>
                   <span class="ia-titulo">Sugerencia de IA</span>
@@ -155,7 +156,7 @@
               </div>
               
               <!-- Mensaje de sugerencia aplicada -->
-              <div class="ia-sugerencia-aplicada" *ngIf="iaSugerenciaMensaje">
+              <div class="ia-sugerencia-aplicada" *ngIf="iaHabilitada && iaSugerenciaMensaje">
                 <span class="ia-badge">{{ iaSugerenciaMensaje }}</span>
               </div>
             </div>

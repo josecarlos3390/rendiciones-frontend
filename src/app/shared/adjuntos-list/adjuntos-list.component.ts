@@ -8,15 +8,15 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { AdjuntosService } from '../../services/adjuntos.service';
-import { ToastService } from '../../core/toast/toast.service';
-import { ConfirmDialogService } from '../../core/confirm-dialog/confirm-dialog.service';
+import { AdjuntosService } from '@services/adjuntos.service';
+import { ToastService } from '@core/toast/toast.service';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
 import {
   Adjunto,
   formatFileSize,
   getFileIcon,
   isPreviewable,
-} from '../../models/adjunto.model';
+} from '@models/adjunto.model';
 
 @Component({
   selector: 'app-adjuntos-list',

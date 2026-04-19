@@ -3,9 +3,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IntegracionService, SyncResult, SapCredentials } from '../../services/integracion.service';
-import { NotificacionesService } from '../../services/notificaciones.service';
-import { ToastService } from '../../core/toast/toast.service';
+import { IntegracionService, SyncResult, SapCredentials } from '@services/integracion.service';
+import { NotificacionesService } from '@services/notificaciones.service';
+import { ToastService } from '@core/toast/toast.service';
 
 export interface SyncModalConfig {
   idRendicion: number;

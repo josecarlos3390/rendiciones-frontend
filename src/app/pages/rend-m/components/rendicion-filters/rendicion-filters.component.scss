@@ -23,8 +23,8 @@
   gap: 6px;
 
   label {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -32,9 +32,9 @@
 }
 
 .filter-count {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 // Chips de ver (propias/subordinados/todas)
@@ -59,7 +59,7 @@
   border-radius: 20px;
   background: var(--bg-primary);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--text-base);
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -85,11 +85,11 @@
   height: 8px;
   border-radius: 50%;
 
-  &--open { background: #10b981; }
-  &--sent { background: #3b82f6; }
-  &--approved { background: #059669; }
-  &--sync { background: #8b5cf6; }
-  &--error { background: #ef4444; }
+  &--open { background: var(--color-success); }
+  &--sent { background: var(--color-primary); }
+  &--approved { background: var(--status-closed-color); }
+  &--sync { background: var(--color-cost); }
+  &--error { background: var(--color-danger); }
 }
 
 .sub-count-badge {
@@ -101,6 +101,6 @@
   padding: 0 6px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 9px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
 }

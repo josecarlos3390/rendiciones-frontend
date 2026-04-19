@@ -47,6 +47,7 @@ describe('QrScannerModalComponent', () => {
   describe('Event emitters', () => {
     it('should emit retry event', () => {
       let emitted = false;
+      component.error = 'Test error';
       component.retry.subscribe(() => emitted = true);
       component.onRetry();
       expect(emitted).toBe(true);

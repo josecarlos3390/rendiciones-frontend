@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient }          from '@angular/common/http';
-import { environment }         from '../../environments/environment';
-import { Observable, of, throwError } from 'rxjs';
+import { environment }         from '@env';
+import { Observable, of } from 'rxjs';
 import { catchError, switchMap, map } from 'rxjs/operators';
 import { AiService, PdfProcessingResult } from './ai.service';
 

@@ -1,14 +1,9 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Normas de Reparto</h2>
-    <p class="page-subtitle">Administra las normas para distribución de importes en modo OFFLINE.</p>
-  </div>
-  <button *ngIf="isAdmin" class="btn btn-primary btn-sm" (click)="openNew()">+ Nueva Norma</button>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Normas de Reparto"
+  subtitle="Administra las normas para distribución de importes en modo OFFLINE."
+  [actionLabel]="isAdmin ? '+ Nueva Norma' : null"
+  (actionClick)="openNew()">
+</app-crud-page-header>
 
 <!-- ── Modal con FormModalComponent ─────────────────────────── -->
 <app-form-modal
@@ -95,33 +90,57 @@
 
 <!-- ── Filtros ── -->
 <app-normas-filters
-  [search]="search"
+  [search]="store.search()"
   [filterActiva]="filterActiva"
   [estadoOptions]="estadoOptions"
-  [count]="filtered.length"
-  [loading]="loadingState === 'loading'"
+  [count]="store.filtered().length"
+  [loading]="store.loading()"
   (searchChange)="onSearchChange($event)"
   (estadoChange)="onFilterActivaChange($event)"
-  (reset)="onSearchCleared()">>
+  (reset)="onSearchCleared()">
 </app-normas-filters>
 
-<!-- ── Loading / Error / Empty ── -->
-<app-loading-state
-  *ngIf="loadingState !== 'success'"
-  [state]="loadingState"
-  errorMessage="Error al cargar las normas"
-  emptyMessage="No hay normas registradas"
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando normas..."
+  errorText="Error al cargar las normas."
+  emptyText="No hay normas registradas."
   (retry)="load()">
-</app-loading-state>
+  <ng-container emptyAction>
+    <a *ngIf="isAdmin" (click)="openNew()">Crear la primera</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ── -->
-<app-normas-table
+<ng-template #codeCol let-item>
+  <span class="code-tag">{{ item.factorCode }}</span>
+</ng-template>
+<ng-template #descCol let-item>
+  {{ item.descripcion }}
+</ng-template>
+<ng-template #dimensionCol let-item>
+  {{ item.dimensionName || '—' }}
+</ng-template>
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="item.activa ? 'success' : 'neutral'" [dot]="true">
+    {{ item.activa ? 'Activa' : 'Inactiva' }}
+  </app-status-badge>
+</ng-template>
+
+<app-data-table
   *ngIf="loadingState === 'success'"
-  [items]="paged"
-  [page]="page"
-  [totalPages]="totalPages"
-  [isReadonly]="!isAdmin"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
   (pageChange)="onPageChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmDelete($event)">
-</app-normas-table>
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>

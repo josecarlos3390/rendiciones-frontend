@@ -1,8 +1,8 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SourceBadgeComponent } from '../source-badge/source-badge.component';
-import { FacturaResult } from '../../services/factura.service';
+import { FacturaResult } from '@services/factura.service';
 
 @Component({
   selector: 'app-ai-factura-preview',
@@ -414,7 +414,7 @@ import { FacturaResult } from '../../services/factura.service';
     }
   `]
 })
-export class AiFacturaPreviewComponent {
+export class AiFacturaPreviewComponent implements OnInit {
   @Input() result: FacturaResult | null = null;
   @Output() confirm = new EventEmitter<any>();
   @Output() cancel = new EventEmitter<void>();

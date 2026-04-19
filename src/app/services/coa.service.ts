@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { environment } from '@env';
 import {
   CuentaCOA,
   CrearCuentaPayload,
   ActualizarCuentaPayload,
   CoaFiltro,
-} from '../models/coa.model';
+} from '@models/coa.model';
 
 @Injectable({
   providedIn: 'root',

@@ -1,12 +1,11 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { CuentasCabeceraService } from './cuentas-cabecera.service';
 import { ToastService }           from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }     from '@shared/paginator/paginator.component';
-import { ActionMenuComponent, ActionMenuItem } from '@shared/action-menu/action-menu.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
 import { SearchInputComponent } from '@shared/debounce/search-input.component';
 import { PerfilSelectComponent }  from '@shared/perfil-select/perfil-select.component';
 import { CuentaSearchComponent }  from '@shared/cuenta-search/cuenta-search.component';
@@ -17,6 +16,12 @@ import { CuentaCabecera }         from '@models/cuenta-cabecera.model';
 import { Perfil }                 from '@models/perfil.model';
 import { ChartOfAccount }         from '@services/sap.service';
 import { AuthService } from '@auth/auth.service';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { ICON_TRASH } from '@common/constants/icons';
 
 @Component({
   standalone: true,
@@ -24,26 +29,29 @@ import { AuthService } from '@auth/auth.service';
   imports: [
     CommonModule,
     FormsModule,
-    ConfirmDialogComponent,
-    PaginatorComponent,
     PerfilSelectComponent,
     CuentaSearchComponent,
-    ActionMenuComponent,
     SearchInputComponent,
     FormModalComponent,
     StatusBadgeComponent,
     FormFieldComponent,
+    CrudPageHeaderComponent,
+    CrudEmptyStateComponent,
+    DataTableComponent,
   ],
   templateUrl: './cuentas-cabecera.component.html',
   styleUrls: ['./cuentas-cabecera.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CuentasCabeceraComponent implements OnInit {
+export class CuentasCabeceraComponent extends AbstractCrudListComponent<CuentaCabecera> implements OnInit {
+  @ViewChild('asociadaCol', { static: true }) asociadaCol!: TemplateRef<any>;
 
-  // ── Datos ────────────────────────────────────────────────
-  cuentas:  CuentaCabecera[] = [];
-  filtered: CuentaCabecera[] = [];
-  paged:    CuentaCabecera[] = [];
+  store = new CrudListStore<CuentaCabecera>({
+    limit: 5,
+    searchFields: ['U_CuentaFormatCode', 'U_CuentaNombre', 'U_CuentaSys'],
+  });
+
+  tableConfig!: DataTableConfig;
 
   // ── Cuenta seleccionada en el modal ──────────────────────
   selectedAccount: ChartOfAccount | null = null;
@@ -52,32 +60,48 @@ export class CuentasCabeceraComponent implements OnInit {
   selectedPerfilId: number | null = null;
   selectedPerfil:   Perfil | null = null;   // asignable desde el template via (perfilObjChange)
 
-  // ── Filtros ──────────────────────────────────────────────
-  search  = '';
-  loading = false;
-
-  // ── Paginación ───────────────────────────────────────────
-  page       = 1;
-  limit      = 5;
-  totalPages = 1;
-
   // ── Modal ────────────────────────────────────────────────
   showForm = false;
   isSaving = false;
-
-  // ── Confirm dialog ───────────────────────────────────────
-  showDialog    = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
 
   constructor(
     public  auth: AuthService,
     private service: CuentasCabeceraService,
     private toast:   ToastService,
-    private cdr:     ChangeDetectorRef,
-  ) {}
+    protected override cdr: ChangeDetectorRef,
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.buildTableConfig();
+  }
+
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'U_IdPerfil', header: 'Cod. Perfil', align: 'center', mobile: { hide: true } },
+        { key: 'U_CuentaSys', header: 'Código SYS', mobile: { hide: true } },
+        { key: 'U_CuentaFormatCode', header: 'Código Cuenta' },
+        { key: 'U_CuentaNombre', header: 'Nombre Cuenta', mobile: { primary: true } },
+        { key: 'U_CuentaAsociada', header: 'Cuenta Asociada', align: 'center', cellTemplate: this.asociadaCol, mobile: { hide: true } },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
+      ],
+      striped: true,
+      hoverable: true,
+    };
+  }
+
+  onTableAction(event: { action: string; item: CuentaCabecera }): void {
+    if (event.action === 'delete') {
+      this.confirmRemove(event.item);
+    }
+  }
 
   // ── Callbacks de los componentes shared ──────────────────
 
@@ -97,54 +121,16 @@ export class CuentasCabeceraComponent implements OnInit {
 
   loadCuentas(onComplete?: () => void) {
     if (!this.selectedPerfilId) {
-      this.cuentas = []; this.filtered = []; this.paged = [];
+      this.store.setItems([]);
       return;
     }
-    this.loading = true;
-    this.service.getByPerfil(this.selectedPerfilId).subscribe({
-      next: (data) => {
-        this.cuentas = data;
-        this.loading = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-      error: () => { this.loading = false; this.cdr.markForCheck();
-      onComplete?.(); },
+    this.store.load(this.service.getByPerfil(this.selectedPerfilId), () => {
+      this.cdr.markForCheck();
+      onComplete?.();
     });
   }
 
   // ── Filtro tabla ─────────────────────────────────────────
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
-  }
-
-  applyFilter() {
-    const q = this.search.toLowerCase();
-    this.filtered = this.cuentas.filter(c =>
-      (c.U_CuentaFormatCode ?? '').toLowerCase().includes(q) ||
-      (c.U_CuentaNombre     ?? '').toLowerCase().includes(q) ||
-      (c.U_CuentaSys        ?? '').toLowerCase().includes(q),
-    );
-    this.page = 1;
-    this.updatePaging();
-  }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged  = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
 
   // ── Modal ────────────────────────────────────────────────
 
@@ -183,61 +169,25 @@ export class CuentasCabeceraComponent implements OnInit {
       },
       error: (err: any) => {
         this.isSaving = false;
-        if (err?.status === 409 || err?.status === 422) {
-          this.toast.error(err?.error?.message || 'Error al agregar cuenta');
-        }
-        this.cdr.markForCheck();
+        this.errorHandler.handle(err, 'Error al agregar cuenta', this.cdr);
       },
     });
-  }
-
-  // ── Action Menu ───────────────────────────────────────────
-
-  getActionMenuItems(_c: CuentaCabecera): ActionMenuItem[] {
-    return [
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
-        cssClass: 'danger',
-      },
-    ];
-  }
-
-  onActionClick(actionId: string, cuenta: CuentaCabecera): void {
-    if (actionId === 'delete') {
-      this.confirmRemove(cuenta);
-    }
   }
 
   // ── Eliminar ──────────────────────────────────────────────
 
   confirmRemove(c: CuentaCabecera) {
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        '¿Eliminar cuenta?',
       message:      `Se eliminará "${c.U_CuentaNombre}" (${c.U_CuentaFormatCode}) del perfil.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.service.remove(c.U_IdPerfil, c.U_CuentaSys).subscribe({
         next:  () => { this.toast.exito('Cuenta eliminada'); this.loadCuentas(); this.cdr.markForCheck(); },
-        error: (err: any) => {
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al eliminar');
-          }
-          this.cdr.markForCheck();
-        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar', this.cdr),
       });
     });
   }
-
-  // ── Dialog ────────────────────────────────────────────────
-
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 }

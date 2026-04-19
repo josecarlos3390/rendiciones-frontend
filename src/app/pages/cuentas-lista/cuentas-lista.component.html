@@ -1,12 +1,10 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Lista de Cuentas Detalle</h2>
-    <p class="page-subtitle">Activá o desactivá las cuentas disponibles en el detalle de rendición por perfil.</p>
-  </div>
-  <button *ngIf="auth.puedeEditarConf" class="btn btn-primary btn-sm" (click)="openForm()" [disabled]="!selectedPerfilId">
-    + Adicionar
-  </button>
-</div>
+<app-crud-page-header
+  title="Lista de Cuentas Detalle"
+  subtitle="Activá o desactivá las cuentas disponibles en el detalle de rendición por perfil."
+  [actionLabel]="auth.puedeEditarConf ? '+ Adicionar' : null"
+  [actionDisabled]="!selectedPerfilId"
+  (actionClick)="openForm()">
+</app-crud-page-header>
 
 <!-- ── Selector de perfil ── -->
 <div class="filter-bar">
@@ -21,10 +19,6 @@
     </div>
   </div>
 </div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
 
 <!-- ── Modal agregar cuenta ──────────────────────────────────── -->
 <app-form-modal
@@ -74,14 +68,14 @@
       <app-search-input
         placeholder="Buscar por código o nombre..."
         [debounceTime]="300"
-        [search]="search"
+        [search]="store.search()"
         (valueChange)="onSearchChange($event)"
         (cleared)="onSearchCleared()">
       </app-search-input>
     </div>
   </div>
-  <span class="filter-count" *ngIf="selectedPerfilId && !loading">
-    {{ filtered.length }} cuenta{{ filtered.length !== 1 ? 's' : '' }}
+  <span class="filter-count" *ngIf="selectedPerfilId && !store.loading()">
+    {{ store.filtered().length }} cuenta{{ store.filtered().length !== 1 ? 's' : '' }}
   </span>
 </div>
 
@@ -89,66 +83,32 @@
 <div *ngIf="!selectedPerfilId" class="empty-state">
   Seleccioná un perfil para ver las cuentas habilitadas y activar o desactivar cada una.
 </div>
-<div *ngIf="selectedPerfilId && loading" class="empty-state">
-  <span class="loading-spinner">⏳</span> Cargando cuentas...
-</div>
-<div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && !search" class="empty-state">
-  Este perfil no tiene cuentas asociadas aún.
-  <a (click)="openForm()">Agregar la primera cuenta</a>
-</div>
-<div *ngIf="selectedPerfilId && !loading && filtered.length === 0 && search" class="empty-state">
-  No se encontraron cuentas para "{{ search }}".
-</div>
+
+<app-crud-empty-state
+  *ngIf="selectedPerfilId"
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0 && !store.search()"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando cuentas..."
+  errorText="No se pudieron cargar las cuentas."
+  emptyText="Este perfil no tiene cuentas asociadas aún."
+  (retry)="loadCuentas()">
+  <ng-container emptyAction>
+    <a (click)="openForm()">Agregar la primera cuenta</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ──────────────────────────────────────────────────── -->
-<div class="table-wrapper" *ngIf="selectedPerfilId && !loading && filtered.length > 0">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="text-center col-codigo">Cod. Perfil</th>
-        <th class="col-sap col-hide-tablet">Código SYS</th>
-        <th>Código Cuenta</th>
-        <th>Nombre Cuenta</th>
-        <th class="col-acciones">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let c of paged">
-        <!-- Cod. Perfil -->
-        <td class="text-center col-codigo" data-label="Cod. Perfil">{{ c.U_IdPerfil }}</td>
-        
-        <!-- Código SYS (oculto en móvil) -->
-        <td class="col-mono col-hide-tablet" data-label="Código SYS">{{ c.U_CuentaSys }}</td>
-        
-        <!-- Código Cuenta -->
-        <td class="col-mono" data-label="Código Cuenta">{{ c.U_Cuenta }}</td>
-        
-        <!-- Nombre: Título principal -->
-        <td class="col-mobile-primary" data-label="Nombre Cuenta">{{ c.U_NombreCuenta }}</td>
-        
-        <!-- Acciones -->
-        <td class="col-acciones" data-label="Acciones">
-          <app-action-menu
-            [actions]="getActionMenuItems(c)"
-            [itemLabel]="c.U_NombreCuenta"
-            (actionClick)="onActionClick($event, c)">
-          </app-action-menu>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <app-paginator
-    [page]="page"
-    [limit]="limit"
-    [total]="filtered.length"
-    [totalPages]="totalPages"
-    (pageChange)="onPageChange($event)"
-    (limitChange)="onLimitChange($event)">
-  </app-paginator>
-</div>
+<app-data-table
+  *ngIf="selectedPerfilId && !store.loading() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>

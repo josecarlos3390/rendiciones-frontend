@@ -6,7 +6,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, of, takeUntil } from 'rxjs';
-import { SapService, EmpleadoDto } from '../../services/sap.service';
+import { SapService } from '@services/sap.service';
 
 export interface Empleado {
   cardCode: string;
@@ -219,7 +219,7 @@ export interface Empleado {
               placeholder="Buscar por código o nombre..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
-              autofocus autocomplete="off" />
+              autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="es-search-clear"
               (click)="onSearch('')">✕</button>
           </div>
@@ -264,9 +264,9 @@ export interface Empleado {
 export class EmpleadoSearchComponent implements OnInit, OnDestroy, OnChanges {
 
   /** Característica del perfil (U_EMP_CAR): 'EMPIEZA' | 'TERMINA' | 'NOTIENE' */
-  @Input() car:          string = 'EMPIEZA';
+  @Input() car = 'EMPIEZA';
   /** Texto del filtro del perfil (U_EMP_TEXTO), p.ej. 'EL' */
-  @Input() filtro:       string = '';
+  @Input() filtro = '';
   @Input() placeholder_text    = '— Buscar y seleccionar empleado —';
   @Input() initialCode:  string | null = null;
   @Input() initialName:  string | null = null;

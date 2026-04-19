@@ -3,37 +3,35 @@ import { ConfirmDialogConfig } from './confirm-dialog.component';
 
 export interface ConfirmDialogState {
   config: ConfirmDialogConfig;
-  resolve: (result: boolean) => void;
+  resolve: (value: boolean) => void;
 }
 
-/**
- * Servicio imperativo para mostrar el ConfirmDialog desde cualquier componente.
- *
- * Uso:
- *   const ok = await this.confirm.ask({
- *     title:        '¿Cancelar pedido?',
- *     message:      'Esta acción no se puede deshacer.',
- *     confirmLabel: 'Sí, cancelar',
- *     type:         'danger',
- *   });
- *   if (ok) { ... }
- */
 @Injectable({ providedIn: 'root' })
 export class ConfirmDialogService {
-  // El AppComponent o el LayoutComponent escucha este signal y renderiza el dialog
-  readonly state = signal<ConfirmDialogState | null>(null);
+  private _state = signal<ConfirmDialogState | null>(null);
 
+  /** Estado reactivo del diálogo de confirmación (usado por layout.component.html) */
+  state = this._state.asReadonly();
+
+  /**
+   * Muestra un diálogo de confirmación y devuelve una Promise<boolean>.
+   * Usado desde componentes/smart components.
+   */
   ask(config: ConfirmDialogConfig): Promise<boolean> {
-    return new Promise(resolve => {
-      this.state.set({ config, resolve });
+    return new Promise((resolve) => {
+      this._state.set({ config, resolve });
     });
   }
 
-  resolve(result: boolean) {
-    const current = this.state();
+  /**
+   * Resuelve el diálogo actual con true/false y lo cierra.
+   * Usado por el componente global de confirmación.
+   */
+  resolve(result: boolean): void {
+    const current = this._state();
     if (current) {
       current.resolve(result);
-      this.state.set(null);
+      this._state.set(null);
     }
   }
 }

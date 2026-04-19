@@ -4,9 +4,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { RendM } from '../../models/rend-m.model';
-import { RendD } from '../../models/rend-d.model';
-import { Documento } from '../../models/documento.model';
+import { RendM } from '@models/rend-m.model';
+import { RendD } from '@models/rend-d.model';
+import { Documento } from '@models/documento.model';
 import { RendicionPdfService } from './rendicion-pdf.service';
 
 @Component({

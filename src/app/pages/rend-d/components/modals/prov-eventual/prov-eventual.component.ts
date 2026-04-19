@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FormModalComponent } from '../../../../../shared/form-modal';
+import { FormModalComponent } from '@shared/form-modal';
 
 /**
  * Modal para registrar un proveedor eventual

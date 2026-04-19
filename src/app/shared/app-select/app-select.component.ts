@@ -600,7 +600,7 @@ export interface SelectOption<T = string | number> {
               [(ngModel)]="searchTerm"
               (ngModelChange)="filterOptions($event)"
               autocomplete="off"
-              autofocus />
+              />
             <button
               *ngIf="searchTerm"
               type="button"

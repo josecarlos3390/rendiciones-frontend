@@ -1,13 +1,7 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Administración de Permisos</h2>
-    <p class="page-subtitle">Asigná perfiles de rendición a cada usuario. Un usuario puede tener múltiples perfiles activos.</p>
-  </div>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Administración de Permisos"
+  subtitle="Asigná perfiles de rendición a cada usuario. Un usuario puede tener múltiples perfiles activos.">
+</app-crud-page-header>
 
 <!-- ── Filtros ── -->
 <app-permisos-filter
@@ -25,28 +19,33 @@
 <div *ngIf="!selectedUsuarioId" class="empty-state">
   Seleccioná un usuario para ver sus perfiles asignados y agregar nuevos permisos.
 </div>
-<div *ngIf="selectedUsuarioId && loading" class="empty-state">
+<div *ngIf="selectedUsuarioId && store.loading()" class="empty-state">
   Cargando permisos...
 </div>
 
 <!-- ── Lista de permisos ────────────────────────── -->
-<div class="permisos-panel" *ngIf="selectedUsuarioId && !loading">
+<div class="permisos-panel" *ngIf="selectedUsuarioId && !store.loading()">
 
   <div class="panel-header">
     <span>Permisos actuales de
       <strong>{{ selectedUsuario?.U_NomUser || selectedUsuario?.U_Login }}</strong>
     </span>
-    <span class="panel-count">{{ permisos.length }} perfil{{ permisos.length !== 1 ? 'es' : '' }} asignado{{ permisos.length !== 1 ? 's' : '' }}</span>
+    <span class="panel-count">{{ store.filtered().length }} perfil{{ store.filtered().length !== 1 ? 'es' : '' }} asignado{{ store.filtered().length !== 1 ? 's' : '' }}</span>
   </div>
 
-  <div *ngIf="permisos.length === 0" class="panel-empty">
+  <div *ngIf="store.filtered().length === 0" class="panel-empty">
     Este usuario no tiene perfiles asignados. Seleccioná un perfil en el selector de arriba y presioná <strong>+ Adicionar</strong>.
   </div>
 
-  <app-permisos-list
-    *ngIf="permisos.length > 0"
-    [permisos]="permisos"
-    (delete)="confirmRemove($event)">
-  </app-permisos-list>
+  <ng-template #estadoCol let-item>
+    <app-status-badge type="success" [dot]="true">Activo</app-status-badge>
+  </ng-template>
+
+  <app-data-table
+    *ngIf="store.filtered().length > 0"
+    [items]="store.paged()"
+    [config]="tableConfig"
+    (action)="onTableAction($event)">
+  </app-data-table>
 
 </div>

@@ -1,8 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
 import { timeout, catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { environment } from '@env';
 
 /**
  * HTTP Timeout Interceptor

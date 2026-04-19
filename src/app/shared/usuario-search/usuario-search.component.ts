@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { environment } from '@env';
 
 export interface UsuarioItem {
   login:   string;  // U_Login
@@ -216,7 +216,7 @@ export interface UsuarioItem {
               placeholder="Buscar por login o nombre..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
-              autofocus autocomplete="off" />
+              autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="us-search-clear"
               (click)="onSearch(''); searchInput.value = ''">✕</button>
           </div>

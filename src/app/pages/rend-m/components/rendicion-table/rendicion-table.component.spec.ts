@@ -56,51 +56,53 @@ describe('RendicionTableComponent', () => {
   describe('getActionMenuItems', () => {
     it('should always include detalle action', () => {
       const items = component.getActionMenuItems(mockRendicion);
-      expect(items.some(i => i.id === 'detalle')).toBe(true);
+      expect(items.some(i => i.id === 'view')).toBe(true);
     });
 
     it('should include editar when estado is 1 (abierta)', () => {
       const items = component.getActionMenuItems(mockRendicion);
-      expect(items.some(i => i.id === 'editar')).toBe(true);
+      expect(items.some(i => i.id === 'edit')).toBe(true);
     });
 
     it('should not include editar when estado is not 1', () => {
       const rendicionCerrada = { ...mockRendicion, U_Estado: 2 };
       const items = component.getActionMenuItems(rendicionCerrada);
-      expect(items.some(i => i.id === 'editar')).toBe(false);
+      expect(items.some(i => i.id === 'edit')).toBe(false);
     });
 
     it('should include eliminar when isAdmin is true', () => {
       component.isAdmin = true;
       const rendicionCerrada = { ...mockRendicion, U_Estado: 2 };
       const items = component.getActionMenuItems(rendicionCerrada);
-      expect(items.some(i => i.id === 'eliminar')).toBe(true);
+      expect(items.some(i => i.id === 'delete')).toBe(true);
     });
 
     it('should include eliminar when estado is 1', () => {
       component.isAdmin = false;
       const items = component.getActionMenuItems(mockRendicion);
-      expect(items.some(i => i.id === 'eliminar')).toBe(true);
+      expect(items.some(i => i.id === 'delete')).toBe(true);
     });
 
     it('should always include imprimir', () => {
       const items = component.getActionMenuItems(mockRendicion);
-      expect(items.some(i => i.id === 'imprimir')).toBe(true);
+      expect(items.some(i => i.id === 'print')).toBe(true);
     });
 
-    it('should include sincronizar for estados 4, 5, 6, 7', () => {
-      [4, 5, 6, 7].forEach(estado => {
+    it('should include sincronizar for estados 1, 4, 5, 7', () => {
+      component.canSyncDirecto = true;
+      [1, 4, 5, 7].forEach(estado => {
         const r = { ...mockRendicion, U_Estado: estado };
         const items = component.getActionMenuItems(r);
-        expect(items.some(i => i.id === 'sincronizar')).toBe(true);
+        expect(items.some(i => i.id === 'sync')).toBe(true);
       });
     });
 
     it('should not include sincronizar for other estados', () => {
-      [1, 2, 3].forEach(estado => {
+      component.canSyncDirecto = true;
+      [2, 3, 6].forEach(estado => {
         const r = { ...mockRendicion, U_Estado: estado };
         const items = component.getActionMenuItems(r);
-        expect(items.some(i => i.id === 'sincronizar')).toBe(false);
+        expect(items.some(i => i.id === 'sync')).toBe(false);
       });
     });
   });
@@ -109,15 +111,15 @@ describe('RendicionTableComponent', () => {
     it('should emit action with string id', () => {
       let emitted: RendicionAction | undefined;
       component.action.subscribe((a: RendicionAction) => emitted = a);
-      component.onAction('editar', mockRendicion);
-      expect(emitted).toEqual({ action: 'editar', rendicion: mockRendicion });
+      component.onAction('edit', mockRendicion);
+      expect(emitted).toEqual({ action: 'edit', rendicion: mockRendicion });
     });
 
     it('should emit action with ActionMenuItem', () => {
       let emitted: RendicionAction | undefined;
       component.action.subscribe((a: RendicionAction) => emitted = a);
-      component.onAction({ id: 'eliminar', label: 'Eliminar' }, mockRendicion);
-      expect(emitted).toEqual({ action: 'eliminar', rendicion: mockRendicion });
+      component.onAction({ id: 'delete', label: 'Eliminar' }, mockRendicion);
+      expect(emitted).toEqual({ action: 'delete', rendicion: mockRendicion });
     });
   });
 

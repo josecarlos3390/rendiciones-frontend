@@ -124,9 +124,7 @@ export interface ConfirmConfig {
 // ═══════════════════════════════════════════════════════════════
 
 /** Errores de validación de campo */
-export interface FieldErrors {
-  [key: string]: string[];
-}
+export type FieldErrors = Record<string, string[]>;
 
 /** Estado de formulario */
 export interface FormState {

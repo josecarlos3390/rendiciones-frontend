@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AiService } from '../../services/ai.service';
+import { AiService } from '@services/ai.service';
 import { Observable } from 'rxjs';
 
 /**

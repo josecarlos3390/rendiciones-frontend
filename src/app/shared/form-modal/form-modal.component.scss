@@ -92,7 +92,8 @@
     width: 100%;
     border-radius: 0;
     margin: 0;
-    overflow: visible;
+    // overflow:hidden aquí: el card es el contenedor, el body interno scrollea
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
@@ -139,16 +140,29 @@
     flex-shrink: 0;
     padding: 10px 16px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    flex-wrap: wrap;
+    flex-direction: column-reverse;
     gap: 8px;
     background: var(--bg-surface);
 
+    // Botones nativos: ancho completo
     .btn {
-      flex: 1;
-      min-width: fit-content;
+      width: 100%;
       justify-content: center;
       font-size: var(--text-sm);
-      padding: 8px 12px;
+      padding: 10px 12px;
+    }
+
+    // app-loading-button: también ancho completo
+    app-loading-button {
+      width: 100%;
+      display: block;
+
+      button {
+        width: 100%;
+        justify-content: center;
+        font-size: var(--text-sm);
+        padding: 10px 12px;
+      }
     }
   }
 

@@ -174,7 +174,7 @@ export class VirtualTableComponent<T = any> {
   @Input() withBorder = true;
 
   /** TrackBy function para optimizar re-renders */
-  @Input() trackByFn: (index: number, item: T) => any = (index, item) => index;
+  @Input() trackByFn: (index: number, _item: T) => any = (index, _item) => index;
 
   /** Template para cada fila */
   @ContentChild('rowTemplate', { static: false })

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { RendM } from '../../models/rend-m.model';
-import { RendD } from '../../models/rend-d.model';
-import { Documento } from '../../models/documento.model';
+import { RendM } from '@models/rend-m.model';
+import { RendD } from '@models/rend-d.model';
+import { Documento } from '@models/documento.model';
 
 @Injectable({ providedIn: 'root' })
 export class RendicionPdfService {
@@ -130,7 +130,6 @@ export class RendicionPdfService {
       const startY = yBase + (rowHeight - totalHeight) / 2 + lineHeight - 1;
       
       linesToDraw.forEach((line: string, idx: number) => {
-        let xPos = x;
         if (opts?.align === 'center') {
           // Para centrado, x ya debería ser el centro de la celda
           txt(line, x, startY + idx * lineHeight, { align: 'center' });
@@ -219,7 +218,6 @@ export class RendicionPdfService {
       colAnchos = [16, 24, 18, 40, 20, 18, 24];
     }
     
-    const colCount = cols.length;
     const totalAncho = colAnchos.reduce((a, b) => a + b, 0);
     const escala = CW / totalAncho;
     colAnchos = colAnchos.map(w => w * escala);
@@ -273,7 +271,6 @@ export class RendicionPdfService {
     let sumICE = 0;
     let sumTASA = 0;
     let sumGiftCard = 0;
-    let sumImpRet = 0;
 
     if (!docs || docs.length === 0) {
       setF(8, 'italic');
@@ -295,8 +292,6 @@ export class RendicionPdfService {
         const ice = Number(d.U_ICE) || 0;
         const tasa = Number(d.U_TASA) || 0;
         const giftCard = Number(d.U_GIFTCARD) || 0;
-        const impRet = Number(d.U_RD_ImpRet) || 0;
-
         sumImporte += importe;
         sumDescuento += descuento;
         sumIva += iva;
@@ -308,7 +303,6 @@ export class RendicionPdfService {
         sumICE += ice;
         sumTASA += tasa;
         sumGiftCard += giftCard;
-        sumImpRet += impRet;
 
         // Alternar colores de fila según tema
         const rowBg = idx % 2 === 0 ? colors.rowEven : colors.rowOdd;
@@ -380,8 +374,8 @@ export class RendicionPdfService {
           const glosaText = d.U_RD_Concepto || '—';
           const glosaWidth = colAnchos[3] - 4;
           const glosaLines = doc.splitTextToSize(glosaText, glosaWidth);
-          const impRet = (Number(d.U_RD_Total) || 0) - importe;
-          const impRetStr = impRet > 0 ? this.fmt(impRet) : (impRet < 0 ? `-${this.fmt(Math.abs(impRet))}` : '0.00');
+          const impRetVal = (Number(d.U_RD_Total) || 0) - importe;
+          const impRetStr = impRetVal > 0 ? this.fmt(impRetVal) : (impRetVal < 0 ? `-${this.fmt(Math.abs(impRetVal))}` : '0.00');
           
           // Calcular altura de fila basada en la columna con más líneas
           const maxLines = Math.max(

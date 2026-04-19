@@ -6,8 +6,9 @@ import { PaginatorComponent } from '../paginator/paginator.component';
 import { SkeletonLoaderComponent } from '../skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
 import { ActionMenuComponent, ActionMenuItem } from '../action-menu';
+import { TableActionHeaderComponent } from '@shared/table-action-header/table-action-header.component';
 
-export interface DataTableColumn<T = any> {
+export interface DataTableColumn {
   key: string;
   header: string;
   width?: string;
@@ -77,6 +78,7 @@ export interface DataTableConfig {
     SkeletonLoaderComponent,
     EmptyStateComponent,
     ActionMenuComponent,
+    TableActionHeaderComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -116,7 +118,7 @@ export interface DataTableConfig {
                 </th>
 
                 <!-- Columnas visibles -->
-                <th *ngFor="let col of desktopColumns"
+                <th *ngFor="let col of visibleColumns"
                     [class.text-center]="col.align === 'center'"
                     [class.text-right]="col.align === 'right'"
                     [class]="'col-' + col.key"
@@ -130,16 +132,14 @@ export interface DataTableConfig {
 
                 <!-- Acciones -->
                 <th *ngIf="config.showActions && config.actions?.length" class="col-actions">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
+                  <app-table-action-header />
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let item of items; let index = index; trackBy: trackByFn"
-                  [class.selected]="isSelected(item)">
+                  [class.selected]="isSelected(item)"
+                  [class]="rowClassFn ? rowClassFn(item) : ''">
                 
                 <!-- Checkbox -->
                 <td *ngIf="config.selectable" class="col-checkbox">
@@ -218,6 +218,7 @@ export class DataTableComponent<T = any> {
   // Selección
   @Input() selectedItems: T[] = [];
   @Input() trackByField = 'id';
+  @Input() rowClassFn?: (item: T) => string;
 
   // Ordenamiento
   @Input() sortColumn: string | null = null;

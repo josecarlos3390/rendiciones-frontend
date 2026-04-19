@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { RendD, CreateRendDPayload, UpdateRendDPayload } from '../../models/rend-d.model';
-import { environment } from '../../../environments/environment';
+import { RendD, CreateRendDPayload, UpdateRendDPayload } from '@models/rend-d.model';
+import { environment } from '@env';
 
 @Injectable({ providedIn: 'root' })
 export class RendDService {

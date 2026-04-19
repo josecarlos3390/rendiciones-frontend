@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { RendM } from '../models/rend-m.model';
+import { RendM } from '@models/rend-m.model';
 
 export type EstadoFiltro = 'todas' | 'abiertas' | 'cerradas' | 'enviadas' | 'aprobadas' | 'sincronizadas' | 'error';
 export type VerFiltro = 'propias' | 'subordinados' | 'todas';
@@ -93,7 +93,7 @@ export class RendicionFilterService {
       case 'abiertas': return [1];
       case 'cerradas': return [2];
       case 'enviadas': return [4];
-      case 'aprobadas': return [3];
+      case 'aprobadas': return [7];
       case 'sincronizadas': return [5];
       case 'error': return [6];
       default: return [];

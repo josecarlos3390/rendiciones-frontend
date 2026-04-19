@@ -3,6 +3,8 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  TemplateRef,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -12,19 +14,26 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
+import { map } from 'rxjs/operators';
 
 import { TipoCambioService, TipoCambio, CreateTipoCambioDto } from '@services/tipo-cambio.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { AuthService } from '@auth/auth.service';
+import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
 import { FormModalComponent } from '@shared/form-modal';
 import { StatusBadgeComponent } from '@shared/status-badge';
-import { AuthService } from '../../auth/auth.service';
-import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
-import { ActionMenuItem } from '@shared/action-menu';
 import { FormFieldComponent } from '@shared/form-field';
 import { FormDirtyService } from '@shared/form-dirty';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state/crud-empty-state.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { ICON_EDIT, ICON_TRASH } from '@common/constants/icons';
 
-import { TipoCambioFiltersComponent, TipoCambioTableComponent } from './components';
+import { TipoCambioFiltersComponent } from './components';
 
 @Component({
   standalone: true,
@@ -33,28 +42,32 @@ import { TipoCambioFiltersComponent, TipoCambioTableComponent } from './componen
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    ConfirmDialogComponent,
     AppSelectComponent,
     FormModalComponent,
     FormFieldComponent,
+    CrudPageHeaderComponent,
+    CrudEmptyStateComponent,
     TipoCambioFiltersComponent,
-    TipoCambioTableComponent,
+    DataTableComponent,
+    StatusBadgeComponent,
   ],
   templateUrl: './tipo-cambio.component.html',
   styleUrls: ['./tipo-cambio.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TipoCambioComponent implements OnInit {
-  tasas: TipoCambio[] = [];
-  filtered: TipoCambio[] = [];
-  loading = false;
-  loadError = false;
+export class TipoCambioComponent extends AbstractCrudListComponent<TipoCambio> implements OnInit {
+  @ViewChild('fechaCol', { static: true }) fechaCol!: TemplateRef<any>;
+  @ViewChild('monedaCol', { static: true }) monedaCol!: TemplateRef<any>;
+  @ViewChild('tasaCol', { static: true }) tasaCol!: TemplateRef<any>;
+  @ViewChild('estadoCol', { static: true }) estadoCol!: TemplateRef<any>;
+
+  readonly store = new CrudListStore<TipoCambio>({ limit: 10, searchFields: ['fecha', 'moneda'] });
   isOffline = false;
 
   // Filtros
-  filterMoneda: string = '';
-  filterFechaDesde: string = '';
-  filterFechaHasta: string = '';
+  filterMoneda = '';
+  filterFechaDesde = '';
+  filterFechaHasta = '';
 
   // Modal de creación/edición
   showModal = false;
@@ -62,14 +75,6 @@ export class TipoCambioComponent implements OnInit {
   form: FormGroup;
   saving = false;
   isDirty = false;
-
-  // Confirm dialog
-  confirmVisible = false;
-  confirmConfig: ConfirmDialogConfig = {
-    title: '',
-    message: '',
-  };
-  private idToDelete: number | null = null;
 
   // Monedas disponibles
   monedas = ['USD', 'EUR'];
@@ -83,29 +88,27 @@ export class TipoCambioComponent implements OnInit {
     { value: 'EUR', label: 'EUR - Euro', icon: '💶' },
   ];
 
-  // Paginación
-  page = 1;
-  limit = 10;
-  totalPages = 1;
-  paged: TipoCambio[] = [];
+  tableConfig!: DataTableConfig;
 
-  initialValues: any = null;
+  initialValues: Record<string, unknown> | null = null;
 
   constructor(
     private fb: FormBuilder,
     private service: TipoCambioService,
     private toast: ToastService,
     private auth: AuthService,
-    private cdr: ChangeDetectorRef,
+    protected override cdr: ChangeDetectorRef,
     private dirtyService: FormDirtyService,
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
   ) {
+    super();
     this.form = this.fb.group({
       fecha: [null, [Validators.required]],
       moneda: ['USD', [Validators.required]],
       tasa: [null, [Validators.required, Validators.min(0.0001)]],
     });
-    
-    // Rastrear cambios en el formulario
+
     this.form.valueChanges.subscribe(() => {
       this.isDirty = this.dirtyService.isDirty(this.form, this.initialValues);
     });
@@ -113,46 +116,34 @@ export class TipoCambioComponent implements OnInit {
 
   ngOnInit(): void {
     this.checkMode();
+    this.buildTableConfig();
     this.loadTasas();
   }
 
-  /**
-   * Verificar si estamos en modo OFFLINE
-   */
+  get isAdmin(): boolean {
+    return this.auth.role === 'ADMIN';
+  }
+
   private checkMode(): void {
     const appMode = localStorage.getItem('appMode') || 'ONLINE';
     this.isOffline = appMode === 'OFFLINE';
     this.cdr.markForCheck();
   }
 
-  /**
-   * Cargar todas las tasas de cambio
-   */
   loadTasas(): void {
-    this.loading = true;
-    this.loadError = false;
-
-    this.service.findAll().subscribe({
-      next: data => {
-        this.tasas = data.sort((a, b) => 
-          new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-        );
-        this.applyFilters();
-        this.loading = false;
+    this.store.load(
+      this.service.findAll().pipe(
+        map(data => data.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()))
+      ),
+      () => {
+        if (!this.store.loadError()) {
+          this.applyFilters();
+        }
         this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loading = false;
-        this.loadError = true;
-        this.toast.error('Error al cargar las tasas de cambio');
-        this.cdr.markForCheck();
-      },
-    });
+      }
+    );
   }
 
-  /**
-   * Aplicar filtros y paginación
-   */
   onMonedaChange(value: string): void {
     this.filterMoneda = value;
     this.applyFilters();
@@ -173,73 +164,37 @@ export class TipoCambioComponent implements OnInit {
   }
 
   applyFilters(): void {
-    let result = [...this.tasas];
-
     if (this.filterMoneda) {
-      result = result.filter(t => t.moneda === this.filterMoneda);
+      this.store.setCustomFilter('moneda', t => t.moneda === this.filterMoneda);
+    } else {
+      this.store.setCustomFilter('moneda', null);
     }
 
     if (this.filterFechaDesde) {
       const desde = new Date(this.filterFechaDesde);
-      result = result.filter(t => new Date(t.fecha) >= desde);
+      this.store.setCustomFilter('fechaDesde', t => new Date(t.fecha) >= desde);
+    } else {
+      this.store.setCustomFilter('fechaDesde', null);
     }
 
     if (this.filterFechaHasta) {
       const hasta = new Date(this.filterFechaHasta);
-      result = result.filter(t => new Date(t.fecha) <= hasta);
+      this.store.setCustomFilter('fechaHasta', t => new Date(t.fecha) <= hasta);
+    } else {
+      this.store.setCustomFilter('fechaHasta', null);
     }
 
-    this.filtered = result;
-    this.updatePaging();
     this.cdr.markForCheck();
   }
 
-  /**
-   * Actualizar paginación
-   */
-  private updatePaging(): void {
-    this.totalPages = Math.ceil(this.filtered.length / this.limit) || 1;
-    
-    // Ajustar página si está fuera de rango
-    if (this.page > this.totalPages) {
-      this.page = this.totalPages;
-    }
-    
-    const start = (this.page - 1) * this.limit;
-    const end = start + this.limit;
-    this.paged = this.filtered.slice(start, end);
+  protected override getActiva(item: TipoCambio): boolean {
+    return item.activo === 'Y';
   }
 
-  /**
-   * Cambiar página
-   */
-  onPageChange(page: number): void {
-    this.page = page;
-    this.updatePaging();
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Cambiar límite de items por página
-   */
-  onLimitChange(limit: number): void {
-    this.limit = limit;
-    this.page = 1;
-    this.updatePaging();
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Abrir modal para crear
-   */
   openCreate(): void {
     this.editingId = null;
     this.showModal = true;
-    
-    // Resetear formulario con valores por defecto
     const hoy = new Date().toISOString().split('T')[0];
-    
-    // Usar setTimeout para asegurar que el DOM se actualice antes de setear valores
     setTimeout(() => {
       this.form.reset();
       this.form.setValue({
@@ -247,26 +202,17 @@ export class TipoCambioComponent implements OnInit {
         moneda: 'USD',
         tasa: '',
       });
-      
-      // Habilitar campos que podrían estar deshabilitados
       this.form.get('fecha')?.enable();
       this.form.get('moneda')?.enable();
-      
-      // Guardar valores iniciales para dirty check
       this.initialValues = this.dirtyService.createSnapshot(this.form);
       this.isDirty = false;
-      
       this.cdr.markForCheck();
     }, 0);
   }
 
-  /**
-   * Abrir modal para editar
-   */
   openEdit(tasa: TipoCambio): void {
     this.editingId = tasa.id;
     this.showModal = true;
-    
     setTimeout(() => {
       this.form.reset();
       this.form.patchValue({
@@ -274,22 +220,14 @@ export class TipoCambioComponent implements OnInit {
         moneda: tasa.moneda,
         tasa: tasa.tasa,
       });
-      
-      // En edición, fecha y moneda no son editables
       this.form.get('fecha')?.disable();
       this.form.get('moneda')?.disable();
-      
-      // Guardar valores iniciales para dirty check
       this.initialValues = this.dirtyService.createSnapshot(this.form);
       this.isDirty = false;
-      
       this.cdr.markForCheck();
     }, 0);
   }
 
-  /**
-   * Cerrar modal
-   */
   closeModal(): void {
     this.showModal = false;
     this.editingId = null;
@@ -297,9 +235,6 @@ export class TipoCambioComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  /**
-   * Guardar (crear o actualizar)
-   */
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -307,7 +242,6 @@ export class TipoCambioComponent implements OnInit {
     }
 
     this.saving = true;
-    // Obtener todos los valores incluyendo campos deshabilitados
     const rawValue = this.form.getRawValue();
     const dto: CreateTipoCambioDto = {
       fecha: rawValue.fecha,
@@ -323,10 +257,9 @@ export class TipoCambioComponent implements OnInit {
           this.closeModal();
           this.loadTasas();
         },
-        error: () => {
+        error: (err: any) => {
           this.saving = false;
-          this.toast.error('Error al actualizar la tasa');
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al actualizar la tasa', this.cdr);
         },
       });
     } else {
@@ -339,70 +272,39 @@ export class TipoCambioComponent implements OnInit {
         },
         error: (err: any) => {
           this.saving = false;
-          this.toast.error('Error al guardar la tasa de cambio');
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al guardar la tasa de cambio', this.cdr);
         },
       });
     }
   }
 
-  /**
-   * Confirmar eliminación
-   */
   confirmDelete(tasa: TipoCambio): void {
-    this.idToDelete = tasa.id;
-    this.confirmConfig = {
+    this.confirmDialog.ask({
       title: 'Eliminar Tasa de Cambio',
       message: `¿Eliminar la tasa de ${tasa.moneda} para el ${tasa.fecha}?`,
       type: 'danger',
-    };
-    this.confirmVisible = true;
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Eliminar tasa
-   */
-  onConfirmDelete(): void {
-    if (this.idToDelete === null) return;
-    
-    this.service.remove(this.idToDelete).subscribe({
-      next: () => {
-        this.toast.exito('Tasa de cambio eliminada');
-        this.closeConfirm();
-        this.loadTasas();
-      },
-      error: () => {
-        this.toast.error('Error al eliminar la tasa');
-        this.closeConfirm();
-        this.cdr.markForCheck();
-      },
+      confirmLabel: 'Sí, eliminar',
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.service.remove(tasa.id).subscribe({
+        next: () => {
+          this.toast.exito('Tasa de cambio eliminada');
+          this.loadTasas();
+        },
+        error: (err: any) => {
+          this.errorHandler.handle(err, 'Error al eliminar la tasa', this.cdr);
+        },
+      });
     });
   }
 
-  /**
-   * Cerrar confirm dialog
-   */
-  closeConfirm(): void {
-    this.confirmVisible = false;
-    this.idToDelete = null;
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Resetear filtros
-   */
   resetFilters(): void {
     this.filterMoneda = '';
     this.filterFechaDesde = '';
     this.filterFechaHasta = '';
-    this.page = 1;
     this.applyFilters();
   }
 
-  /**
-   * Formatear número como moneda
-   */
   formatTasa(tasa: number): string {
     return tasa.toLocaleString('es-BO', {
       minimumFractionDigits: 2,
@@ -410,33 +312,31 @@ export class TipoCambioComponent implements OnInit {
     });
   }
 
-  /**
-   * Obtener items del menú de acciones para una tasa
-   */
-  getActionMenuItems(tasa: TipoCambio): ActionMenuItem[] {
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        cssClass: 'danger',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-      },
-    ];
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'fecha', header: 'Fecha', cellTemplate: this.fechaCol, mobile: { primary: true } },
+        { key: 'moneda', header: 'Moneda', cellTemplate: this.monedaCol },
+        { key: 'tasa', header: 'Tasa (BOB)', align: 'right', cellTemplate: this.tasaCol },
+        { key: 'activo', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
 
-  /**
-   * Manejar click en acción del menú
-   */
-  onActionClick(action: string, tasa: TipoCambio): void {
-    if (action === 'edit') {
-      this.openEdit(tasa);
-    } else if (action === 'delete') {
-      this.confirmDelete(tasa);
+  onTableAction(event: { action: string; item: TipoCambio }): void {
+    if (event.action === 'edit') {
+      this.openEdit(event.item);
+    } else if (event.action === 'delete') {
+      this.confirmDelete(event.item);
     }
   }
+
+  rowClassFn = (t: TipoCambio): string => (t.activo !== 'Y' ? 'inactive-row' : '');
 }

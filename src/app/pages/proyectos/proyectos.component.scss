@@ -4,37 +4,10 @@
   max-width: 480px;
 }
 
-.col-code {
-  font-family: var(--font-mono, monospace);
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.inactive-row {
+// Fila inactiva — el <tr> es creado por app-data-table (hijo)
+:host ::ng-deep app-data-table tr.inactive-row {
   opacity: 0.6;
   background-color: var(--bg-muted, #f8f9fa);
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-
-  &.active {
-    background-color: var(--success-bg, #d1fae5);
-    color: var(--success-text, #065f46);
-  }
-
-  &.inactive {
-    background-color: var(--bg-muted, #f3f4f6);
-    color: var(--text-muted, #6b7280);
-  }
 }
 
 // Responsive adjustments
@@ -57,10 +30,12 @@
 
 // ── Corrección layout tarjeta móvil ──────────────────────────────
 @media (max-width: 640px) {
-  .data-table td[data-label="Nombre"] {
-    grid-column: auto;
-  }
-  .data-table td[data-label="Código"] {
-    grid-column: 1 / -1;
+  :host ::ng-deep app-data-table {
+    td[data-label="Nombre"] {
+      grid-column: auto;
+    }
+    td[data-label="Código"] {
+      grid-column: 1 / -1;
+    }
   }
 }

@@ -5,7 +5,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Perfil } from '../../models/perfil.model';
+import { Perfil } from '@models/perfil.model';
 import { PerfilesService } from '../../pages/perfiles/perfiles.service';
 
 /**
@@ -197,7 +197,7 @@ import { PerfilesService } from '../../pages/perfiles/perfiles.service';
               placeholder="Buscar perfil..."
               [(ngModel)]="searchTerm"
               (ngModelChange)="onSearch($event)"
-              autofocus autocomplete="off" />
+              autocomplete="off" />
             <button *ngIf="searchTerm" type="button" class="ps-search-clear"
               (click)="onSearch('')">✕</button>
           </div>

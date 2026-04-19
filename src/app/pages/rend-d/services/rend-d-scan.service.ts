@@ -9,12 +9,12 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, from, of } from 'rxjs';
-import { switchMap, catchError, map } from 'rxjs/operators';
-import QrScanner from 'qr-scanner';
-import { FacturaService, FacturaSiat, FacturaResult } from '../../../services/factura.service';
-import { Documento } from '../../../models/documento.model';
-import { CreateRendDPayload } from '../../../models/rend-d.model';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+
+import { FacturaService, FacturaSiat, FacturaResult } from '@services/factura.service';
+import { Documento } from '@models/documento.model';
+import { CreateRendDPayload } from '@models/rend-d.model';
 
 export type PdfBatchStatus = 'pending' | 'processing' | 'completed' | 'error';
 
@@ -122,7 +122,8 @@ export class RendDScanService {
       let qrUrl: string | undefined;
       let cuf: string | undefined;
       try {
-        const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true });
+        const { default: QrScannerLib } = await import('qr-scanner');
+        const result = await QrScannerLib.scanImage(canvas, { returnDetailedScanResult: true });
         qrUrl = result?.data;
         if (qrUrl) {
           cuf = this._extractCufFromQrUrl(qrUrl);
@@ -331,7 +332,7 @@ export class RendDScanService {
       exento: 0,
       tasaCero: 0,
       ice: 0,
-      tasa: Number(config.U_TASA) === -1 ? 0 : (Number(config.U_TASA) ?? 0),
+      tasa: Number(config.U_TASA) === -1 ? 0 : Number(config.U_TASA),
       giftCard: 0,
       montoIVA,
       montoIT,

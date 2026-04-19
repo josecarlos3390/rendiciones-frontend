@@ -1,4 +1,4 @@
-ï»¿import {
+import {
   Component, Input, Output, EventEmitter,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -23,7 +23,7 @@ import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
   template: `
     <app-form-modal
       [title]="modalTitle"
-      [subtitle]="rendicion ? 'NÂ° ' + rendicion.U_IdRendicion : ''"
+      [subtitle]="rendicion ? 'N° ' + rendicion.U_IdRendicion : ''"
       [isOpen]="isOpen"
       [loading]="isSaving"
       [submitDisabled]="accion === 'rechazar' && !comentario.trim()"
@@ -46,15 +46,15 @@ import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
             <span class="info-value mono-cell">{{ rendicion?.U_Monto | number:'1.2-2' }} Bs</span>
           </div>
           <div class="info-row">
-            <span class="info-label">PerÃ­odo</span>
+            <span class="info-label">Período</span>
             <span class="info-value">
-              {{ rendicion?.U_FechaIni | ddmmyyyy }} â†’ {{ rendicion?.U_FechaFinal | ddmmyyyy }}
+              {{ rendicion?.U_FechaIni | ddmmyyyy }} ? {{ rendicion?.U_FechaFinal | ddmmyyyy }}
             </span>
           </div>
         </div>
 
         <div class="info-banner info-warning" *ngIf="accion === 'rechazar'">
-          âš  Al rechazar, la rendiciÃ³n volverÃ¡ a estado <strong>ABIERTO</strong> para que el usuario realice correcciones y la reenvÃ­e.
+          ? Al rechazar, la rendición volverá a estado <strong>ABIERTO</strong> para que el usuario realice correcciones y la reenvíe.
         </div>
 
         <app-form-field 
@@ -66,7 +66,7 @@ import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
             (ngModelChange)="onComentarioChange($event)"
             rows="3"
             maxlength="500"
-            [placeholder]="accion === 'rechazar' ? 'IndicÃ¡ el motivo del rechazo...' : 'Observaciones opcionales...'">
+            [placeholder]="accion === 'rechazar' ? 'Indicá el motivo del rechazo...' : 'Observaciones opcionales...'">
           </textarea>
           <span class="field-error" *ngIf="accion === 'rechazar' && !comentario.trim()">
             El motivo de rechazo es obligatorio
@@ -82,7 +82,7 @@ import { DdmmyyyyPipe } from '@shared/ddmmyyyy.pipe';
           [disabled]="isSaving || (accion === 'rechazar' && !comentario.trim())"
           (click)="onConfirmar()">
           <span *ngIf="isSaving">Procesando...</span>
-          <span *ngIf="!isSaving">{{ accion === 'aprobar' ? 'âœ“ Confirmar AprobaciÃ³n' : 'âœ— Confirmar Rechazo' }}</span>
+          <span *ngIf="!isSaving">{{ accion === 'aprobar' ? '? Confirmar Aprobación' : '? Confirmar Rechazo' }}</span>
         </button>
       </ng-template>
     </app-form-modal>
@@ -188,7 +188,7 @@ export class AprobacionModalComponent {
   @Output() cancelar = new EventEmitter<void>();
 
   get modalTitle(): string {
-    return this.accion === 'aprobar' ? 'Aprobar RendiciÃ³n' : 'Rechazar RendiciÃ³n';
+    return this.accion === 'aprobar' ? 'Aprobar Rendición' : 'Rechazar Rendición';
   }
 
   onComentarioChange(value: string): void {

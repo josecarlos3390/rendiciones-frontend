@@ -1,74 +1,9 @@
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
-
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Tipos de Documento SAP</h2>
-    <p class="page-subtitle">Administrá los tipos de documento del sistema SAP y su configuración de cálculo</p>
-  </div>
-  <button class="btn btn-primary" (click)="openCreate()">
-    + Nuevo Tipo
-  </button>
-</div>
-
-<!-- Loading / Error -->
-<div class="empty-state" *ngIf="loading">⏳ Cargando tipos de documento...</div>
-<div class="empty-state" *ngIf="!loading && loadError">
-  Error al cargar. <a (click)="load()" style="cursor:pointer;color:var(--color-primary)">Reintentar</a>
-</div>
-<div class="empty-state" *ngIf="!loading && !loadError && items.length === 0">
-  No hay tipos de documento registrados. <a (click)="openCreate()" style="cursor:pointer;color:var(--color-primary)">Crear el primero</a>
-</div>
-
-<!-- Tabla -->
-<div class="table-wrapper" *ngIf="!loading && !loadError && items.length > 0">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="text-center" style="width:80px">Cód. SAP</th>
-        <th>Nombre</th>
-        <th class="text-center">Tipo</th>
-        <th class="text-center col-hide-mobile">Grossing Up</th>
-        <th class="text-center col-hide-mobile">Grossing Down</th>
-        <th class="text-center col-hide-mobile col-hide-tablet">Orden</th>
-        <th class="text-center">Estado</th>
-        <th class="col-acciones">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let item of items" [class.row-inactive]="item.U_Activo === 'N'">
-        <td class="text-center mono-cell" data-label="Cód. SAP">{{ item.U_IdTipo }}</td>
-        <td class="col-mobile-primary" data-label="Nombre">{{ item.U_Nombre }}</td>
-        <td class="text-center" data-label="Tipo">
-          <app-status-badge [type]="item.U_EsTipoF === 'F' ? 'success' : 'info'" [dot]="true">{{ tipoLabel(item) }}</app-status-badge>
-        </td>
-        <td class="text-center col-hide-mobile" data-label="Grossing Up">
-          <app-status-badge [type]="item.U_PermiteGU === 'Y' ? 'success' : 'neutral'" [dot]="true">{{ item.U_PermiteGU === 'Y' ? 'Sí' : 'No' }}</app-status-badge>
-        </td>
-        <td class="text-center col-hide-mobile" data-label="Grossing Down">
-          <app-status-badge [type]="item.U_PermiteGD === 'Y' ? 'success' : 'neutral'" [dot]="true">{{ item.U_PermiteGD === 'Y' ? 'Sí' : 'No' }}</app-status-badge>
-        </td>
-        <td class="text-center mono-cell col-hide-mobile col-hide-tablet" data-label="Orden">{{ item.U_Orden }}</td>
-        <td class="text-center" data-label="Estado">
-          <app-status-badge [type]="item.U_Activo === 'Y' ? 'success' : 'danger'" [dot]="true">{{ item.U_Activo === 'Y' ? 'Activo' : 'Inactivo' }}</app-status-badge>
-        </td>
-        <td class="col-acciones" data-label="Acciones">
-          <app-action-menu
-            [actions]="getActionMenuItems(item)"
-            [itemLabel]="item.U_Nombre"
-            (actionClick)="onActionClick($event, item)">
-          </app-action-menu>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+<app-crud-page-header
+  title="Tipos de Documento SAP"
+  subtitle="Administrá los tipos de documento del sistema SAP y su configuración de cálculo"
+  [actionLabel]="auth.puedeEditarConf ? '+ Nuevo Tipo' : null"
+  (actionClick)="openCreate()">
+</app-crud-page-header>
 
 <app-form-modal
   [title]="'Tipo de Documento'"
@@ -129,7 +64,7 @@
               <span class="u-toggle-slider"></span>
             </label>
             <span class="toggle-status" [class.active]="form.get('permiteGU')?.value">
-              {{ form.get('permiteGU')?.value ? 'Permitido — empresa asume retenciones' : 'No permitido' }}
+              {{ form.get('permiteGU')?.value ? 'SÍ' : 'NO' }}
             </span>
           </div>
         </app-form-field>
@@ -137,14 +72,14 @@
         <app-form-field
           label="Grossing Down"
           controlName="permiteGD"
-          hint="El proveedor asume el costo de las retenciones">
+          hint="El empleado asume el costo de las retenciones">
           <div class="toggle-wrapper">
             <label class="u-toggle">
               <input type="checkbox" formControlName="permiteGD" />
               <span class="u-toggle-slider"></span>
             </label>
             <span class="toggle-status" [class.active]="form.get('permiteGD')?.value">
-              {{ form.get('permiteGD')?.value ? 'Permitido — proveedor asume retenciones' : 'No permitido' }}
+              {{ form.get('permiteGD')?.value ? 'SÍ' : 'NO' }}
             </span>
           </div>
         </app-form-field>
@@ -152,27 +87,139 @@
 
       <!-- Orden -->
       <app-form-field
-        label="Orden de visualización"
+        label="Orden"
+        [required]="true"
         controlName="orden"
-        hint="Menor número = aparece primero en el selector">
-        <input type="number" formControlName="orden" min="0" placeholder="0" style="max-width:120px" />
+        errorMessage="Obligatorio">
+        <input type="number" formControlName="orden" min="0" />
       </app-form-field>
 
       <!-- Activo -->
       <app-form-field
-        label="Estado"
-        controlName="activo">
+        label="Activo"
+        controlName="activo"
+        hint="Los tipos activos aparecen en el selector de documentos">
         <div class="toggle-wrapper">
           <label class="u-toggle">
             <input type="checkbox" formControlName="activo" />
             <span class="u-toggle-slider"></span>
           </label>
           <span class="toggle-status" [class.active]="form.get('activo')?.value">
-            {{ form.get('activo')?.value ? 'Activo — visible en selectores' : 'Inactivo — oculto en selectores' }}
+            {{ form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO' }}
           </span>
         </div>
       </app-form-field>
 
     </form>
   </ng-template>
+
+  <!-- Footer personalizado con lógica de dirty -->
+  <ng-template #formFooter>
+    <ng-container *ngIf="isDirty; else noChangesFooter">
+      <button type="button" class="btn btn-ghost" (click)="closeForm()" [disabled]="isSaving">
+        Cancelar
+      </button>
+      <button type="button"
+        class="btn btn-primary"
+        [disabled]="form.invalid || isSaving"
+        (click)="save()">
+        <span *ngIf="isSaving">Guardando...</span>
+        <span *ngIf="!isSaving">{{ editingItem ? '💾 Guardar cambios' : 'Crear Tipo' }}</span>
+      </button>
+    </ng-container>
+    <ng-template #noChangesFooter>
+      <button type="button" class="btn btn-ghost" (click)="closeForm()">Cerrar</button>
+    </ng-template>
+  </ng-template>
 </app-form-modal>
+
+<!-- ── Filtros ── -->
+<div class="table-controls" *ngIf="!store.loadError()">
+  <div class="search-box">
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Buscar tipo de documento..."
+      [value]="store.search()"
+      (input)="onSearchChange($any($event.target).value)"
+    />
+    <button class="search-clear" *ngIf="store.search()" (click)="onSearchCleared()">×</button>
+  </div>
+
+  <div class="filter-group">
+    <label class="filter-label">Estado:</label>
+    <select
+      class="filter-select"
+      [value]="filterActiva"
+      (change)="onFilterActivaChange($any($event.target).value)">
+      <option *ngFor="let opt of estadoOptions" [value]="opt.value">{{ opt.label }}</option>
+    </select>
+  </div>
+</div>
+
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando tipos de documento..."
+  errorText="Error al cargar los tipos de documento."
+  emptyText="No hay tipos de documento registrados."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a *ngIf="auth.puedeEditarConf" (click)="openCreate()">Crear el primero</a>
+  </ng-container>
+</app-crud-empty-state>
+
+<!-- ── Templates de columna ── -->
+<ng-template #codigoCol let-item>
+  <span class="code-tag">{{ item.U_IdTipo }}</span>
+</ng-template>
+
+<ng-template #nombreCol let-item>
+  {{ item.U_Nombre }}
+</ng-template>
+
+<ng-template #tipoCol let-item>
+  <app-status-badge [type]="item.U_EsTipoF === 'F' ? 'success' : 'info'" [dot]="true">
+    {{ tipoLabel(item) }}
+  </app-status-badge>
+</ng-template>
+
+<ng-template #guCol let-item>
+  <app-status-badge [type]="item.U_PermiteGU === 'Y' ? 'success' : 'neutral'" [dot]="true">
+    {{ item.U_PermiteGU === 'Y' ? 'Sí' : 'No' }}
+  </app-status-badge>
+</ng-template>
+
+<ng-template #gdCol let-item>
+  <app-status-badge [type]="item.U_PermiteGD === 'Y' ? 'success' : 'neutral'" [dot]="true">
+    {{ item.U_PermiteGD === 'Y' ? 'Sí' : 'No' }}
+  </app-status-badge>
+</ng-template>
+
+<ng-template #ordenCol let-item>
+  <span class="mono-cell">{{ item.U_Orden }}</span>
+</ng-template>
+
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="item.U_Activo === 'Y' ? 'success' : 'danger'" [dot]="true">
+    {{ item.U_Activo === 'Y' ? 'Activo' : 'Inactivo' }}
+  </app-status-badge>
+</ng-template>
+
+<!-- ── Tabla ── -->
+<app-data-table
+  *ngIf="loadingState === 'success'"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  [rowClassFn]="rowClassFn"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>

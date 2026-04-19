@@ -8,7 +8,7 @@
   text-align: center;
 
   &__icon {
-    font-size: 64px;
+    font-size: var(--text-6xl);
     margin-bottom: var(--space-5);
     opacity: 0.9;
   }
@@ -144,7 +144,7 @@
     padding: var(--space-8) var(--space-5);
 
     &__icon {
-      font-size: 48px;
+      font-size: var(--text-5xl);
       margin-bottom: var(--space-4);
     }
 

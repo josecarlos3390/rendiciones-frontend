@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header';
 
 /**
  * Dumb Component: Header de la página de integración
@@ -9,20 +10,14 @@ import { CommonModule } from '@angular/common';
   selector: 'app-integracion-header',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, CrudPageHeaderComponent],
   template: `
-    <div class="page-header">
-      <div class="page-title-group">
-        <h2>Integración ERP</h2>
-        <p class="page-subtitle" *ngIf="isAdmin">
-          Rendiciones aprobadas pendientes de sincronización con el sistema contable
-        </p>
-        <p class="page-subtitle" *ngIf="!isAdmin">
-          Mis rendiciones aprobadas y sincronizadas con el sistema contable
-        </p>
-      </div>
-      <button class="btn btn-ghost btn-sm" (click)="refresh.emit()">↺ Actualizar</button>
-    </div>
+    <app-crud-page-header
+      title="Integración ERP"
+      [subtitle]="isAdmin ? 'Rendiciones aprobadas pendientes de sincronización con el sistema contable' : 'Mis rendiciones aprobadas y sincronizadas con el sistema contable'"
+      actionLabel="↺ Actualizar"
+      (actionClick)="refresh.emit()">
+    </app-crud-page-header>
   `,
   styles: [`
     :host {

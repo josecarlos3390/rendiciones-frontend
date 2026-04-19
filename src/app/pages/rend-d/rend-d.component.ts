@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -9,37 +9,36 @@ import { RendMService }       from '../rend-m/rend-m.service';
 import { PerfilesService }    from '../perfiles/perfiles.service';
 import { DocumentosService }  from '../documentos/documentos.service';
 import { CuentasListaService } from '../cuentas-lista/cuentas-lista.service';
-import { SapService, DimensionWithRules, CuentaDto } from '../../services/sap.service';
-import { ToastService }       from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { PaginatorComponent }   from '../../shared/paginator/paginator.component';
-import type { SelectOption } from '../../shared/app-select/app-select.component';
+import { SapService, DimensionWithRules, CuentaDto } from '@services/sap.service';
+import { ToastService }       from '@core/toast/toast.service';
 
-import { ProvService, ProvEventual } from '../../services/prov.service';
-import { AdjuntosService } from '../../services/adjuntos.service';
-import { AdjuntosListComponent } from '../../shared/adjuntos-list/adjuntos-list.component';
-import { Adjunto } from '../../models/adjunto.model';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
 
+import type { SelectOption } from '@shared/app-select/app-select.component';
 
-import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
-import { AuthService }        from '../../auth/auth.service';
-import { FacturaService, FacturaSiat, FacturaResult } from '../../services/factura.service';
+import { ProvService, ProvEventual } from '@services/prov.service';
+import { AdjuntosService } from '@services/adjuntos.service';
+import { AdjuntosListComponent } from '@shared/adjuntos-list/adjuntos-list.component';
+import { Adjunto } from '@models/adjunto.model';
 
+import { SkeletonLoaderComponent } from '@shared/skeleton-loader/skeleton-loader.component';
+import { AuthService }        from '@auth/auth.service';
+import { FacturaService, FacturaSiat, FacturaResult } from '@services/factura.service';
 
-import { RendM }              from '../../models/rend-m.model';
-import { RendD, CreateRendDPayload } from '../../models/rend-d.model';
-import { Documento }          from '../../models/documento.model';
-import { Perfil }             from '../../models/perfil.model';
+import { RendM }              from '@models/rend-m.model';
+import { RendD, CreateRendDPayload } from '@models/rend-d.model';
+import { Documento }          from '@models/documento.model';
+import { Perfil }             from '@models/perfil.model';
 import { PrctjModalComponent }          from './prctj-modal/prctj-modal.component';
-import { RendicionPdfPreviewComponent } from '../../shared/rendicion-pdf/rendicion-pdf-preview.component';
-import { AiFacturaPreviewComponent } from '../../shared/ai-factura-preview/ai-factura-preview.component';
-import { AiService, ClasificacionSugeridaResponse } from '../../services/ai.service';
+import { RendicionPdfPreviewComponent } from '@shared/rendicion-pdf/rendicion-pdf-preview.component';
+import { AiFacturaPreviewComponent } from '@shared/ai-factura-preview/ai-factura-preview.component';
+import { AiService } from '@services/ai.service';
 
-
-import { FormModalComponent } from '../../shared/form-modal';
-import type { ProjectDto } from '../../shared/project-search/project-search.component';
+import { FormModalComponent } from '@shared/form-modal';
+import type { ProjectDto } from '@shared/project-search/project-search.component';
 
 import { RendDExcelService, RendDScanService, PdfBatchItem } from './services';
+import { CalculoImpuestosService } from '@services/calculo-impuestos.service';
 
 // Componentes refactorizados
 import {
@@ -54,7 +53,6 @@ import {
   ProvEventualModalComponent,
   DocFormComponent,
   type DocFormConfig,
-  type BatchStats,
 } from './components';
 
 
@@ -71,7 +69,7 @@ interface NormaActiva {
   selector: 'app-rend-d',
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
-    ConfirmDialogComponent,
+
     SkeletonLoaderComponent, PrctjModalComponent, RendicionPdfPreviewComponent, AiFacturaPreviewComponent,
     AdjuntosListComponent,
     FormModalComponent,
@@ -88,7 +86,7 @@ interface NormaActiva {
   styleUrls:   ['./rend-d.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RendDComponent implements OnInit {
+export class RendDComponent implements OnInit, OnDestroy {
 
   idRendicion!: number;
   cabecera:     RendM | null = null;
@@ -107,14 +105,20 @@ export class RendDComponent implements OnInit {
   // Objeto de totales para pasar al componente tabla (nueva referencia cada vez)
   private _totalesImpuestosObj = { iva: 0, it: 0, iue: 0, rciva: 0 };
 
+  private _totales = {
+    importe: 0, descuento: 0, exento: 0, tasaCero: 0, tasa: 0,
+    ice: 0, giftCard: 0, impRet: 0, iva: 0, it: 0, iue: 0, rciva: 0,
+    baseImp: 0, general: 0,
+  };
+
   // Config cuentas del perfil
-  cueCar:        string     = 'TODOS';
-  cueTexto:      string     = '';
+  cueCar     = 'TODOS';
+  cueTexto     = '';
   listaCuentas:  CuentaDto[] = [];
 
   // Config proveedores del perfil
-  proCar:    string = 'TODOS';
-  proTexto:  string = '';
+  proCar = 'TODOS';
+  proTexto = '';
   proveedorSeleccionado: { cardCode: string; cardName: string; licTradNum?: string } | null = null;
 
   @ViewChild('provSearch') provSearch!: any;
@@ -200,14 +204,6 @@ export class RendDComponent implements OnInit {
   // ══ Funcionalidades IA ══
   /** Estado de habilitación de IA */
   iaEnabled = false;
-  /** Indicador de carga de sugerencia IA */
-  iaSugerenciaLoading = false;
-  /** Sugerencia actual de IA */
-  iaSugerencia: ClasificacionSugeridaResponse | null = null;
-  /** Mensaje de carga de IA */
-  iaLoadingMessage = 'Analizando...';
-  /** Timer para debounce de sugerencias IA */
-  private iaDebounceTimer: any = null;
   // Flag: preserva el exento guardado al abrir edición con % fijo
   private _preservarExento = false;
 
@@ -218,17 +214,16 @@ export class RendDComponent implements OnInit {
   guardandoProv   = false;
 
   form!: FormGroup;
-  private initialValues: any = null;
+  private initialValues: Record<string, unknown> | null = null;
 
   // ── Motor de cálculo ───────────────────────────────────────────
   // Configuración del documento activo (REND_CTA row)
   protected configDocActivo: Documento | null = null;
   // Subject para destruir la suscripción de valueChanges al cambiar de doc
   private calcDestroy$ = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
-  showDialog    = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
+
 
   get isAdmin():    boolean { return this.auth.isAdmin; }
   get isReadonly(): boolean {
@@ -242,33 +237,33 @@ export class RendDComponent implements OnInit {
     return JSON.stringify(this.form.getRawValue()) !== JSON.stringify(this.initialValues);
   }
 
-  get totalImporte():   number { return this.documentos.reduce((s, d) => s + (d.U_RD_Importe   ?? 0), 0); }
-  get totalDescuento(): number { return this.documentos.reduce((s, d) => s + (d.U_RD_Descuento ?? 0), 0); }
-  get totalExento():    number { return this.documentos.reduce((s, d) => s + (d.U_RD_Exento    ?? 0), 0); }
-  get totalTasaCero():  number { return this.documentos.reduce((s, d) => s + (d.U_RD_TasaCero  ?? 0), 0); }
-  get totalTasa():      number { return this.documentos.reduce((s, d) => s + (d.U_TASA          ?? 0), 0); }
-  get totalIce():       number { return this.documentos.reduce((s, d) => s + (d.U_ICE           ?? 0), 0); }
-  get totalGiftCard():  number { return this.documentos.reduce((s, d) => s + (d.U_GIFTCARD      ?? 0), 0); }
-  get totalImpRet():    number { return this.documentos.reduce((s, d) => s + (d.U_RD_ImpRet    ?? 0), 0); }
-  get totalIVA():       number { return this.documentos.reduce((s, d) => s + (d.U_MontoIVA     ?? 0), 0); }
-  get totalIT():        number { return this.documentos.reduce((s, d) => s + (d.U_MontoIT      ?? 0), 0); }
-  get totalIUE():       number { return this.documentos.reduce((s, d) => s + (d.U_MontoIUE     ?? 0), 0); }
-  get totalRCIVA():     number { return this.documentos.reduce((s, d) => s + (d.U_MontoRCIVA   ?? 0), 0); }
-  get totalBaseImp():   number { return this.documentos.reduce((s, d) => s + ((d.U_RD_Importe ?? 0) - (d.U_RD_Exento ?? 0) - (d.U_ICE ?? 0) - (d.U_TASA ?? 0) - (d.U_RD_TasaCero ?? 0) - (d.U_GIFTCARD ?? 0)), 0); }
-  get totalGeneral():   number { return this.documentos.reduce((s, d) => s + (d.U_RD_Total     ?? 0), 0); }
+  get totalImporte():   number { return this._totales.importe; }
+  get totalDescuento(): number { return this._totales.descuento; }
+  get totalExento():    number { return this._totales.exento; }
+  get totalTasaCero():  number { return this._totales.tasaCero; }
+  get totalTasa():      number { return this._totales.tasa; }
+  get totalIce():       number { return this._totales.ice; }
+  get totalGiftCard():  number { return this._totales.giftCard; }
+  get totalImpRet():    number { return this._totales.impRet; }
+  get totalIVA():       number { return this._totales.iva; }
+  get totalIT():        number { return this._totales.it; }
+  get totalIUE():       number { return this._totales.iue; }
+  get totalRCIVA():     number { return this._totales.rciva; }
+  get totalBaseImp():   number { return this._totales.baseImp; }
+  get totalGeneral():   number { return this._totales.general; }
 
   get totalesDocumentos() {
     return {
-      importe: this.totalImporte,
-      exento: this.totalExento,
-      ice: this.totalIce,
-      tasa: this.totalTasa,
-      tasaCero: this.totalTasaCero,
-      giftcard: this.totalGiftCard,
-      descuento: this.totalDescuento,
-      base: this.totalBaseImp,
-      impRet: this.totalImpRet,
-      total: this.totalGeneral
+      importe: this._totales.importe,
+      exento: this._totales.exento,
+      ice: this._totales.ice,
+      tasa: this._totales.tasa,
+      tasaCero: this._totales.tasaCero,
+      giftcard: this._totales.giftCard,
+      descuento: this._totales.descuento,
+      base: this._totales.baseImp,
+      impRet: this._totales.impRet,
+      total: this._totales.general
     };
   }
 
@@ -283,12 +278,46 @@ export class RendDComponent implements OnInit {
     return this._totalesImpuestosObj;
   }
   
-  /** Recalcula los totales de impuestos - llamar después de cargar/modificar documentos */
-  private recalcularTotalesImpuestos(): void {
-    this.totalesIVA   = this.totalIVA;
-    this.totalesIT    = this.totalIT;
-    this.totalesIUE   = this.totalIUE;
-    this.totalesRCIVA = this.totalRCIVA;
+  /** Recalcula todos los totales en un solo recorrido */
+  private _recalcularTotales(): void {
+    let importe = 0, descuento = 0, exento = 0, tasaCero = 0, tasa = 0;
+    let ice = 0, giftCard = 0, impRet = 0, iva = 0, it = 0, iue = 0, rciva = 0;
+    let baseImp = 0, general = 0;
+    
+    for (const d of this.documentos) {
+      const di = d.U_RD_Importe ?? 0;
+      const de = d.U_RD_Exento ?? 0;
+      const dice = d.U_ICE ?? 0;
+      const dt = d.U_TASA ?? 0;
+      const dtc = d.U_RD_TasaCero ?? 0;
+      const dg = d.U_GIFTCARD ?? 0;
+      
+      importe   += di;
+      descuento += d.U_RD_Descuento ?? 0;
+      exento    += de;
+      tasaCero  += dtc;
+      tasa      += dt;
+      ice       += dice;
+      giftCard  += dg;
+      impRet    += d.U_RD_ImpRet ?? 0;
+      iva       += d.U_MontoIVA ?? 0;
+      it        += d.U_MontoIT ?? 0;
+      iue       += d.U_MontoIUE ?? 0;
+      rciva     += d.U_MontoRCIVA ?? 0;
+      baseImp   += (di - de - dice - dt - dtc - dg);
+      general   += d.U_RD_Total ?? 0;
+    }
+    
+    this._totales = {
+      importe, descuento, exento, tasaCero, tasa,
+      ice, giftCard, impRet, iva, it, iue, rciva,
+      baseImp, general,
+    };
+    
+    this.totalesIVA   = iva;
+    this.totalesIT    = it;
+    this.totalesIUE   = iue;
+    this.totalesRCIVA = rciva;
   }
 
   // ── Control de saldo ─────────────────────────────────────────
@@ -327,13 +356,13 @@ export class RendDComponent implements OnInit {
 
   /** Saldo restante: positivo = falta rendir, negativo = excedido */
   get saldoRestante(): number {
-    return this._round(this.montoInicial - this.totalRendido);
+    return Math.round((this.montoInicial - this.totalRendido) * 100) / 100;
   }
 
   /** Porcentaje rendido sobre el monto inicial */
   get porcentajeRendido(): number {
     if (this.montoInicial === 0) return 0;
-    return Math.min(100, this._round((this.totalRendido / this.montoInicial) * 100));
+    return Math.min(100, Math.round(((this.totalRendido / this.montoInicial) * 100) * 100) / 100);
   }
 
   /** true cuando se excedió el monto inicial */
@@ -424,7 +453,7 @@ export class RendDComponent implements OnInit {
     this.showPdfPreview = true;
     this.cdr.markForCheck();
 
-    this.rendDSvc.getAll(this.idRendicion).subscribe({
+    this.rendDSvc.getAll(this.idRendicion).pipe(takeUntil(this.destroy$)).subscribe({
       next: (docs) => {
         this.pdfPreviewDocs = docs;
         this.cdr.markForCheck();
@@ -446,7 +475,7 @@ export class RendDComponent implements OnInit {
   adjuntosDoc: RendD | null = null;
   adjuntosList: Adjunto[] = [];
   adjuntosLoading = false;
-  adjuntosCountMap: Map<number, number> = new Map(); // Mapa de contadores por idRD
+  adjuntosCountMap = new Map<number, number>(); // Mapa de contadores por idRD
 
   /** Configuración para el DocumentTableComponent */
   get tableConfig() {
@@ -530,7 +559,7 @@ export class RendDComponent implements OnInit {
   cargarAdjuntos() {
     if (!this.adjuntosDoc) return;
     this.adjuntosLoading = true;
-    this.adjuntosSvc.getAdjuntos(this.idRendicion, this.adjuntosDoc.U_RD_IdRD).subscribe({
+    this.adjuntosSvc.getAdjuntos(this.idRendicion, this.adjuntosDoc.U_RD_IdRD).pipe(takeUntil(this.destroy$)).subscribe({
       next: (list) => {
         this.adjuntosList = list;
         this.adjuntosLoading = false;
@@ -586,6 +615,8 @@ export class RendDComponent implements OnInit {
     private aiService:      AiService,
     private excelSvc:       RendDExcelService,
     private scanSvc:        RendDScanService,
+    private calculoSvc:     CalculoImpuestosService,
+    private confirmDialogService: ConfirmDialogService,
   ) {}
 
   ngOnInit() {
@@ -594,21 +625,22 @@ export class RendDComponent implements OnInit {
     this.inicializarIA();
     Promise.resolve().then(() => this.loadAll());
   }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
   
   // ══ Funcionalidades IA ═════════════════════════════════════════
-  
-  /** Muestra el botón flotante de ayuda IA cuando hay texto suficiente */
-  mostrarBotonAyudaIA = false;
   
   /**
    * Inicializa el servicio de IA y suscripciones
    */
   private inicializarIA(): void {
     // Cargar estado de IA
-    this.aiService.cargarStatus().subscribe({
-      next: (status: import('../../services/ai.service').AiStatus) => {
+    this.aiService.cargarStatus().pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
         this.iaEnabled = this.aiService.estaHabilitada;
-        console.log('🤖 IA inicializada:', this.iaEnabled ? 'HABILITADA' : 'DESHABILITADA');
         this.cdr.markForCheck();
       },
       error: () => {
@@ -616,121 +648,9 @@ export class RendDComponent implements OnInit {
         this.cdr.markForCheck();
       }
     });
-    
-    // Escuchar cambios en el concepto para mostrar/ocultar botón de ayuda
-    this.form.get('concepto')?.valueChanges.subscribe((valor) => {
-      this.onConceptoChange(valor);
-    });
   }
   
-  /**
-   * Maneja cambios en el campo concepto
-   * Muestra/oculta el botón de ayuda IA según el contenido
-   */
-  onConceptoChange(concepto: string): void {
-    // Limpiar sugerencia si el concepto cambió significativamente
-    if (this.iaSugerencia && concepto !== this.iaSugerenciaTextoPrevio) {
-      this.iaSugerencia = null;
-    }
-    
-    // Mostrar botón de ayuda si hay texto suficiente (mínimo 10 caracteres) y IA está habilitada
-    this.mostrarBotonAyudaIA = this.iaEnabled && !!concepto && concepto.trim().length >= 10;
-    this.cdr.markForCheck();
-  }
-  
-  /** Guarda el texto del concepto previo para comparar cambios */
-  private iaSugerenciaTextoPrevio = '';
-  
-  /**
-   * Solicita sugerencia de clasificación a la IA (llamado manualmente por el usuario)
-   */
-  solicitarSugerenciaIA(): void {
-    const concepto = this.form.get('concepto')?.value || '';
-    const importe = this.form.get('importe')?.value || 0;
-    const proveedor = this.form.get('prov')?.value || '';
-    
-    if (!concepto || concepto.trim().length < 10) {
-      this.toast.warning('Escribe una descripción más detallada del gasto para obtener mejores sugerencias');
-      return;
-    }
-    
-    // Guardar texto previo para evitar re-solicitar si no cambió
-    this.iaSugerenciaTextoPrevio = concepto;
-    
-    this.iaSugerenciaLoading = true;
-    this.iaLoadingMessage = 'Analizando gasto con IA...';
-    this.mostrarBotonAyudaIA = false; // Ocultar botón mientras carga
-    this.cdr.markForCheck();
-    
-    this.aiService.sugerirClasificacion({
-      concepto: concepto.trim(),
-      monto: importe,
-      proveedor,
-      usuarioId: String(this.auth.user?.sub || ''),
-      idRendicion: this.idRendicion,
-    }).subscribe({
-      next: (sugerencia: ClasificacionSugeridaResponse | null) => {
-        this.iaSugerencia = sugerencia;
-        this.iaSugerenciaLoading = false;
-        this.cdr.markForCheck();
-        
-        if (sugerencia) {
-          this.toast.info(
-            `💡 IA sugiere: ${sugerencia.cuentaContable.codigo} (${Math.round(sugerencia.cuentaContable.confianza * 100)}% confianza)`,
-            3000
-          );
-        }
-      },
-      error: (error: any) => {
-        console.error('Error obteniendo sugerencia IA:', error);
-        this.iaSugerenciaLoading = false;
-        this.iaSugerencia = null;
-        this.mostrarBotonAyudaIA = true; // Mostrar botón nuevamente para reintentar
-        this.cdr.markForCheck();
-        this.toast.error('No se pudo obtener la sugerencia. Intenta de nuevo.');
-      }
-    });
-  }
-  
-  /**
-   * Aplica la sugerencia de IA al formulario
-   */
-  aplicarSugerenciaIA(sugerencia: ClasificacionSugeridaResponse): void {
-    if (!sugerencia) return;
-    
-    const patchValue: any = {};
-    
-    // Aplicar cuenta contable
-    if (sugerencia.cuentaContable) {
-      patchValue.cuenta = sugerencia.cuentaContable.codigo;
-      patchValue.nombreCuenta = sugerencia.cuentaContable.nombre;
-    }
-    
-    // Aplicar proyecto si existe
-    if (sugerencia.proyecto) {
-      patchValue.proyecto = sugerencia.proyecto.codigo;
-      this.proyectoActivo = true;
-    }
-    
-    // En modo ONLINE: aplicar dimensión
-    // En modo OFFLINE: aplicar norma (si hay campos para ello)
-    
-    this.form.patchValue(patchValue);
-    
-    // Limpiar sugerencia aplicada
-    this.iaSugerencia = null;
-    
-    this.toast.exito('Sugerencia aplicada correctamente');
-    this.cdr.markForCheck();
-  }
-  
-  /**
-   * Ignora la sugerencia actual de IA
-   */
-  ignorarSugerenciaIA(): void {
-    this.iaSugerencia = null;
-    this.cdr.markForCheck();
-  }
+  // La sugerencia IA ahora se gestiona dentro de DocFormComponent
 
   // ── Carga ─────────────────────────────────────────────────────
 
@@ -744,7 +664,7 @@ export class RendDComponent implements OnInit {
     // sincrónicamente. setTimeout 0 garantiza que siempre emita en el
     // siguiente tick, después de que Angular termine su ciclo de CD.
     setTimeout(() => {
-      this.sapSvc.getDimensions().pipe(catchError(() => of([]))).subscribe({
+      this.sapSvc.getDimensions().pipe(catchError(() => of([])), takeUntil(this.destroy$)).subscribe({
         next: (dimensiones: any[]) => {
           this.normasActivas = dimensiones.slice(0, 3).map((dim, idx) => ({
             slot:      idx + 1,
@@ -778,12 +698,12 @@ export class RendDComponent implements OnInit {
           tiposDocs:  this.docsSvc.getByPerfil(cab.U_IdPerfil),
         });
       }),
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: ({ perfil, documentos, tiposDocs }) => {
         this.perfil      = perfil;
         this.documentos  = documentos;
         this.tiposDocs   = tiposDocs;
-        console.log('[rend-d] tiposDocs:', tiposDocs.length, 'documentos:', documentos.length, 'perfil:', perfil.U_NombrePerfil);
+
         this.loadingDocs = false;
         this.loadingCab  = false;
 
@@ -793,7 +713,7 @@ export class RendDComponent implements OnInit {
         this.proTexto = perfil.U_PRO_Texto   ?? '';
 
         if (this.cueCar === 'LISTA') {
-          this.cuentasListaSvc.getByPerfil(this.cabecera!.U_IdPerfil).subscribe({
+          this.cuentasListaSvc.getByPerfil(this.cabecera!.U_IdPerfil).pipe(takeUntil(this.destroy$)).subscribe({
             next: (lista) => {
               this.listaCuentas = lista.map(c => ({ code: c.U_CuentaSys, name: c.U_NombreCuenta }));
               this.cdr.markForCheck();
@@ -802,8 +722,9 @@ export class RendDComponent implements OnInit {
         }
 
         this.updatePaging();
-        this.recalcularTotalesImpuestos();
-        console.log('[rend-d] documentos:', this.documentos.length, 'paged:', this.paged.length);
+        this._recalcularTotales();
+        setTimeout(() => this.cargarContadoresAdjuntos(), 0);
+
         this.cdr.markForCheck();
       },
       error: () => {
@@ -819,12 +740,12 @@ export class RendDComponent implements OnInit {
     this.loadingDocs = true;
     this.loadError   = false;
     this.cdr.markForCheck();
-    this.rendDSvc.getAll(this.idRendicion).subscribe({
+    this.rendDSvc.getAll(this.idRendicion).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.documentos  = data;
         this.loadingDocs = false;
         this.updatePaging();
-        this.recalcularTotalesImpuestos();
+        this._recalcularTotales();
         // Cargar contadores después de un pequeño delay para asegurar que paged está actualizado
         setTimeout(() => this.cargarContadoresAdjuntos(), 0);
         this.cdr.markForCheck();
@@ -847,7 +768,7 @@ export class RendDComponent implements OnInit {
     
     // Cargar contadores para cada línea de la página actual
     this.paged.forEach(d => {
-      this.adjuntosSvc.getAdjuntos(this.idRendicion, d.U_RD_IdRD).subscribe({
+      this.adjuntosSvc.getAdjuntos(this.idRendicion, d.U_RD_IdRD).pipe(takeUntil(this.destroy$)).subscribe({
         next: (adjuntos) => {
           this.adjuntosCountMap.set(d.U_RD_IdRD, adjuntos.length);
           this.cdr.markForCheck();
@@ -927,9 +848,9 @@ export class RendDComponent implements OnInit {
       tipoDocName: doc.U_TipDoc,
       ctaExento:   doc.U_CTAEXENTO,
       // Si TASA en config es -1, mantener el valor que tiene el usuario; si no, usar el de la config
-      tasa:       Number(doc.U_TASA) === -1 ? this.form.get('tasa')?.value : (Number(doc.U_TASA) ?? 0),
+      tasa:       Number(doc.U_TASA) === -1 ? this.form.get('tasa')?.value : Number(doc.U_TASA),
       // Si ICE en config es -1, mantener el valor digitado; si no, usar el de la config
-      ice:        Number(doc.U_ICE)  === -1 ? this.form.get('ice')?.value  : (Number(doc.U_ICE)  ?? 0),
+      ice:        Number(doc.U_ICE)  === -1 ? this.form.get('ice')?.value  : Number(doc.U_ICE),
     }, { emitEvent: false });
 
     this.configDocActivo = doc;
@@ -989,95 +910,25 @@ export class RendDComponent implements OnInit {
     if (![1, 4, 10].includes(idTipoDoc)) return;
 
     const r = this.form.getRawValue();
-    const importe   = this._n(r.importe);
+    const resultado = this.calculoSvc.calcular(cfg, {
+      importe: r.importe,
+      exento: r.exento,
+      tasa: r.tasa,
+      tasaCero: r.tasaCero,
+      giftCard: r.giftCard,
+      ice: r.ice,
+    });
 
-    // ── Exento ────────────────────────────────────────────────────
-    const exentoPct = Number(cfg.U_EXENTOpercent);
-    const exento = exentoPct === -1
-      ? this._n(r.exento)
-      : exentoPct > 0
-        ? this._round(importe * (exentoPct / 100))
-        : 0;
+    if (!resultado) return;
 
-    // ── Tasa y ICE ────────────────────────────────────────────────
-    const tasa     = Number(cfg.U_TASA) === -1 ? this._n(r.tasa) : (Number(cfg.U_TASA) ?? 0);
-    const icePct   = Number(cfg.U_ICE);
-    const ice      = icePct === -1
-      ? this._n(r.ice)
-      : icePct > 0
-        ? this._round(importe * (icePct / 100))
-        : 0;
-    const tasaCero = this._n(r.tasaCero);
-    const giftCard = this._n(r.giftCard);
-
-    // ── Base imponible ────────────────────────────────────────────
-    const baseImponible = importe - exento - ice - tasa - tasaCero - giftCard;
-
-    let montoIVA   = 0;
-    let montoIT    = 0;
-    let montoIUE   = 0;
-    let montoRCIVA = 0;
-
-    const tipoCalc = String(cfg.U_TipoCalc);
-    const esRecibo = idTipoDoc === 4 || idTipoDoc === 10;
-
-    if (idTipoDoc === 1) {
-      // ── Factura: cálculo normal sobre base imponible ──────────
-      montoIVA   = this._calcImpuesto(baseImponible, cfg.U_IVApercent);
-      montoIT    = this._calcImpuesto(baseImponible, cfg.U_ITpercent);
-      montoIUE   = this._calcImpuesto(baseImponible, cfg.U_IUEpercent);
-      montoRCIVA = this._calcImpuesto(baseImponible, cfg.U_RCIVApercent);
-
-    } else if (esRecibo && tipoCalc === '1') {
-      // ── Grossing Down: impuestos sobre importe, se descuentan al proveedor ──
-      // Recibo dice 150 Bs → empresa paga 150, proveedor recibe 150 - retenciones
-      montoIT    = this._calcImpuesto(importe, cfg.U_ITpercent);
-      montoRCIVA = this._calcImpuesto(importe, cfg.U_RCIVApercent);
-      montoIVA   = this._calcImpuesto(importe, cfg.U_IVApercent);
-      montoIUE   = this._calcImpuesto(importe, cfg.U_IUEpercent);
-
-    } else if (esRecibo && tipoCalc === '0') {
-      // ── Grossing Up correcto: el importe ingresado es el LÍQUIDO a pagar al proveedor.
-      // La empresa asume las retenciones, por lo que hay que calcular el BRUTO hacia arriba.
-      //
-      // Fórmula:  Bruto = Líquido / (1 - suma_de_tasas)
-      // Ejemplo:  1800 / (1 - 0.155) = 2130.18  → IUE=266.27, IT=63.91, Prov.recibe=1800
-      //
-      // El Bruto es el costo real para la empresa y lo que figura en el contrato.
-      const tasaIUE   = (Number(cfg.U_IUEpercent)   || 0) / 100;
-      const tasaIT    = (Number(cfg.U_ITpercent)     || 0) / 100;
-      const tasaRCIVA = (Number(cfg.U_RCIVApercent)  || 0) / 100;
-      const tasaIVA   = (Number(cfg.U_IVApercent)    || 0) / 100;
-      const sumaTasas = tasaIUE + tasaIT + tasaRCIVA + tasaIVA;
-
-      // Bruto = Líquido / (1 - tasas) — solo si hay tasas configuradas
-      const bruto = sumaTasas > 0 && sumaTasas < 1
-        ? this._round(importe / (1 - sumaTasas))
-        : importe;
-
-      montoIUE   = this._round(bruto * tasaIUE);
-      montoIT    = this._round(bruto * tasaIT);
-      montoRCIVA = this._round(bruto * tasaRCIVA);
-      montoIVA   = this._round(bruto * tasaIVA);
-    }
-
-    const impRet = this._round(montoIVA + montoIT + montoIUE + montoRCIVA);
-
-    // Total según tipo de cálculo:
-    // GU → el Total es el BRUTO (costo real empresa = líquido + retenciones que asume)
-    //       Total = Importe (líquido) + ImpRet = Bruto
-    // GD → proveedor recibe menos: Total = Importe - ImpRet
-    // Factura → Total = Importe - ImpRet
-    const total = esRecibo && tipoCalc === '0'
-      ? this._round(importe + impRet)   // GU: Total = Bruto (líquido + retenciones)
-      : this._round(importe - impRet);  // GD / Factura: se descuenta al proveedor
+    const icePct = Number(cfg.U_ICE);
 
     // Guardar valores calculados en propiedades para pasar al componente hijo
-    this.montoIVA   = this._round(montoIVA);
-    this.montoIT    = this._round(montoIT);
-    this.montoIUE   = this._round(montoIUE);
-    this.montoRCIVA = this._round(montoRCIVA);
-    this.totalImpuestos = impRet;
+    this.montoIVA   = resultado.montoIVA;
+    this.montoIT    = resultado.montoIT;
+    this.montoIUE   = resultado.montoIUE;
+    this.montoRCIVA = resultado.montoRCIVA;
+    this.totalImpuestos = resultado.impRet;
 
     // Actualizar campos calculados sin disparar otro ciclo de valueChanges
     this.form.patchValue({
@@ -1085,11 +936,11 @@ export class RendDComponent implements OnInit {
       montoIT:    this.montoIT,
       montoIUE:   this.montoIUE,
       montoRCIVA: this.montoRCIVA,
-      impRet,
-      total,
+      impRet: resultado.impRet,
+      total: resultado.total,
       // Propagar exento calculado al campo del formulario si viene de %
-      ...(Number(cfg.U_EXENTOpercent) > 0 ? { exento: this._round(exento) } : {}),
-      ...(icePct > 0 ? { ice: this._round(ice) } : {}),
+      ...(Number(cfg.U_EXENTOpercent) > 0 ? { exento: resultado.exento } : {}),
+      ...(icePct > 0 ? { ice: resultado.ice } : {}),
       // Propagar cuentas contables desde la config SOLO si el campo está vacío.
       // Si el usuario ya seleccionó una cuenta manualmente, NO se sobreescribe.
       ...(!r.cuentaIVA   && cfg.U_IVAcuenta   ? { cuentaIVA:   cfg.U_IVAcuenta   } : {}),
@@ -1099,23 +950,6 @@ export class RendDComponent implements OnInit {
     }, { emitEvent: false });
 
     this.cdr.markForCheck();
-  }
-
-  /** Calcula un impuesto: si pct es 0 o null → 0; si pct > 0 → base × pct / 100 */
-  private _calcImpuesto(base: number, pct: number | null | undefined): number {
-    if (!pct || pct <= 0) return 0;
-    return base * (pct / 100);
-  }
-
-  /** Convierte a número seguro */
-  private _n(v: any): number {
-    const n = Number(v);
-    return isNaN(n) ? 0 : n;
-  }
-
-  /** Redondea a 2 decimales */
-  private _round(v: number): number {
-    return Math.round(v * 100) / 100;
   }
 
   onCuentaSelected(cuenta: CuentaDto | null) {
@@ -1213,7 +1047,7 @@ export class RendDComponent implements OnInit {
     const provNombre = nombre || this.nuevoProvNombre;
     if (!provNit.trim() || !provNombre.trim()) return;
     this.guardandoProv = true;
-    this.provSvc.create(provNit.trim(), provNombre.trim()).subscribe({
+    this.provSvc.create(provNit.trim(), provNombre.trim()).pipe(takeUntil(this.destroy$)).subscribe({
       next: (prov: ProvEventual) => {
         this.guardandoProv = false;
         this.showNuevoProv = false;
@@ -1305,7 +1139,7 @@ export class RendDComponent implements OnInit {
       ? this.rendDSvc.update(this.idRendicion, this.editingDoc.U_RD_IdRD, payload)
       : this.rendDSvc.create(this.idRendicion, payload);
 
-    obs.subscribe({
+    obs.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.toast.exito(this.editingDoc ? 'Documento actualizado' : 'Documento creado');
         this.closeForm();
@@ -1392,7 +1226,7 @@ export class RendDComponent implements OnInit {
     this.urlError = null;
     this.cdr.markForCheck();
 
-    this.scanSvc.procesarUrlSiat(url).subscribe({
+    this.scanSvc.procesarUrlSiat(url).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.urlLoadingFactura = false;
         if (result.success && result.factura) {
@@ -1493,7 +1327,7 @@ export class RendDComponent implements OnInit {
     this.cdr.markForCheck();
 
     // Procesar el PDF con el servicio de factura
-    this.facturaSvc.processFacturaPdf(file).subscribe({
+    this.facturaSvc.processFacturaPdf(file).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.pdfBatchProcessing = false;
         this.showPdfModal = false;
@@ -1561,7 +1395,7 @@ export class RendDComponent implements OnInit {
       await this._crearDocumentoDesdeFactura(factura);
       this.toast.exito('Documento creado exitosamente');
       this.loadDocs();
-    } catch (err: any) {
+    } catch {
       // Si falla, abrir el formulario manual con los datos prellenados
       this.toast.warning('No se pudo crear automáticamente. Complete los datos manualmente.');
       this._prefillFromFactura(factura);
@@ -1804,7 +1638,7 @@ export class RendDComponent implements OnInit {
         return;
       }
 
-      this.rendDSvc.create(this.idRendicion, payload as any).subscribe({
+      this.rendDSvc.create(this.idRendicion, payload as any).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => resolve(),
         error: (err) => reject(err)
       });
@@ -1815,7 +1649,7 @@ export class RendDComponent implements OnInit {
    * Crea un documento desde datos de factura en el contexto de batch
    * Similar a _crearDocumentoDesdeFactura pero actualiza el resultado del batch
    */
-  private async _crearDocumentoBatch(data: any, batchIndex: number): Promise<void> {
+  private async _crearDocumentoBatch(data: any, _batchIndex: number): Promise<void> {
     const factura: FacturaSiat = {
       cuf: data.cuf || '',
       nit: data.nit || '',
@@ -1870,13 +1704,13 @@ export class RendDComponent implements OnInit {
     this.proveedorSeleccionado = null;
     const primer = this.tiposDocs[0];
     this.form.reset({
-      cuenta: '', fecha: this.hoy, tipoDoc: String(primer?.U_IdDocumento) ?? '',
+      cuenta: '', fecha: this.hoy, tipoDoc: String(primer?.U_IdDocumento || ''),
       tipoDocName: primer?.U_TipDoc ?? '',
       idTipoDoc: primer?.U_IdTipoDoc ?? 1,
       numDocumento: '', nroAutor: '', cuf: '', ctrl: '',
       prov: '', codProv: '', concepto: '',
       importe: 0, descuento: 0, exento: 0,
-      tasa: Number(primer?.U_TASA) === -1 ? 0 : (Number(primer?.U_TASA) ?? 0),
+      tasa: Number(primer?.U_TASA) === -1 ? 0 : Number(primer?.U_TASA),
       giftCard: 0, tasaCero: 0,
       ice: Number(primer?.U_ICE) === -1 ? 0 : 0, // valor real lo calcula _recalcular
       proyecto: '', n1: '', n2: '', n3: '',
@@ -1935,9 +1769,9 @@ export class RendDComponent implements OnInit {
 
   // ── Exportar / Importar ──────────────────────────────────────
 
-  exportarExcel() {
+  async exportarExcel() {
     const idRendicion = this.cabecera?.U_IdRendicion ?? 0;
-    const { blob, filename } = this.excelSvc.exportarDocumentos(
+    const { blob, filename } = await this.excelSvc.exportarDocumentos(
       this.documentos,
       (id) => this.getTipoDocName(id),
       idRendicion
@@ -1946,8 +1780,8 @@ export class RendDComponent implements OnInit {
     this.toast.exito(`Exportado: ${filename}`);
   }
 
-  descargarFormato() {
-    const { blob, filename } = this.excelSvc.descargarFormato();
+  async descargarFormato() {
+    const { blob, filename } = await this.excelSvc.descargarFormato();
     this.excelSvc.descargarArchivo(blob, filename);
     this.toast.exito('Formato descargado');
   }
@@ -1999,7 +1833,7 @@ export class RendDComponent implements OnInit {
       idTipoDoc: tipoDoc?.U_IdTipoDoc ?? 1,
     };
 
-    this.rendDSvc.create(this.idRendicion, payload as any).subscribe({
+    this.rendDSvc.create(this.idRendicion, payload as any).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this._importarFilas(rows, idx + 1, ok + 1, tipoDoc),
       error: (err: any) => {
         this.importError = `Error en fila ${idx + 1}: ${err?.error?.message ?? 'error desconocido'}`;
@@ -2038,7 +1872,7 @@ export class RendDComponent implements OnInit {
     this.qrError          = null;
     this.cdr.markForCheck();
 
-    this.facturaSvc.getFromSiat(url).subscribe({
+    this.facturaSvc.getFromSiat(url).pipe(takeUntil(this.destroy$)).subscribe({
       next: (factura) => {
         this.cerrarQrScanner();
         // Mostrar preview para edición antes de crear
@@ -2060,7 +1894,7 @@ export class RendDComponent implements OnInit {
   }
 
   /** Muestra el modal de preview para editar datos de la factura */
-  private _showFacturaPreview(result: import('../../services/factura.service').FacturaResult): void {
+  private _showFacturaPreview(result: import('@services/factura.service').FacturaResult): void {
     this.aiPreviewResult = result;
     this.showAiPreviewModal = true;
     this.cdr.markForCheck();
@@ -2093,10 +1927,7 @@ export class RendDComponent implements OnInit {
       concepto:     concepto.substring(0, 250),
     });
     
-    // ✅ DISPARAR SUGERENCIA DE IA si hay concepto y IA está habilitada
-    if (conceptoUsuario && this.iaEnabled) {
-      setTimeout(() => this.onConceptoChange(conceptoUsuario), 300);
-    }
+    // La sugerencia IA ahora se gestiona dentro de DocFormComponent
 
     // Buscar o crear proveedor: primero en la lista maestra, luego en REND_PROV
     if (factura.nit && factura.companyName) {
@@ -2110,7 +1941,7 @@ export class RendDComponent implements OnInit {
         });
         this.cdr.markForCheck();
       } else {
-        this.provSvc.findOrCreate(factura.nit, factura.companyName).subscribe({
+        this.provSvc.findOrCreate(factura.nit, factura.companyName).pipe(takeUntil(this.destroy$)).subscribe({
           next: (prov) => {
             const cardName = (prov as any).U_RAZON_SOCIAL ?? factura.companyName;
             this.proveedorSeleccionado = { cardCode: 'PL999999', cardName, licTradNum: factura.nit };
@@ -2305,7 +2136,7 @@ export class RendDComponent implements OnInit {
       ? this.rendDSvc.update(this.idRendicion, this.editingDoc.U_RD_IdRD, payload)
       : this.rendDSvc.create(this.idRendicion, payload);
 
-    obs.subscribe({
+    obs.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.isSaving = false;
         const msg = this.editingDoc ? 'Documento actualizado' : 'Documento agregado';
@@ -2338,12 +2169,13 @@ export class RendDComponent implements OnInit {
   // ── Eliminar ────────────────────────────────────────────────────
 
   confirmDelete(d: RendD) {
-    this.openDialog({
+    this.confirmDialogService.ask({
       title: '¿Eliminar documento?',
       message: `Se eliminará el documento N° ${d.U_RD_IdRD} — "${d.U_RD_Concepto}".`,
       confirmLabel: 'Sí, eliminar', type: 'danger',
-    }, () => {
-      this.rendDSvc.remove(this.idRendicion, d.U_RD_IdRD).subscribe({
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.rendDSvc.remove(this.idRendicion, d.U_RD_IdRD).pipe(takeUntil(this.destroy$)).subscribe({
         next:  () => {
           this.toast.exito('Documento eliminado');
           this.loadDocs();
@@ -2372,14 +2204,6 @@ export class RendDComponent implements OnInit {
   onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); this.cdr.markForCheck(); }
 
   // ── Dialog ──────────────────────────────────────────────────────
-
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 
   goBack() {
     // Guardar el perfil activo en sessionStorage para que rend-m

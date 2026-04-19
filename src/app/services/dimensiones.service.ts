@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { environment } from '@env';
 import {
   Dimension,
   CrearDimensionPayload,
   ActualizarDimensionPayload,
   DimensionFiltro,
-} from '../models/dimension.model';
+} from '@models/dimension.model';
 
 @Injectable({
   providedIn: 'root',

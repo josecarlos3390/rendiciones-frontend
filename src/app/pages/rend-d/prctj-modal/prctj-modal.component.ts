@@ -8,18 +8,18 @@ import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 
 import { PrctjService }              from '../prctj.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../../core/confirm-dialog/confirm-dialog.component';
-import { SapService, DimensionWithRules } from '../../../services/sap.service';
-import { CuentaSearchComponent }     from '../../../shared/cuenta-search/cuenta-search.component';
-import { FormModalComponent } from '../../../shared/form-modal';
-import { RendD }                     from '../../../models/rend-d.model';
-import { PrctjLineaForm }            from '../../../models/prctj.model';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { SapService, DimensionWithRules } from '@services/sap.service';
+import { CuentaSearchComponent }     from '@shared/cuenta-search/cuenta-search.component';
+import { FormModalComponent } from '@shared/form-modal';
+import { RendD }                     from '@models/rend-d.model';
+import { PrctjLineaForm }            from '@models/prctj.model';
 
 @Component({
   standalone: true,
   selector:   'app-prctj-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CuentaSearchComponent, ConfirmDialogComponent, FormModalComponent],
+  imports: [CommonModule, FormsModule, CuentaSearchComponent, FormModalComponent],
   template: `
 <app-form-modal
   [title]="'Distribución porcentual'"
@@ -151,13 +151,6 @@ import { PrctjLineaForm }            from '../../../models/prctj.model';
   </ng-template>
 </app-form-modal>
 
-<!-- Confirm dialog: quitar distribucion -->
-<app-confirm-dialog
-  [config]="dialogConfig"
-  [visible]="showDialog"
-  (confirmed)="onDialogConfirm()"
-  (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
   `,
   styles: [`
     .prctj-card {
@@ -284,19 +277,7 @@ export class PrctjModalComponent implements OnInit, OnChanges {
 
   dimensiones: DimensionWithRules[] = [];
 
-  // Diálogo de confirmación (quitar distribución)
-  showDialog    = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '', type: 'danger' };
-  private _dialogCallback: (() => void) | null = null;
-
-  openDialog(cfg: ConfirmDialogConfig, cb: () => void) {
-    this.dialogConfig = cfg;
-    this._dialogCallback = cb;
-    this.showDialog = true;
-    this.cdr.markForCheck();
-  }
-  onDialogConfirm() { this.showDialog = false; this._dialogCallback?.(); this.cdr.markForCheck(); }
-  onDialogCancel()  { this.showDialog = false; this.cdr.markForCheck(); }
+  private confirmDialog = inject(ConfirmDialogService);
   lineas:      PrctjLineaForm[]     = [];
   loading      = false;
   isSaving     = false;
@@ -416,7 +397,7 @@ export class PrctjModalComponent implements OnInit, OnChanges {
     this.cdr.markForCheck();
   }
 
-  recalcular(idx: number) {
+  recalcular(_idx: number) {
     // Actualizar línea para forzar re-render del monto
     this.lineas = [...this.lineas];
     this.cdr.markForCheck();
@@ -457,13 +438,14 @@ export class PrctjModalComponent implements OnInit, OnChanges {
   }
 
   eliminarTodo() {
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        'Quitar distribución',
       message:      '¿Estás seguro? Se eliminará toda la distribución porcentual de esta línea. La línea volverá a imputarse a su cuenta original.',
       confirmLabel: 'Sí, quitar',
       cancelLabel:  'Cancelar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.prctjSvc.delete(this.idRendicion, this.doc.U_RD_IdRD).subscribe({
         next: () => {
           this.tieneDistribucion = false;
@@ -481,5 +463,5 @@ export class PrctjModalComponent implements OnInit, OnChanges {
   }
 
   cancel()         { this.cancelled.emit(); }
-  onBackdrop(e: MouseEvent) { this.cancel(); }
+  onBackdrop(_e: MouseEvent) { this.cancel(); }
 }

@@ -1,77 +1,89 @@
 import { RouterModule, Router } from '@angular/router';
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, Validators, FormBuilder, FormGroup } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject, takeUntil } from 'rxjs';
 
-import { AprobacionesService }    from '../../services/aprobaciones.service';
+import { AprobacionesService }    from '@services/aprobaciones.service';
 import { RendMService }           from './rend-m.service';
 import { RendDService }           from '../rend-d/rend-d.service';
-import { ToastService }           from '../../core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '../../core/confirm-dialog/confirm-dialog.component';
-import { AuthService }            from '../../auth/auth.service';
+import { ToastService }           from '@core/toast/toast.service';
+
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { AuthService }            from '@auth/auth.service';
 import { PerfilesService }        from '../perfiles/perfiles.service';
 import { PermisosService }        from '../permisos/permisos.service';
 import { CuentasCabeceraService } from '../cuentas-cabecera/cuentas-cabecera.service';
-import { CuentaCabecera }         from '../../models/cuenta-cabecera.model';
-import { Perfil }                 from '../../models/perfil.model';
-import { Permiso }                from '../../models/permiso.model';
-import { Empleado } from '../../shared/empleado-search/empleado-search.component';
-import { SkeletonLoaderComponent } from '../../shared/skeleton-loader/skeleton-loader.component';
-import { RendicionPdfPreviewComponent } from '../../shared/rendicion-pdf/rendicion-pdf-preview.component';
-import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu';
-import { PaginatorComponent } from '../../shared/paginator/paginator.component';
-import { DdmmyyyyPipe } from '../../shared/ddmmyyyy.pipe';
+import { CuentaCabecera }         from '@models/cuenta-cabecera.model';
+import { Perfil }                 from '@models/perfil.model';
+import { Permiso }                from '@models/permiso.model';
+import { Empleado } from '@shared/empleado-search/empleado-search.component';
+import { SkeletonLoaderComponent } from '@shared/skeleton-loader/skeleton-loader.component';
+import { RendicionPdfPreviewComponent } from '@shared/rendicion-pdf/rendicion-pdf-preview.component';
+import { ActionMenuItem } from '@shared/action-menu';
 
-
-import { FormDirtyService } from '../../shared/form-dirty';
-import { PickerModalComponent, PickerItem } from '../../shared/picker-modal/picker-modal.component';
-import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
-import { SyncModalComponent } from '../../shared/sync-modal';
-import { RendicionFilterService } from '../../services/rendicion-filter.service';
-import { IntegracionService, SyncResult } from '../../services/integracion.service';
+import { FormDirtyService } from '@shared/form-dirty';
+import { PickerModalComponent, PickerItem } from '@shared/picker-modal/picker-modal.component';
+import { EmptyStateComponent } from '@shared/empty-state/empty-state.component';
+import { SyncModalComponent } from '@shared/sync-modal';
+import { RendicionFilterService } from '@services/rendicion-filter.service';
+import { IntegracionService, SyncResult } from '@services/integracion.service';
 import {
   RendM, CreateRendMPayload,
   ESTADO_LABEL, ESTADO_CLASS,
-} from '../../models/rend-m.model';
-import { RendD } from '../../models/rend-d.model';
+} from '@models/rend-m.model';
+import { RendD } from '@models/rend-d.model';
+import {
+  ICON_VIEW,
+  ICON_PRINT,
+  ICON_EDIT,
+  ICON_SYNC,
+  ICON_SEND,
+  ICON_RETRY_SYNC,
+  ICON_TRASH,
+  ICON_CHECK,
+  ICON_CLOSE,
+} from '@common/constants/icons';
 
 // 🆕 Componentes dumb refactorizados
+
+import { CrudPageHeaderComponent } from '@shared/crud-page-header';
 import {
   RendicionFormComponent,
   RendicionFormData,
   RendicionFiltersComponent,
   RendicionTableComponent,
   PerfilSelectorComponent,
-  VerFiltro,
-  EstadoFiltro,
+  SubordinadosTableComponent,
   RendicionAction,
 } from './components';
 
 @Component({
   standalone: true,
   selector: 'app-rend-m',
-  imports: [
+  imports: [CrudPageHeaderComponent,
     CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     // Core/Shared
-    ConfirmDialogComponent, SkeletonLoaderComponent,
+    SkeletonLoaderComponent,
     RendicionPdfPreviewComponent, EmptyStateComponent,
     SyncModalComponent, PickerModalComponent,
-    PaginatorComponent, ActionMenuComponent, DdmmyyyyPipe,
 
     // 🆕 Componentes dumb refactorizados
     RendicionFormComponent,
     RendicionFiltersComponent,
     RendicionTableComponent,
     PerfilSelectorComponent,
+    SubordinadosTableComponent,
   ],
   templateUrl: './rend-m.component.html',
   styleUrls: ['./rend-m.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RendMComponent implements OnInit {
+export class RendMComponent implements OnInit, OnDestroy {
 
   @ViewChild(SyncModalComponent) syncModal?: SyncModalComponent;
+
+  private destroy$ = new Subject<void>();
 
   rendiciones:  RendM[] = [];
   filtered:     RendM[] = [];
@@ -88,7 +100,7 @@ export class RendMComponent implements OnInit {
   editingRend:   RendM | null = null;
   isSaving       = false;
   form!:         FormGroup;
-  initialValues: any = null;
+  initialValues: Record<string, unknown> | null = null;
 
   misPermisosPaso1:    Permiso[] = [];
   loadingPerfilesPaso1 = false;
@@ -134,10 +146,6 @@ export class RendMComponent implements OnInit {
     return this.cuentasCabeceraActivas.length > 1;
   }
 
-  showDialog    = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
-
   readonly estadoLabel = ESTADO_LABEL;
   readonly estadoClass = ESTADO_CLASS;
 
@@ -172,14 +180,20 @@ export class RendMComponent implements OnInit {
     private filterService:          RendicionFilterService,
     private integracionSvc:         IntegracionService,
     private dirtyService:           FormDirtyService,
+    private confirmDialogService:   ConfirmDialogService,
   ) {}
 
   ngOnInit() {
     this.buildForm();
-    this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
+    this.form.statusChanges.pipe(takeUntil(this.destroy$)).subscribe(() => this.cdr.markForCheck());
     Promise.resolve().then(() => {
       this.cargarPerfilesPaso1();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private cargarPerfilesPaso1() {
@@ -187,7 +201,7 @@ export class RendMComponent implements OnInit {
     forkJoin({
       perfiles: this.perfilesService.getAll(),
       permisos: this.permisosService.getMisPerfiles(),
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: ({ perfiles, permisos }) => {
         this.perfiles             = perfiles;
         this.misPermisosPaso1     = permisos;
@@ -252,7 +266,6 @@ export class RendMComponent implements OnInit {
     
     // Evitar llamadas múltiples simultáneas
     if (this.isLoadingData) {
-      console.log('[rend-m] load() ignorado - ya hay una petición en curso');
       return;
     }
     
@@ -260,19 +273,14 @@ export class RendMComponent implements OnInit {
     this.loading   = true;
     this.loadError = false;
     
-    console.log('[rend-m] load() ejecutando con:', {
-      idPerfil: this.perfilActivo?.U_CodPerfil,
-      page: this.page,
-      limit: this.limit,
-      timestamp: Date.now()
-    });
+
 
     this.rendMService.getAll({
       idPerfil: this.perfilActivo?.U_CodPerfil,
       estados:  this.filterService.estadosNumericos(),
       page:     this.page,
       limit:    this.limit,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.rendiciones = result.data;
         this.filtered    = result.data;
@@ -310,7 +318,7 @@ export class RendMComponent implements OnInit {
       idPerfil: this.perfilActivo?.U_CodPerfil,
       page:     this.pageSubordinados,
       limit:    this.limit,
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.rendicionesSubordinados = result.data;
         this.totalSubordinados       = result.total;
@@ -419,37 +427,35 @@ export class RendMComponent implements OnInit {
     const items: ActionMenuItem[] = [];
     
     // Ver detalle - siempre visible
-    items.push({ id: 'view', label: 'Ver detalle', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' });
+    items.push({ id: 'view', label: 'Ver detalle', icon: ICON_VIEW });
     
     // Imprimir
     if (this.canReprint(r)) {
-      items.push({ id: 'print', label: 'Ver/Imprimir comprobante', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' });
+      items.push({ id: 'print', label: 'Ver/Imprimir comprobante', icon: ICON_PRINT });
     }
     
     // Editar
     if (this.canEdit(r)) {
-      items.push({ id: 'edit', label: 'Editar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' });
+      items.push({ id: 'edit', label: 'Editar', icon: ICON_EDIT });
     }
     
     // Sincronizar / Enviar / Preliminar
     if (r.U_Estado === 1 && this.canEdit(r)) {
       if (this.canSyncDirecto(r)) {
-        items.push({ id: 'sync', label: 'Sincronizar', cssClass: 'text-success', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>' });
-      } else if (this.auth.sinAprobador && !this.auth.puedeGenerarPre) {
-        items.push({ id: 'preliminar', label: 'Generar Preliminar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' });
-      } else if (!this.auth.sinAprobador) {
-        items.push({ id: 'send', label: 'Enviar', cssClass: 'text-primary', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' });
+        items.push({ id: 'sync', label: 'Sincronizar', cssClass: 'text-success', icon: ICON_SYNC });
+      } else if (this.auth.nomSup) {
+        items.push({ id: 'send', label: 'Enviar', cssClass: 'text-primary', icon: ICON_SEND });
       }
     }
     
     // Reintentar sincronización: estado ERROR_SYNC (6)
     if (r.U_Estado === 6 && this.canSyncDirecto(r)) {
-      items.push({ id: 'retry-sync', label: 'Reintentar Sincronización', cssClass: 'text-warning', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>' });
+      items.push({ id: 'retry-sync', label: 'Reintentar Sincronización', cssClass: 'text-warning', icon: ICON_RETRY_SYNC });
     }
     
     // Eliminar (con divider antes)
     if (this.canDelete(r)) {
-      items.push({ id: 'delete', label: 'Eliminar', cssClass: 'text-danger', divider: true, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>' });
+      items.push({ id: 'delete', label: 'Eliminar', cssClass: 'text-danger', divider: true, icon: ICON_TRASH });
     }
     
     return items;
@@ -483,26 +489,36 @@ export class RendMComponent implements OnInit {
   }
 
   // ── Menú de acciones para subordinados ───────────────────────
-  getActionMenuItemsSubordinados(r: RendM): ActionMenuItem[] {
+  getActionMenuItemsSubordinados = (r: RendM): ActionMenuItem[] => {
     const items: ActionMenuItem[] = [];
     
     // Ver detalle - siempre visible
-    items.push({ id: 'view', label: 'Ver detalle', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' });
-    
+    items.push({ id: 'view', label: 'Ver detalle', icon: ICON_VIEW });
+
     // Imprimir
     if (this.canReprint(r)) {
-      items.push({ id: 'print', label: 'Ver/Imprimir comprobante', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' });
+      items.push({ id: 'print', label: 'Ver/Imprimir comprobante', icon: ICON_PRINT });
     }
-    
+
     // Editar
     if (this.canEdit(r)) {
-      items.push({ id: 'edit', label: 'Editar', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' });
+      items.push({ id: 'edit', label: 'Editar', icon: ICON_EDIT });
     }
-    
+
+    // Sincronizar: si la rendición es propia y el usuario puede sincronizar directo
+    if (r.U_Estado === 1 && this.canSyncDirecto(r) && r.U_IdUsuario === String(this.auth.user?.sub)) {
+      items.push({ id: 'sync', label: 'Sincronizar', cssClass: 'text-success', icon: ICON_SYNC });
+    }
+
+    // Reintentar sincronización: estado ERROR_SYNC (6) en rendición propia
+    if (r.U_Estado === 6 && this.canSyncDirecto(r) && r.U_IdUsuario === String(this.auth.user?.sub)) {
+      items.push({ id: 'retry-sync', label: 'Reintentar Sincronización', cssClass: 'text-warning', icon: ICON_RETRY_SYNC });
+    }
+
     // Aprobar/Rechazar (con divider antes)
     if (this.canAprobar(r)) {
-      items.push({ id: 'aprobar', label: 'Aprobar', cssClass: 'text-success', divider: true, icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' });
-      items.push({ id: 'rechazar', label: 'Rechazar', cssClass: 'text-danger', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' });
+      items.push({ id: 'aprobar', label: 'Aprobar', cssClass: 'text-success', divider: true, icon: ICON_CHECK });
+      items.push({ id: 'rechazar', label: 'Rechazar', cssClass: 'text-danger', icon: ICON_CLOSE });
     }
     
     return items;
@@ -525,6 +541,10 @@ export class RendMComponent implements OnInit {
       case 'rechazar':
         this.rechazarDesdeSubordinados(r);
         break;
+      case 'sync':
+      case 'retry-sync':
+        this.abrirModalSync(r);
+        break;
     }
   }
 
@@ -535,7 +555,7 @@ export class RendMComponent implements OnInit {
     this.showPerfilPicker   = true;
     this.cdr.markForCheck();
 
-    this.permisosService.getMisPerfiles().subscribe({
+    this.permisosService.getMisPerfiles().pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.misPermisos        = data;
         this.loadingMisPerfiles = false;
@@ -615,13 +635,16 @@ export class RendMComponent implements OnInit {
 
     const idPerfil = this.perfilActivo?.U_CodPerfil;
     if (idPerfil) {
-      this.cuentasCabeceraService.getByPerfil(idPerfil).subscribe({
+      this.loadingCuentas = true;
+      this.cdr.markForCheck();
+      this.cuentasCabeceraService.getByPerfil(idPerfil).pipe(takeUntil(this.destroy$)).subscribe({
         next: (cuentas) => {
           this.cuentasCabeceraActivas = cuentas;
+          this.loadingCuentas = false;
           const cuenta           = cuentas.length > 0 ? cuentas[0] : null;
           const prefijo          = cuenta?.U_CuentaAsociada === 'Y' ? 'CA' : 'CN';
           const nombreCuentaFull = cuenta
-            ? `${prefijo}-${cuenta.U_CuentaFormatCode || cuenta.U_CuentaSys}${cuenta.U_CuentaNombre}`
+            ? `${prefijo}-${cuenta.U_CuentaFormatCode || cuenta.U_CuentaSys} — ${cuenta.U_CuentaNombre}`
             : '';
 
           if (cuentas.length > 1) {
@@ -632,15 +655,31 @@ export class RendMComponent implements OnInit {
           this.cuentaEsAsociada = cuenta?.U_CuentaAsociada ?? 'Y';
           this.aplicarBloqueoEmpleado();
 
+          // Habilitar temporalmente para que form.reset() asigne valores.
+          // Los controles disabled ignoran los valores pasados en reset()
+          this.form.get('cuenta')?.enable({ emitEvent: false });
+          this.form.get('nombreCuenta')?.enable({ emitEvent: false });
+
           this.form.reset({
-            idPerfil, cuenta: (cuenta?.U_CuentaFormatCode || cuenta?.U_CuentaSys) ?? '',
+            idPerfil,
+            cuenta:       (cuenta?.U_CuentaFormatCode || cuenta?.U_CuentaSys) ?? '',
             nombreCuenta: nombreCuentaFull,
             empleado: '', nombreEmpleado: '', objetivo: '',
             fechaIni: hoy, fechaFinal: hoy, monto: 0, preliminar: '',
           });
+
+          // Volver a deshabilitar si solo hay una cuenta
+          if (cuentas.length <= 1) {
+            this.form.get('cuenta')?.disable({ emitEvent: false });
+            this.form.get('nombreCuenta')?.disable({ emitEvent: false });
+          }
+
+          // Abrir el modal después de que las cuentas estén cargadas
+          this.showForm = true;
           this.cdr.markForCheck();
         },
         error: () => {
+          this.loadingCuentas = false;
           this.cuentaEsAsociada = 'Y';
           this.aplicarBloqueoEmpleado();
           this.form.reset({
@@ -648,6 +687,7 @@ export class RendMComponent implements OnInit {
             empleado: '', nombreEmpleado: '', objetivo: '',
             fechaIni: hoy, fechaFinal: hoy, monto: 0, preliminar: '',
           });
+          this.showForm = true;
           this.cdr.markForCheck();
         },
       });
@@ -659,10 +699,9 @@ export class RendMComponent implements OnInit {
         empleado: '', nombreEmpleado: '', objetivo: '',
         fechaIni: hoy, fechaFinal: hoy, monto: 0, preliminar: '',
       });
+      this.showForm = true;
+      this.cdr.markForCheck();
     }
-
-    this.showForm = true;
-    this.cdr.markForCheck();
   }
 
   private aplicarBloqueoEmpleado() {
@@ -751,7 +790,7 @@ export class RendMComponent implements OnInit {
     this.initialValues = { ...values };
 
     this.cuentasCabeceraActivas = [];
-    this.cuentasCabeceraService.getByPerfil(r.U_IdPerfil).subscribe({
+    this.cuentasCabeceraService.getByPerfil(r.U_IdPerfil).pipe(takeUntil(this.destroy$)).subscribe({
       next: (cuentas) => {
         this.cuentasCabeceraActivas = cuentas;
         if (cuentas.length > 1) {
@@ -809,7 +848,7 @@ export class RendMComponent implements OnInit {
     };
 
     if (this.editingRend) {
-      this.rendMService.update(this.editingRend.U_IdRendicion, payload).subscribe({
+      this.rendMService.update(this.editingRend.U_IdRendicion, payload).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.isSaving = false;
           this.load(() => {
@@ -824,7 +863,7 @@ export class RendMComponent implements OnInit {
         },
       });
     } else {
-      this.rendMService.create(payload).subscribe({
+      this.rendMService.create(payload).pipe(takeUntil(this.destroy$)).subscribe({
         next: (rendicion) => {
           this.isSaving = false;
           this.toast.exito('Rendición creada');
@@ -841,26 +880,19 @@ export class RendMComponent implements OnInit {
   }
 
   confirmDelete(r: RendM) {
-    this.openDialog({
+    this.confirmDialogService.ask({
       title:        '¿Eliminar rendición?',
       message:      `Se eliminará la rendición N° ${r.U_IdRendicion} — "${r.U_Objetivo}" de forma permanente.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
-      this.rendMService.remove(r.U_IdRendicion).subscribe({
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.rendMService.remove(r.U_IdRendicion).pipe(takeUntil(this.destroy$)).subscribe({
         next:  () => { this.toast.exito('Rendición eliminada'); this.load(); },
         error: () => { this.toast.error('Error al eliminar la rendición'); this.cdr.markForCheck(); }
       });
     });
   }
-
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 
   estadoTexto(estado: number): string { return this.estadoLabel[estado] ?? `Estado ${estado}`; }
   estadoCss(estado: number): string   { return this.estadoClass[estado] ?? 'badge-secondary'; }
@@ -868,13 +900,14 @@ export class RendMComponent implements OnInit {
   // ── Acciones sobre subordinados ─────────────────────────────────────────
 
   aprobarDesdeSubordinados(r: RendM) {
-    this.openDialog({
+    this.confirmDialogService.ask({
       title:        '¿Aprobar esta rendición?',
       message:      `Rendición N° ${r.U_IdRendicion} de ${r.U_NomUsuario} — "${r.U_Objetivo}"`,
       confirmLabel: '✓ Aprobar',
       type:         'primary',
-    }, () => {
-      this.aprobSvc.aprobar(r.U_IdRendicion).subscribe({
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.aprobSvc.aprobar(r.U_IdRendicion).pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.toast.exito(res.message ?? 'Rendición aprobada');
           this.loadSubordinados();
@@ -885,13 +918,14 @@ export class RendMComponent implements OnInit {
   }
 
   rechazarDesdeSubordinados(r: RendM) {
-    this.openDialog({
+    this.confirmDialogService.ask({
       title:        '¿Rechazar esta rendición?',
       message:      `La rendición N° ${r.U_IdRendicion} de ${r.U_NomUsuario} volverá al estado ABIERTO para correcciones.`,
       confirmLabel: '✗ Rechazar',
       type:         'danger',
-    }, () => {
-      this.aprobSvc.rechazar(r.U_IdRendicion).subscribe({
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.aprobSvc.rechazar(r.U_IdRendicion).pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.toast.exito(res.message ?? 'Rendición rechazada — vuelve a ABIERTO');
           this.loadSubordinados();
@@ -904,13 +938,14 @@ export class RendMComponent implements OnInit {
   // ── Enviar con vista previa PDF ──────────────────────────────────────────
 
   enviarAprobacion(r: RendM) {
-    this.openDialog({
+    this.confirmDialogService.ask({
       title:        '¿Enviar para aprobación?',
       message:      `La rendición N° ${r.U_IdRendicion} — "${r.U_Objetivo}" será enviada a los aprobadores configurados.`,
       confirmLabel: 'Sí, enviar',
       type:         'primary',
-    }, () => {
-      this.aprobSvc.enviar(r.U_IdRendicion).subscribe({
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.aprobSvc.enviar(r.U_IdRendicion).pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.toast.exito(res.message ?? 'Rendición enviada para aprobación');
           this.load();
@@ -921,13 +956,14 @@ export class RendMComponent implements OnInit {
   }
 
   generarPreliminar(r: RendM) {
-    this.openDialog({
+    this.confirmDialogService.ask({
       title:        '¿Generar documento preliminar?',
       message:      `Se generará el preliminar para la rendición N° ${r.U_IdRendicion} — "${r.U_Objetivo}" y quedará aprobada.`,
       confirmLabel: 'Sí, generar',
       type:         'primary',
-    }, () => {
-      this.aprobSvc.enviar(r.U_IdRendicion).subscribe({
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.aprobSvc.enviar(r.U_IdRendicion).pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.toast.exito(res.message ?? 'Preliminar generado — rendición aprobada');
           this.load();
@@ -946,7 +982,7 @@ export class RendMComponent implements OnInit {
     this.showPdfReprint    = true;
     this.cdr.markForCheck();
 
-    this.rendDSvc.getAll(r.U_IdRendicion).subscribe({
+    this.rendDSvc.getAll(r.U_IdRendicion).pipe(takeUntil(this.destroy$)).subscribe({
       next: (docs) => {
         this.pdfReprintDocs    = docs;
         this.loadingReprintDocs = false;
@@ -992,8 +1028,8 @@ export class RendMComponent implements OnInit {
     if (this.auth.puedeSync && [7, 6].includes(r.U_Estado)) {
       return true;
     }
-    // Usuarios con genDocPre y sin aprobador: también pueden sincronizar desde ABIERTO (1)
-    if (this.auth.puedeGenerarPre && this.auth.sinAprobador && [1, 7, 6].includes(r.U_Estado)) {
+    // Usuarios con genDocPre o esAprobador y sin aprobador propio: también sincronizan desde ABIERTO (1)
+    if ((this.auth.puedeGenerarPre || this.auth.esAprobador) && this.auth.sinAprobador && [1, 7, 6].includes(r.U_Estado)) {
       return true;
     }
     return false;
@@ -1005,7 +1041,11 @@ export class RendMComponent implements OnInit {
    * Estado 6 (ERROR_SYNC): reintentar sincronización después de error
    */
   canSyncDirecto(r: RendM): boolean {
-    return this.auth.puedeGenerarPre && this.auth.sinAprobador && [1, 6].includes(r.U_Estado);
+    // Puede sincronizar directamente si:
+    // - Es admin, O es aprobador de alguien, O no tiene aprobador configurado
+    // - Y además tiene genDocPre habilitado (puedeGenerarPre)
+    const tieneRolSync = this.auth.isAdmin || this.auth.esAprobador || this.auth.sinAprobador;
+    return tieneRolSync && this.auth.puedeGenerarPre && [1, 6].includes(r.U_Estado);
   }
 
   /** Muestra el botón reimprimir para rendiciones ya enviadas/aprobadas/sync */
@@ -1025,7 +1065,7 @@ export class RendMComponent implements OnInit {
     });
   }
 
-  onSyncComplete(res: SyncResult) {
+  onSyncComplete(_res: SyncResult) {
     this.load();
   }
 

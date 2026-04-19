@@ -1,14 +1,9 @@
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Configuración de Perfiles</h2>
-    <p class="page-subtitle">Define los perfiles de rendición: moneda, filtros de cuenta y empleado, y documentos habilitados.</p>
-  </div>
-  <button *ngIf="auth.puedeEditarConf" class="btn btn-primary btn-sm" (click)="openNew()">+ Nuevo Perfil</button>
-</div>
-
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
+<app-crud-page-header
+  title="Configuración de Perfiles"
+  subtitle="Define los perfiles de rendición: moneda, filtros de cuenta y empleado, y documentos habilitados."
+  [actionLabel]="auth.puedeEditarConf ? '+ Nuevo Perfil' : null"
+  (actionClick)="openNew()">
+</app-crud-page-header>
 
 <!-- ── Modal con FormModalComponent ─────────────────────────── -->
 <app-form-modal
@@ -20,14 +15,20 @@
   [isDirty]="isDirty"
   [submitDisabled]="form.invalid || !isDirty"
   [wide]="true"
+  [tabs]="activeTabs"
+  [activeTab]="activeTab"
+  [showTabNav]="isMobile"
+  (tabChange)="onTabChange($event)"
   (save)="save()"
   (cancel)="closeForm()">
   
   <ng-template #formContent>
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="modal-2col-layout">
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate
+          [class.layout-desktop]="!isMobile"
+          [class.layout-mobile]="isMobile">
 
       <!-- ══ Columna izquierda ══ -->
-      <div class="modal-body modal-col">
+      <div class="form-col" [class.tab-hidden]="!isDatosTab">
 
         <div class="form-section-label">Datos del perfil</div>
 
@@ -96,7 +97,7 @@
       </div><!-- /col izquierda -->
 
       <!-- ══ Columna derecha ══ -->
-      <div class="modal-body modal-col">
+      <div class="form-col" [class.tab-hidden]="!isFiltrosTab">
 
         <div class="form-section-label">Filtro Proveedores</div>
         <p class="field-hint" style="margin: -6px 0 10px;">Restringe los proveedores visibles al crear documentos.</p>
@@ -194,36 +195,64 @@
 
 <!-- ── Filtros ── -->
 <app-perfiles-filter
-  [search]="search"
-  [count]="filtered.length"
-  [loading]="loading"
+  [search]="store.search()"
+  [count]="store.filtered().length"
+  [loading]="store.loading()"
   (searchChange)="onSearchChange($event)"
   (searchCleared)="onSearchCleared()">
 </app-perfiles-filter>
 
 <!-- ── Estados ── -->
-<div *ngIf="loading" class="empty-state">Cargando perfiles...</div>
-<div *ngIf="!loading && loadError" class="empty-state">
-  No se pudo cargar la lista de perfiles.
-  <a (click)="load()">Reintentar</a>
-</div>
-<app-perfiles-empty
-  *ngIf="!loading && !loadError && filtered.length === 0"
-  [canCreate]="auth.puedeEditarConf"
-  (create)="openNew()">
-</app-perfiles-empty>
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loading() && !store.loadError() && store.filtered().length === 0"
+  [searchEmpty]="!store.loading() && !store.loadError() && !!store.search() && store.filtered().length === 0"
+  loadingText="Cargando perfiles..."
+  errorText="No se pudieron cargar los perfiles."
+  emptyText="No hay perfiles registrados."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a (click)="openNew()">Crear el primero</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- ── Tabla ── -->
-<app-perfiles-table
-  *ngIf="!loading && !loadError && filtered.length > 0"
-  [paged]="paged"
-  [page]="page"
-  [limit]="limit"
-  [total]="filtered.length"
-  [totalPages]="totalPages"
-  [canEdit]="auth.puedeEditarConf"
+<ng-template #codCol let-p>
+  <span class="cod-badge">{{ p.U_CodPerfil }}</span>
+</ng-template>
+<ng-template #nombreCol let-p>
+  <span class="col-nombre">{{ p.U_NombrePerfil }}</span>
+</ng-template>
+<ng-template #monedaCol let-p>
+  <span class="code-tag">{{ p.U_Trabaja === '0' ? 'BS' : 'USD' }}</span>
+</ng-template>
+<ng-template #lineasCol let-p>
+  <span class="badge badge-secondary">{{ p.U_CntLineas || 10 }}</span>
+</ng-template>
+<ng-template #proveedoresCol let-p>
+  <span class="carac-badge">{{ p.U_PRO_CAR }}</span>
+  <span class="carac-text" *ngIf="p.U_PRO_Texto">{{ p.U_PRO_Texto }}</span>
+</ng-template>
+<ng-template #cuentasCol let-p>
+  <span class="carac-badge">{{ p.U_CUE_CAR }}</span>
+  <span class="carac-text" *ngIf="p.U_CUE_Texto">{{ p.U_CUE_Texto }}</span>
+</ng-template>
+<ng-template #empleadosCol let-p>
+  <span class="carac-badge">{{ p.U_EMP_CAR }}</span>
+  <span class="carac-text" *ngIf="p.U_EMP_TEXTO">{{ p.U_EMP_TEXTO }}</span>
+</ng-template>
+
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [loading]="store.loading()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
   (pageChange)="onPageChange($event)"
   (limitChange)="onLimitChange($event)"
-  (edit)="openEdit($event)"
-  (delete)="confirmDelete($event)">
-</app-perfiles-table>
+  (action)="onTableAction($event)">
+</app-data-table>

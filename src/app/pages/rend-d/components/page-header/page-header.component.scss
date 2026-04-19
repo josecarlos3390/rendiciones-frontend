@@ -1,50 +1,23 @@
-// ── Page Header ─────────────────────────────────────────────
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
+// Ajustes quirúrgicos para el h2 y subtitle dentro de app-crud-page-header
+::ng-deep {
+  app-crud-page-header .page-title-group {
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--text-lg);   // 16px, más proporcional al detalle
+    }
 
-.page-title-group {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
+    .page-subtitle {
+      margin-top: -5px; // compensar el gap global de 8px para acercar al título
+      font-size: var(--text-sm);   // 12px, alineado con la tabla
+    }
 
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: background .15s, border-color .15s;
-
-  &:hover {
-    background: var(--bg-subtle);
-    border-color: var(--text-muted);
-  }
-}
-
-.title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--weight-bold);
-    color: var(--text-heading);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    // Botón Volver: ajustado a su contenido, no estirado al 100%
+    .btn {
+      width: fit-content;
+      align-self: flex-start;
+    }
   }
 }
 
@@ -93,7 +66,7 @@ label.btn {
 
 // Responsive
 @media (max-width: 768px) {
-  .page-header {
+  ::ng-deep app-crud-page-header .page-header {
     flex-direction: column;
     gap: 12px;
   }

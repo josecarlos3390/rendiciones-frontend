@@ -1,54 +1,69 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { BreakpointService } from '@services/breakpoint.service';
 
 import { PerfilesService } from './perfiles.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
 import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
 import { AppConfigService } from '@services/app-config.service';
 import { AuthService } from '@auth/auth.service';
 import { FormModalComponent } from '@shared/form-modal';
+import { FormModalTab } from '@shared/form-modal/form-modal.component';
 import { FormFieldComponent } from '@shared/form-field';
 import { FormDirtyService } from '@shared/form-dirty';
 import {
   Perfil, CreatePerfilPayload,
   PRO_CAR_OPTIONS, CUE_CAR_OPTIONS, EMP_CAR_OPTIONS,
 } from '@models/perfil.model';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state/crud-empty-state.component';
+import { DataTableComponent, DataTableConfig } from '@shared/data-table';
+import { ICON_EDIT, ICON_TRASH } from '@common/constants/icons';
 
-import { PerfilesTableComponent, PerfilesFilterComponent, PerfilesEmptyComponent } from './components';
+import { PerfilesFilterComponent } from './components';
 
 @Component({
   standalone: true,
   selector: 'app-perfiles',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, AppSelectComponent, FormModalComponent, FormFieldComponent, PerfilesTableComponent, PerfilesFilterComponent, PerfilesEmptyComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, AppSelectComponent, FormModalComponent, FormFieldComponent, DataTableComponent, PerfilesFilterComponent, CrudPageHeaderComponent, CrudEmptyStateComponent],
   templateUrl: './perfiles.component.html',
   styleUrls: ['./perfiles.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PerfilesComponent implements OnInit {
-  perfiles:  Perfil[] = [];
-  filtered:  Perfil[] = [];
-  paged:     Perfil[] = [];
-  search    = '';
-  loading   = false;
-  loadError = false;
+export class PerfilesComponent extends AbstractCrudListComponent<Perfil> implements OnInit, OnDestroy {
+  @ViewChild('codCol', { static: true }) codCol!: TemplateRef<any>;
+  @ViewChild('nombreCol', { static: true }) nombreCol!: TemplateRef<any>;
+  @ViewChild('monedaCol', { static: true }) monedaCol!: TemplateRef<any>;
+  @ViewChild('lineasCol', { static: true }) lineasCol!: TemplateRef<any>;
+  @ViewChild('proveedoresCol', { static: true }) proveedoresCol!: TemplateRef<any>;
+  @ViewChild('cuentasCol', { static: true }) cuentasCol!: TemplateRef<any>;
+  @ViewChild('empleadosCol', { static: true }) empleadosCol!: TemplateRef<any>;
 
-  // Paginación
-  page       = 1;
-  limit      = 5;
-  totalPages = 1;
+  store = new CrudListStore<Perfil>({ limit: 5, searchFields: ['U_NombrePerfil'] });
+
+  tableConfig!: DataTableConfig;
 
   showForm      = false;
   editingPerfil: Perfil | null = null;
   isSaving      = false;
   form!: FormGroup;
 
-  initialValues: any = null;
+  initialValues: Record<string, unknown> | null = null;
 
-  showDialog   = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
+  // ── Tabs para móvil ──────────────────────────────────────────
+  isMobile = false;
+  activeTab = 'datos';
+  readonly mobileTabs: FormModalTab[] = [
+    { id: 'datos',   label: 'Datos del Perfil' },
+    { id: 'filtros', label: 'Filtros' },
+  ];
+  private mobileSub?: Subscription;
 
   // Opciones para selects
   // Opciones por defecto — se actualizan con appConfig pero nunca quedan vacías
@@ -88,13 +103,23 @@ export class PerfilesComponent implements OnInit {
     private perfilesService: PerfilesService,
     private toast:           ToastService,
     private fb:              FormBuilder,
-    private cdr:             ChangeDetectorRef,
+    protected override cdr:  ChangeDetectorRef,
     private appConfig:       AppConfigService,
     private dirtyService:    FormDirtyService,
-  ) {}
+    private breakpoint:      BreakpointService,
+    private confirmDialog:   ConfirmDialogService,
+    private errorHandler:    HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
     this.buildForm();
+    this.buildTableConfig();
+    this.mobileSub = this.breakpoint.isMobile$.subscribe(isMobile => {
+      this.isMobile = isMobile;
+      this.cdr.markForCheck();
+    });
     // Con OnPush, el botón no se habilita automáticamente al escribir.
     // statusChanges fuerza la re-evaluación cuando cambia form.valid.
     this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
@@ -103,6 +128,21 @@ export class PerfilesComponent implements OnInit {
       this.reloadMonedaOptions();
     });
   }
+
+  ngOnDestroy(): void {
+    this.mobileSub?.unsubscribe();
+  }
+
+  get activeTabs(): FormModalTab[] {
+    return this.isMobile ? this.mobileTabs : [];
+  }
+
+  onTabChange(tabId: string): void {
+    this.activeTab = tabId;
+  }
+
+  get isDatosTab(): boolean   { return !this.isMobile || this.activeTab === 'datos'; }
+  get isFiltrosTab(): boolean { return !this.isMobile || this.activeTab === 'filtros'; }
 
   // ── Helpers ──────────────────────────────────────────────
 
@@ -137,54 +177,8 @@ export class PerfilesComponent implements OnInit {
   // ── CRUD ─────────────────────────────────────────────────
 
   load(onComplete?: () => void) {
-    this.loading   = true;
-    this.loadError = false;
-    this.perfilesService.getAll().subscribe({
-      next: (data) => {
-        this.perfiles = data;
-        this.loading  = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-      error: () => {
-        this.loading   = false;
-        this.loadError = true;
-        this.cdr.markForCheck();
-      onComplete?.();
-      },
-    });
+    this.store.load(this.perfilesService.getAll(), onComplete);
   }
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
-  }
-
-  applyFilter() {
-    const q = this.search.toLowerCase();
-    this.filtered = this.perfiles.filter(p =>
-      (p.U_NombrePerfil ?? '').toLowerCase().includes(q),
-    );
-    this.page = 1;
-    this.updatePaging();
-    this.cdr.markForCheck();
-  }
-
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged  = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number)  { this.page = p;  this.updatePaging(); }
-  onLimitChange(l: number) { this.limit = l; this.page = 1; this.updatePaging(); }
 
   // ── Formulario ───────────────────────────────────────────
 
@@ -192,6 +186,7 @@ export class PerfilesComponent implements OnInit {
     this.reloadMonedaOptions();
     this.editingPerfil = null;
     this.initialValues = null; // isDirty retorna true cuando editingPerfil es null
+    this.activeTab = 'datos';
     this.form.reset({
       nombrePerfil: '', trabaja: '0', perCtaBl: 0,
       cntLineas: 10, controlPartida: 0,
@@ -204,30 +199,35 @@ export class PerfilesComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  // ── Menú de Acciones ───────────────────────────────────────────
-  getActionMenuItems(p: Perfil): any[] {
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        cssClass: 'text-danger',
-        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-      },
-    ];
+  // ── Tabla ────────────────────────────────────────────────
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'U_CodPerfil', header: 'Cód.', align: 'center', cellTemplate: this.codCol },
+        { key: 'U_NombrePerfil', header: 'Nombre Perfil', cellTemplate: this.nombreCol, mobile: { primary: true } },
+        { key: 'U_Trabaja', header: 'Moneda', align: 'center', cellTemplate: this.monedaCol },
+        { key: 'U_CntLineas', header: 'Líneas', align: 'center', cellTemplate: this.lineasCol, mobile: { hide: true } },
+        { key: 'U_PRO_CAR', header: 'Proveedores', cellTemplate: this.proveedoresCol, mobile: { hide: true } },
+        { key: 'U_CUE_CAR', header: 'Cuentas', cellTemplate: this.cuentasCol, mobile: { hide: true } },
+        { key: 'U_EMP_CAR', header: 'Empleados', cellTemplate: this.empleadosCol, mobile: { hide: true } },
+      ],
+      showActions: true,
+      actions: [
+        { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+        { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
+      ],
+      striped: true,
+      hoverable: true,
+    };
   }
 
-  onActionClick(actionId: string, p: Perfil): void {
-    switch (actionId) {
+  onTableAction(event: { action: string; item: Perfil }): void {
+    switch (event.action) {
       case 'edit':
-        this.openEdit(p);
+        this.openEdit(event.item);
         break;
       case 'delete':
-        this.confirmDelete(p);
+        this.confirmDelete(event.item);
         break;
     }
   }
@@ -235,6 +235,7 @@ export class PerfilesComponent implements OnInit {
   openEdit(p: Perfil) {
     this.reloadMonedaOptions();
     this.editingPerfil = p;
+    this.activeTab = 'datos';
     this.form.reset({
       nombrePerfil:   p.U_NombrePerfil   ?? '',
       trabaja:        p.U_Trabaja         ?? '0',
@@ -264,7 +265,16 @@ export class PerfilesComponent implements OnInit {
   }
 
   save() {
-    if (this.form.invalid || this.isSaving) return;
+    if (this.form.invalid || this.isSaving) {
+      this.form.markAllAsTouched();
+      if (this.isMobile) {
+        const datosFields = ['nombrePerfil'];
+        const hasDatosError = datosFields.some(f => this.form.get(f)?.invalid);
+        this.activeTab = hasDatosError ? 'datos' : 'filtros';
+        this.cdr.markForCheck();
+      }
+      return;
+    }
     this.isSaving = true;
     const raw = this.form.getRawValue();
 
@@ -296,10 +306,7 @@ export class PerfilesComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al actualizar perfil');
-          }
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al actualizar perfil', this.cdr);
         },
       });
     } else {
@@ -314,10 +321,7 @@ export class PerfilesComponent implements OnInit {
         },
         error: (err: any) => {
           this.isSaving = false;
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al crear perfil');
-          }
-          this.cdr.markForCheck();
+          this.errorHandler.handle(err, 'Error al crear perfil', this.cdr);
         },
       });
     }
@@ -326,31 +330,17 @@ export class PerfilesComponent implements OnInit {
   // ── Eliminar ─────────────────────────────────────────────
 
   confirmDelete(p: Perfil) {
-    this.openDialog({
+    this.confirmDialog.ask({
       title:        '¿Eliminar perfil?',
       message:      `Se eliminará el perfil "${p.U_NombrePerfil}" de forma permanente.`,
       confirmLabel: 'Sí, eliminar',
       type:         'danger',
-    }, () => {
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
       this.perfilesService.remove(p.U_CodPerfil).subscribe({
         next:  () => { this.toast.exito('Perfil eliminado'); this.load(); this.cdr.markForCheck(); },
-        error: (err: any) => {
-          if (err?.status === 409 || err?.status === 422) {
-            this.toast.error(err?.error?.message || 'Error al eliminar perfil');
-          }
-          this.cdr.markForCheck();
-        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar perfil', this.cdr),
       });
     });
   }
-
-  // ── Dialog ───────────────────────────────────────────────
-
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig   = config;
-    this._pendingAction = onConfirm;
-    this.showDialog     = true;
-  }
-  onDialogConfirm() { this.showDialog = false; this._pendingAction?.(); this._pendingAction = null; }
-  onDialogCancel()  { this.showDialog = false; this._pendingAction = null; }
 }

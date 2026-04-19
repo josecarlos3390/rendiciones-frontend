@@ -204,7 +204,26 @@
   font-size: var(--text-sm);
 }
 
-// ── Layout de 2 columnas dentro de FormModal ────────────────────
+// ── Layout 2 columnas con soporte de tabs en móvil ──────────────
+.layout-desktop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.layout-mobile {
+  display: block;
+}
+
+.form-col {
+  // En desktop: parte del grid. En mobile: bloque normal.
+}
+
+.tab-hidden {
+  display: none !important;
+}
+
+// ── Layout de 2 columnas dentro de FormModal (legacy, se mantiene por compatibilidad) ─
 .modal-2col-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;

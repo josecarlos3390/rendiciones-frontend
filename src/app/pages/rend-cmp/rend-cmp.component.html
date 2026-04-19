@@ -1,14 +1,9 @@
-<app-confirm-dialog [config]="dialogConfig" [visible]="showDialog"
-  (confirmed)="onDialogConfirm()" (cancelled)="onDialogCancel()">
-</app-confirm-dialog>
-
-<div class="page-header">
-  <div class="page-title-group">
-    <h2>Mapeo de Campos SAP</h2>
-    <p class="page-subtitle">Configurá qué campos de SAP B1 reciben los datos de las rendiciones al sincronizar</p>
-  </div>
-  <button class="btn btn-primary btn-sm" (click)="openCreate()">+ Nuevo Campo</button>
-</div>
+<app-crud-page-header
+  title="Mapeo de Campos SAP"
+  subtitle="Configurá qué campos de SAP B1 reciben los datos de las rendiciones al sincronizar"
+  actionLabel="+ Nuevo Campo"
+  (actionClick)="openCreate()">
+</app-crud-page-header>
 
 <!-- Modal formulario -->
 <app-form-modal
@@ -21,7 +16,7 @@
   [submitDisabled]="form.invalid || !isDirty"
   (save)="save()"
   (cancel)="closeForm()">
-  
+
   <ng-template #formContent>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
       <div class="info-banner info-neutral" style="margin-bottom: 16px">
@@ -39,7 +34,7 @@
         errorMessage="Obligatorio, máx. 100 caracteres"
         controlName="descripcion"
         [showChanged]="!!editingItem"
-        [initialValue]="initialValues?.descripcion">
+        [initialValue]="initialValues?.['descripcion']">
         <input
           type="text"
           formControlName="descripcion"
@@ -55,7 +50,7 @@
         errorMessage="Obligatorio, máx. 100 caracteres"
         controlName="campo"
         [showChanged]="!!editingItem"
-        [initialValue]="initialValues?.campo">
+        [initialValue]="initialValues?.['campo']">
         <input
           type="text"
           formControlName="campo"
@@ -66,7 +61,7 @@
       </app-form-field>
     </form>
   </ng-template>
-  
+
   <ng-template #formFooter>
     <button type="button" class="btn btn-ghost" (click)="closeForm()" [disabled]="isSaving">
       Cancelar
@@ -78,52 +73,26 @@
   </ng-template>
 </app-form-modal>
 
-<!-- Carga -->
-<app-skeleton-loader *ngIf="loading" variant="table"
-  [rows]="4" [columns]="['10%','40%','40%','10%']">
-</app-skeleton-loader>
-
-<div *ngIf="!loading && loadError" class="empty-state">
-  No se pudo cargar la lista. <a (click)="load()">Reintentar</a>
-</div>
-
-<div *ngIf="!loading && !loadError && items.length === 0" class="empty-state">
-  <p>No hay campos de mapeo configurados.</p>
-  <a (click)="openCreate()">Crear el primero</a>
-</div>
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="!store.loadError() && store.filtered().length === 0"
+  errorText="No se pudo cargar la lista."
+  emptyText="No hay campos de mapeo configurados."
+  (retry)="load()">
+  <ng-container emptyAction>
+    <a (click)="openCreate()">Crear el primero</a>
+  </ng-container>
+</app-crud-empty-state>
 
 <!-- Tabla -->
-<div class="table-wrapper" *ngIf="!loading && !loadError && items.length > 0">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th class="text-center">#</th>
-        <th>Descripción</th>
-        <th>Campo SAP B1</th>
-        <th class="col-acciones">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let item of items">
-        <td class="text-center mono-cell" data-label="#">{{ item.U_IdCampo }}</td>
-        <td data-label="Descripción">{{ item.U_Descripcion }}</td>
-        <td data-label="Campo SAP B1">
-          <code class="campo-tag">{{ item.U_Campo }}</code>
-        </td>
-        <td class="col-acciones" data-label="Acciones">
-          <app-action-menu
-            *ngIf="auth.puedeEditarConf"
-            [actions]="getActionMenuItems(item)"
-            [itemLabel]="item.U_Descripcion"
-            (actionClick)="onActionClick($event, item)">
-          </app-action-menu>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+<ng-template #campoCol let-item>
+  <code class="campo-tag">{{ item.U_Campo }}</code>
+</ng-template>
+
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [config]="tableConfig"
+  (action)="onTableAction($event)">
+</app-data-table>

@@ -1,26 +1,90 @@
-﻿<div class="page-header">
-  <div class="page-title-group">
-    <h2>Aprobaciones Pendientes</h2>
-    <p class="page-subtitle">Rendiciones enviadas que requieren tu revisión y aprobación</p>
+<app-crud-page-header
+  title="Aprobaciones Pendientes"
+  subtitle="Rendiciones enviadas que requieren tu revisión y aprobación"
+  actionLabel="↺ Actualizar"
+  (actionClick)="load()">
+</app-crud-page-header>
+
+<!-- Estado de loading / error -->
+<app-crud-empty-state
+  [loading]="store.loading()"
+  [error]="store.loadError()"
+  [empty]="false"
+  [searchEmpty]="false"
+  loadingText="Cargando aprobaciones..."
+  errorText="No se pudo cargar."
+  (retry)="load()">
+</app-crud-empty-state>
+
+<!-- Estado vacío -->
+<app-aprobaciones-empty
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length === 0">
+</app-aprobaciones-empty>
+
+<!-- Filtros dinámicos por nivel -->
+<div class="filter-bar" *ngIf="nivelesDisponibles.length > 1 && !store.loading() && !store.loadError()">
+  <div class="filter-field">
+    <label>Nivel de aprobación</label>
+    <div class="tab-switcher">
+      <button type="button" class="tab-btn"
+        [class.active]="nivelFiltro === 'todas'"
+        (click)="onNivelFiltroChange('todas')">
+        Todas
+        <span class="sub-count-badge" *ngIf="nivelFiltro === 'todas' && store.items().length > 0">{{ store.items().length }}</span>
+      </button>
+      <button type="button" class="tab-btn"
+        *ngFor="let n of nivelesDisponibles"
+        [class.active]="nivelFiltro === n"
+        (click)="onNivelFiltroChange(n)">
+        Nivel {{ n }}
+        <span class="sub-count-badge" *ngIf="nivelFiltro === n && store.filtered().length > 0">{{ store.filtered().length }}</span>
+      </button>
+    </div>
   </div>
-  <button class="btn btn-ghost btn-sm" (click)="load()">↺ Actualizar</button>
 </div>
 
-<!-- Estado de error -->
-<div *ngIf="!loading && loadError" class="empty-state">
-  No se pudo cargar. <a (click)="load()">Reintentar</a>
-</div>
+<!-- Templates de columna -->
+<ng-template #nroCol let-item>
+  <a class="link-primary" [routerLink]="['/rend-m', item.U_IdRendicion, 'detalle']">
+    {{ item.U_IdRendicion }}
+  </a>
+</ng-template>
 
-<!-- Lista de aprobaciones -->
-<app-aprobaciones-list
-  [items]="pendientes"
-  [loading]="loading"
-  [nivelFiltro]="nivelFiltro"
-  (nivelFiltroChange)="onNivelFiltroChange($event)"
-  (aprobar)="openAprobar($event)"
-  (rechazar)="openRechazar($event)"
-  (verDetalle)="onVerDetalle($event)">
-</app-aprobaciones-list>
+<ng-template #fechaIniCol let-item>
+  {{ item.U_FechaIni | ddmmyyyy }}
+</ng-template>
+
+<ng-template #fechaFinCol let-item>
+  {{ item.U_FechaFinal | ddmmyyyy }}
+</ng-template>
+
+<ng-template #montoCol let-item>
+  {{ item.U_Monto | number:'1.2-2' }}
+</ng-template>
+
+<ng-template #nivelCol let-item>
+  <span class="badge badge-primary">Nivel {{ item.U_Nivel }}</span>
+</ng-template>
+
+<ng-template #estadoCol let-item>
+  <app-status-badge [type]="getBadgeType(item.U_Estado_Rend)">
+    {{ estadoRendTexto(item.U_Estado_Rend) }}
+  </app-status-badge>
+</ng-template>
+
+<!-- Tabla -->
+<app-data-table
+  *ngIf="!store.loading() && !store.loadError() && store.filtered().length > 0"
+  [items]="store.paged()"
+  [config]="tableConfig"
+  [page]="store.page()"
+  [limit]="store.limit()"
+  [total]="store.filtered().length"
+  [totalPages]="store.totalPages()"
+  (pageChange)="onPageChange($event)"
+  (limitChange)="onLimitChange($event)"
+  (action)="onTableAction($event)">
+</app-data-table>
 
 <!-- Modal de acción -->
 <app-aprobacion-modal

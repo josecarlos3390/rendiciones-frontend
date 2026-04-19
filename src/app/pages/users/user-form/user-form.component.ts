@@ -1,16 +1,19 @@
 import {
   Component, Input, Output, EventEmitter,
-  OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef,
+  OnInit, OnChanges, OnDestroy, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { UsuarioSearchComponent, UsuarioItem } from '../../../shared/usuario-search/usuario-search.component';
-import { AppSelectComponent, SelectOption } from '../../../shared/app-select/app-select.component';
-import { FormModalComponent } from '../../../shared/form-modal';
-import { FormFieldComponent } from '../../../shared/form-field';
-import { FormDirtyService } from '../../../shared/form-dirty';
-import { User } from '../../../models/user.model';
-import { DimensionWithRules } from '../../../services/sap.service';
+import { UsuarioSearchComponent, UsuarioItem } from '@shared/usuario-search/usuario-search.component';
+import { AppSelectComponent, SelectOption } from '@shared/app-select/app-select.component';
+import { FormModalComponent } from '@shared/form-modal';
+import { FormModalTab } from '@shared/form-modal/form-modal.component';
+import { FormFieldComponent } from '@shared/form-field';
+import { FormDirtyService } from '@shared/form-dirty';
+import { User } from '@models/user.model';
+import { DimensionWithRules } from '@services/sap.service';
+import { BreakpointService } from '@services/breakpoint.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-user-form',
@@ -28,14 +31,20 @@ import { DimensionWithRules } from '../../../services/sap.service';
   [isDirty]="isDirty"
   [wide]="true"
   [submitDisabled]="form.invalid"
+  [tabs]="activeTabs"
+  [activeTab]="activeTab"
+  [showTabNav]="isMobile"
+  (tabChange)="onTabChange($event)"
   (save)="onSave()"
   (cancel)="onCancel()">
   
   <ng-template #formContent>
-    <form [formGroup]="form" (ngSubmit)="onSave()" novalidate class="modal-2col-layout">
+    <form [formGroup]="form" (ngSubmit)="onSave()" novalidate
+          [class.layout-desktop]="!isMobile"
+          [class.layout-mobile]="isMobile">
 
       <!-- ══ Columna izquierda: datos ══ -->
-      <div class="modal-body modal-col">
+      <div class="form-col" [class.tab-hidden]="!isDatosTab">
 
         <div class="form-section-label">Datos del usuario</div>
 
@@ -60,7 +69,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
           [required]="true"
           controlName="name"
           [showChanged]="!!user"
-          [initialValue]="initialValues?.name">
+          [initialValue]="initialValues?.['name']">
           <input type="text" formControlName="name" placeholder="Juan Pérez" autocomplete="off" />
         </app-form-field>
 
@@ -70,7 +79,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
           controlName="supervisorName"
           hint="El usuario seleccionado deberá aprobar las rendiciones de este usuario"
           [showChanged]="!!user"
-          [initialValue]="initialValues?.supervisorName">
+          [initialValue]="initialValues?.['supervisorName']">
           <app-usuario-search
             [initialLogin]="form.get('supervisorName')?.value"
             [excludeLogin]="user?.U_Login ?? null"
@@ -87,7 +96,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
             [required]="true"
             controlName="superUser"
             [showChanged]="!!user"
-            [initialValue]="initialValues?.superUser">
+            [initialValue]="initialValues?.['superUser']">
             <app-select
               label="Tipo de Usuario"
               [required]="true"
@@ -103,7 +112,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
             [required]="true"
             controlName="fechaExpiracion"
             [showChanged]="!!user"
-            [initialValue]="initialValues?.fechaExpiracion">
+            [initialValue]="initialValues?.['fechaExpiracion']">
             <input type="date" formControlName="fechaExpiracion" />
           </app-form-field>
         </div>
@@ -188,7 +197,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
       </div><!-- /col izquierda -->
 
       <!-- ══ Columna derecha: permisos ══ -->
-      <div class="modal-body modal-col">
+      <div class="form-col" [class.tab-hidden]="!isPermisosTab">
 
         <div class="form-section-label">Módulos y permisos</div>
 
@@ -306,7 +315,7 @@ import { DimensionWithRules } from '../../../services/sap.service';
 </app-form-modal>
   `,
 })
-export class UserFormComponent implements OnChanges {
+export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
   @Input() visible   = false;
   @Input() user:      User | null = null;
   @Input() dimensions: DimensionWithRules[] = [];
@@ -318,7 +327,16 @@ export class UserFormComponent implements OnChanges {
 
   form!: FormGroup;
   dimOptionsMap: Partial<Record<number, SelectOption[]>> = {};
-  initialValues: any = null;
+  initialValues: Record<string, unknown> | null = null;
+
+  // ── Tabs para móvil ──────────────────────────────────────────
+  isMobile = false;
+  activeTab = 'datos';
+  readonly mobileTabs: FormModalTab[] = [
+    { id: 'datos',    label: 'Datos y Normas' },
+    { id: 'permisos', label: 'Permisos' },
+  ];
+  private mobileSub?: Subscription;
 
   readonly userTypeOptions: SelectOption[] = [
     { value: 0, label: 'Normal',        icon: '👤' },
@@ -335,15 +353,39 @@ export class UserFormComponent implements OnChanges {
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
     private dirtyService: FormDirtyService,
+    private breakpoint: BreakpointService,
   ) {
     this.buildForm();
   }
+
+  ngOnInit(): void {
+    this.mobileSub = this.breakpoint.isMobile$.subscribe(isMobile => {
+      this.isMobile = isMobile;
+      this.cdr.markForCheck();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.mobileSub?.unsubscribe();
+  }
+
+  get activeTabs(): FormModalTab[] {
+    return this.isMobile ? this.mobileTabs : [];
+  }
+
+  onTabChange(tabId: string): void {
+    this.activeTab = tabId;
+  }
+
+  get isDatosTab(): boolean    { return !this.isMobile || this.activeTab === 'datos'; }
+  get isPermisosTab(): boolean { return !this.isMobile || this.activeTab === 'permisos'; }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['dimensions']) {
       this.rebuildDimOptions();
     }
     if (changes['visible'] && this.visible) {
+      this.activeTab = 'datos';
       if (this.user) {
         this.loadEditMode(this.user);
       } else {
@@ -415,7 +457,7 @@ export class UserFormComponent implements OnChanges {
     });
     this.form.get('login')?.disable();
     this.initialValues = this.form.getRawValue();
-    this.initialValues['password'] = '';
+    this.initialValues!['password'] = '';
   }
 
   private defaultExpiry(): string {
@@ -472,7 +514,16 @@ export class UserFormComponent implements OnChanges {
   }
 
   onSave() {
-    if (this.form.invalid || this.isSaving) return;
+    if (this.form.invalid || this.isSaving) {
+      this.form.markAllAsTouched();
+      if (this.isMobile) {
+        const datosFields = ['login', 'name', 'password', 'superUser', 'fechaExpiracion', 'fijarNr', 'nr1', 'nr2', 'nr3', 'nr4', 'nr5'];
+        const hasDatosError = datosFields.some(f => this.form.get(f)?.invalid);
+        this.activeTab = hasDatosError ? 'datos' : 'permisos';
+        this.cdr.markForCheck();
+      }
+      return;
+    }
     const raw = this.form.getRawValue();
     this.saved.emit({ raw, isEdit: !!this.user });
   }

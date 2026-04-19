@@ -1,26 +1,23 @@
-// ─── Estilos específicos para Plan de Cuentas ───
+// Estilos específicos para Plan de Cuentas
 
 .coa-modal {
   max-width: 520px;
 }
 
-.col-code {
-  font-family: var(--font-mono, monospace);
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.inactive-row {
+// Fila inactiva — el <tr> es creado por app-data-table (hijo)
+:host ::ng-deep app-data-table tr.inactive-row {
   opacity: 0.6;
   background-color: var(--bg-muted, #f8f9fa);
 }
 
-// ── Corrección layout tarjeta móvil ──────────────────────────────
+// Corrección layout tarjeta móvil
 @media (max-width: 640px) {
-  .data-table td[data-label="Nombre"] {
-    grid-column: auto;
-  }
-  .data-table td[data-label="Código"] {
-    grid-column: 1 / -1;
+  :host ::ng-deep app-data-table {
+    td[data-label="Nombre"] {
+      grid-column: auto;
+    }
+    td[data-label="Código"] {
+      grid-column: 1 / -1;
+    }
   }
 }

@@ -2,7 +2,8 @@ import {
   Component,
   OnInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
+  TemplateRef,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -15,14 +16,22 @@ import {
 
 import { CoaService } from '@services/coa.service';
 import { ToastService } from '@core/toast/toast.service';
-import { ConfirmDialogComponent, ConfirmDialogConfig } from '@core/confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogService } from '@core/confirm-dialog/confirm-dialog.service';
+import { HttpErrorHandler } from '@core/http-error-handler';
+import { CrudListStore } from '@core/crud-list-store';
+import { AbstractCrudListComponent } from '@core/abstract-crud-list.component';
 import { CuentaCOA } from '@models/coa.model';
 import { AuthService } from '@auth/auth.service';
-import { SelectOption } from '@shared/app-select/app-select.component';
 import { FormModalComponent } from '@shared/form-modal/form-modal.component';
 import { FormFieldComponent } from '@shared/form-field';
+import { CrudPageHeaderComponent } from '@shared/crud-page-header/crud-page-header.component';
+import { CrudEmptyStateComponent } from '@shared/crud-empty-state/crud-empty-state.component';
+import { DataTableComponent, DataTableConfig, DataTableAction } from '@shared/data-table';
+import { BooleanBadgeComponent } from '@shared/boolean-badge/boolean-badge.component';
+import { StatusBadgeComponent } from '@shared/status-badge';
+import { ICON_EDIT, ICON_TRASH } from '@common/constants/icons';
 
-import { CoaFiltersComponent, CoaTableComponent } from './components';
+import { CoaFiltersComponent } from './components';
 
 @Component({
   standalone: true,
@@ -31,61 +40,56 @@ import { CoaFiltersComponent, CoaTableComponent } from './components';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    ConfirmDialogComponent,
-
     FormModalComponent,
     FormFieldComponent,
     CoaFiltersComponent,
-    CoaTableComponent,
+    CrudPageHeaderComponent,
+    CrudEmptyStateComponent,
+    DataTableComponent,
+    BooleanBadgeComponent,
+    StatusBadgeComponent,
   ],
   templateUrl: './coa.component.html',
   styleUrls: ['./coa.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CoaComponent implements OnInit {
-  cuentas: CuentaCOA[] = [];
-  filtered: CuentaCOA[] = [];
-  paged: CuentaCOA[] = [];
-  search = '';
-  loading = false;
-  loadError = false;
-  filterActiva: 'todas' | 'activas' | 'inactivas' = 'todas';
+export class CoaComponent extends AbstractCrudListComponent<CuentaCOA> implements OnInit {
+  @ViewChild('codeCol', { static: true }) codeCol!: TemplateRef<any>;
+  @ViewChild('nameCol', { static: true }) nameCol!: TemplateRef<any>;
+  @ViewChild('formatCodeCol', { static: true }) formatCodeCol!: TemplateRef<any>;
+  @ViewChild('asociadaCol', { static: true }) asociadaCol!: TemplateRef<any>;
+  @ViewChild('estadoCol', { static: true }) estadoCol!: TemplateRef<any>;
 
-  estadoOptions: SelectOption<'todas' | 'activas' | 'inactivas'>[] = [
-    { value: 'todas', label: 'Todas', icon: '🔍' },
-    { value: 'activas', label: 'Activas', icon: '✅' },
-    { value: 'inactivas', label: 'Inactivas', icon: '⭕' },
-  ];
+  readonly store = new CrudListStore<CuentaCOA>({ limit: 10, searchFields: ['code', 'name'] });
 
-  // Paginación
-  page = 1;
-  limit = 10;
-  totalPages = 1;
+  tableConfig!: DataTableConfig;
+  tableActions: DataTableAction[] = [];
 
   showForm = false;
   editingCuenta: CuentaCOA | null = null;
   isSaving = false;
   form!: FormGroup;
 
-  private initialValues: any = null;
-
-  showDialog = false;
-  dialogConfig: ConfirmDialogConfig = { title: '', message: '' };
-  private _pendingAction: (() => void) | null = null;
+  private initialValues: Record<string, unknown> | null = null;
 
   constructor(
     public auth: AuthService,
     private coaService: CoaService,
     private toast: ToastService,
     private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
-  ) {}
+    private confirmDialog: ConfirmDialogService,
+    private errorHandler: HttpErrorHandler,
+  ) {
+    super();
+  }
 
   ngOnInit() {
     this.buildForm();
     this.form.statusChanges.subscribe(() => this.cdr.markForCheck());
+    this.buildTableConfig();
     Promise.resolve().then(() => {
       this.load();
+      this._applyActivaFilter();
     });
   }
 
@@ -117,80 +121,11 @@ export class CoaComponent implements OnInit {
   // ── CRUD ─────────────────────────────────────────────────
 
   load(onComplete?: () => void) {
-    this.loading = true;
-    this.loadError = false;
-    this.coaService.getCuentas().subscribe({
-      next: (data) => {
-        this.cuentas = data;
-        this.loading = false;
-        this.applyFilter();
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-      error: () => {
-        this.loading = false;
-        this.loadError = true;
-        this.cdr.markForCheck();
-        onComplete?.();
-      },
-    });
+    this.store.load(this.coaService.getCuentas(), onComplete);
   }
 
-  applyFilter() {
-    let result = this.cuentas;
-
-    // Filtro de búsqueda por texto
-    const q = this.search.toLowerCase().trim();
-    if (q) {
-      result = result.filter(
-        (c) =>
-          c.code.toLowerCase().includes(q) ||
-          c.name.toLowerCase().includes(q),
-      );
-    }
-
-    // Filtro por estado activa
-    if (this.filterActiva === 'activas') {
-      result = result.filter((c) => c.activa);
-    } else if (this.filterActiva === 'inactivas') {
-      result = result.filter((c) => !c.activa);
-    }
-
-    this.filtered = result;
-    this.page = 1;
-    this.updatePaging();
-    this.cdr.markForCheck();
-  }
-
-  updatePaging() {
-    this.totalPages = Math.max(1, Math.ceil(this.filtered.length / this.limit));
-    const start = (this.page - 1) * this.limit;
-    this.paged = this.filtered.slice(start, start + this.limit);
-  }
-
-  onPageChange(p: number) {
-    this.page = p;
-    this.updatePaging();
-  }
-  onLimitChange(l: number) {
-    this.limit = l;
-    this.page = 1;
-    this.updatePaging();
-  }
-
-  onFilterActivaChange(value: string) {
-    this.filterActiva = value as 'todas' | 'activas' | 'inactivas';
-    this.applyFilter();
-  }
-
-  onSearchChange(value: string) {
-    this.search = value;
-    this.applyFilter();
-  }
-
-  onSearchCleared() {
-    this.search = '';
-    this.applyFilter();
+  protected override getActiva(item: CuentaCOA): boolean {
+    return item.activa;
   }
 
   // ── Formulario ───────────────────────────────────────────
@@ -257,9 +192,7 @@ export class CoaComponent implements OnInit {
           },
           error: (err: any) => {
             this.isSaving = false;
-            const msg = err?.error?.message || 'Error al actualizar cuenta';
-            this.toast.error(msg);
-            this.cdr.markForCheck();
+            this.errorHandler.handle(err, 'Error al actualizar cuenta', this.cdr);
           },
         });
     } else {
@@ -282,45 +215,45 @@ export class CoaComponent implements OnInit {
           },
           error: (err: any) => {
             this.isSaving = false;
-            const msg = err?.error?.message || 'Error al crear cuenta';
-            this.toast.error(msg);
-            this.cdr.markForCheck();
+            this.errorHandler.handle(err, 'Error al crear cuenta', this.cdr);
           },
         });
     }
   }
 
-  // ── Action Menu ──────────────────────────────────────────
+  private buildTableConfig(): void {
+    this.tableConfig = {
+      columns: [
+        { key: 'code', header: 'Código', cellTemplate: this.codeCol, mobile: { primary: true } },
+        { key: 'name', header: 'Nombre', cellTemplate: this.nameCol },
+        { key: 'formatCode', header: 'Format Code', cellTemplate: this.formatCodeCol, mobile: { hide: true } },
+        { key: 'asociada', header: 'Asociada', align: 'center', cellTemplate: this.asociadaCol, mobile: { hide: true } },
+        { key: 'activa', header: 'Estado', align: 'center', cellTemplate: this.estadoCol },
+      ],
+      showActions: true,
+      actions: this.tableActions,
+      striped: true,
+      hoverable: true,
+    };
 
-  getActionMenuItems(c: CuentaCOA): any[] {
-    const editIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    const trashIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
-
-    return [
-      {
-        id: 'edit',
-        label: 'Editar',
-        icon: editIcon,
-      },
-      {
-        id: 'delete',
-        label: 'Eliminar',
-        icon: trashIcon,
-        cssClass: 'action-danger',
-      },
+    this.tableActions = [
+      { id: 'edit', label: 'Editar', icon: ICON_EDIT },
+      { id: 'delete', label: 'Eliminar', icon: ICON_TRASH, cssClass: 'danger' },
     ];
   }
 
-  onActionClick(actionId: string, c: CuentaCOA): void {
-    switch (actionId) {
+  onTableAction(event: { action: string; item: CuentaCOA }): void {
+    switch (event.action) {
       case 'edit':
-        this.openEdit(c);
+        this.openEdit(event.item);
         break;
       case 'delete':
-        this.confirmDelete(c);
+        this.confirmDelete(event.item);
         break;
     }
   }
+
+  rowClassFn = (c: CuentaCOA): string => (!c.activa ? 'inactive-row' : '');
 
   // ── Acciones rápidas ─────────────────────────────────────
 
@@ -332,55 +265,28 @@ export class CoaComponent implements OnInit {
         this.load();
         this.cdr.markForCheck();
       },
-      error: (err: any) => {
-        const msg = err?.error?.message || 'Error al cambiar estado';
-        this.toast.error(msg);
-        this.cdr.markForCheck();
-      },
+      error: (err: any) => this.errorHandler.handle(err, 'Error al cambiar estado', this.cdr),
     });
   }
 
   // ── Eliminar ─────────────────────────────────────────────
 
   confirmDelete(c: CuentaCOA) {
-    this.openDialog(
-      {
-        title: '¿Eliminar cuenta?',
-        message: `Se eliminará la cuenta "${c.code} - ${c.name}" de forma permanente.`,
-        confirmLabel: 'Sí, eliminar',
-        type: 'danger',
-      },
-      () => {
-        this.coaService.eliminarCuenta(c.code).subscribe({
-          next: () => {
-            this.toast.exito('Cuenta eliminada');
-            this.load();
-            this.cdr.markForCheck();
-          },
-          error: (err: any) => {
-            const msg = err?.error?.message || 'Error al eliminar cuenta';
-            this.toast.error(msg);
-            this.cdr.markForCheck();
-          },
-        });
-      },
-    );
-  }
-
-  // ── Dialog ───────────────────────────────────────────────
-
-  openDialog(config: ConfirmDialogConfig, onConfirm: () => void) {
-    this.dialogConfig = config;
-    this._pendingAction = onConfirm;
-    this.showDialog = true;
-  }
-  onDialogConfirm() {
-    this.showDialog = false;
-    this._pendingAction?.();
-    this._pendingAction = null;
-  }
-  onDialogCancel() {
-    this.showDialog = false;
-    this._pendingAction = null;
+    this.confirmDialog.ask({
+      title: '¿Eliminar cuenta?',
+      message: `Se eliminará la cuenta "${c.code} - ${c.name}" de forma permanente.`,
+      confirmLabel: 'Sí, eliminar',
+      type: 'danger',
+    }).then((confirmed: boolean) => {
+      if (!confirmed) return;
+      this.coaService.eliminarCuenta(c.code).subscribe({
+        next: () => {
+          this.toast.exito('Cuenta eliminada');
+          this.load();
+          this.cdr.markForCheck();
+        },
+        error: (err: any) => this.errorHandler.handle(err, 'Error al eliminar cuenta', this.cdr),
+      });
+    });
   }
 }

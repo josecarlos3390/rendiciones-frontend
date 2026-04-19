@@ -5,11 +5,6 @@
  * Use environment variables or local config files for sensitive data.
  */
 
-const backendHost =
-  typeof window !== 'undefined' && window.location.hostname !== ''
-    ? window.location.hostname
-    : 'localhost'; // Fallback to localhost for SSR/security
-
 export const environment = {
   production: false,
   //production: true,
