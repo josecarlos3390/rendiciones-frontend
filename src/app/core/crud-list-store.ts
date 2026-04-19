@@ -7,20 +7,20 @@ export interface CrudListStoreOptions<T> {
 }
 
 export class CrudListStore<T> {
-  private readonly _items = signal<T[]>([]);
-  private readonly _loading = signal<boolean>(false);
-  private readonly _loadError = signal<boolean>(false);
-  private readonly _page = signal<number>(1);
-  private readonly _limit = signal<number>(10);
-  private readonly _search = signal<string>('');
+  private readonly _items         = signal<T[]>([]);
+  private readonly _loading       = signal<boolean>(false);
+  private readonly _loadError     = signal<boolean>(false);
+  private readonly _page          = signal<number>(1);
+  private readonly _limit         = signal<number>(10);
+  private readonly _search        = signal<string>('');
   private readonly _customFilters = signal<Record<string, (item: T) => boolean>>({});
 
-  readonly items = this._items.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly loadError = this._loadError.asReadonly();
-  readonly page = this._page.asReadonly();
-  readonly limit = this._limit.asReadonly();
-  readonly search = this._search.asReadonly();
+  readonly items         = this._items.asReadonly();
+  readonly loading       = this._loading.asReadonly();
+  readonly loadError     = this._loadError.asReadonly();
+  readonly page          = this._page.asReadonly();
+  readonly limit         = this._limit.asReadonly();
+  readonly search        = this._search.asReadonly();
   readonly customFilters = this._customFilters.asReadonly();
 
   readonly filtered = computed(() => {
@@ -30,7 +30,8 @@ export class CrudListStore<T> {
     if (q && this._searchFields.length > 0) {
       result = result.filter((item) =>
         this._searchFields.some((field) => {
-          const value = (item as any)[field];
+          // Cast tipado: evita `any`, mantiene seguridad en runtime
+          const value = (item as Record<string, unknown>)[field as string];
           return value != null && String(value).toLowerCase().includes(q);
         }),
       );
@@ -50,8 +51,8 @@ export class CrudListStore<T> {
   });
 
   readonly paged = computed(() => {
-    const data = this.filtered();
-    const page = this._page();
+    const data  = this.filtered();
+    const page  = this._page();
     const limit = this._limit();
     const start = (page - 1) * limit;
     return data.slice(start, start + limit);
@@ -69,22 +70,45 @@ export class CrudListStore<T> {
     return Math.max(1, value);
   }
 
-  load(observable: Observable<T[]>, onComplete?: () => void): void {
+  /**
+   * Retorna el Observable para que el componente lo suscriba con
+   * `takeUntilDestroyed()` y evitar memory leaks si el componente
+   * se destruye antes de que llegue la respuesta.
+   *
+   * Uso en el componente:
+   *
+   *   private destroyRef = inject(DestroyRef);
+   *
+   *   loadData(): void {
+   *     this.store.load(this.service.getAll())
+   *       .pipe(takeUntilDestroyed(this.destroyRef))
+   *       .subscribe();
+   *   }
+   */
+  load(observable: Observable<T[]>, onComplete?: () => void): Observable<T[]> {
     this._loading.set(true);
     this._loadError.set(false);
 
-    observable.subscribe({
-      next: (data) => {
-        this._items.set(data);
-        this._loading.set(false);
-        this._page.set(1);
-        onComplete?.();
-      },
-      error: () => {
-        this._loading.set(false);
-        this._loadError.set(true);
-        onComplete?.();
-      },
+    return new Observable<T[]>(subscriber => {
+      const inner = observable.subscribe({
+        next: (data) => {
+          this._items.set(data);
+          this._loading.set(false);
+          this._page.set(1);
+          onComplete?.();
+          subscriber.next(data);
+          subscriber.complete();
+        },
+        error: (err) => {
+          this._loading.set(false);
+          this._loadError.set(true);
+          onComplete?.();
+          subscriber.error(err);
+        },
+      });
+
+      // Teardown: cancela la petición HTTP si el componente se destruye
+      return () => inner.unsubscribe();
     });
   }
 
@@ -100,7 +124,7 @@ export class CrudListStore<T> {
 
   setPage(p: number): void {
     const safe = Math.max(1, p);
-    const max = this.totalPages();
+    const max  = this.totalPages();
     this._page.set(Math.min(safe, max));
   }
 
